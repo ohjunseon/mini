@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jump Tower 300x500</title>
+  <style>
+    :root{ --bg:#0b1020; --fg:#ecf0ff; --panel:#121a33; --accent:#6cf; }
+    html,body{margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, sans-serif;}
+    .wrap{min-height:100%; display:flex; align-items:center; justify-content:center; padding:16px;}
+    .stage{position:relative; width:300px;}
+    canvas{display:block; width:300px; height:500px; background:linear-gradient(#0a1636,#081124 60%, #060a18); border:1px solid #24305a; border-radius:10px; image-rendering:pixelated}
+    .hud{position:absolute; top:6px; left:8px; right:8px; display:flex; justify-content:space-between; font-weight:700; text-shadow:0 1px 0 #0008; pointer-events:none}
+    .overlay{position:absolute; inset:0; display:flex; align-items:center; justify-content:center}
+    .card{background:#0f1634ee; border:1px solid #2a355a; width:260px; padding:14px; border-radius:12px; text-align:center; box-shadow:0 8px 18px #0008}
+    .btn{background:#18203a; color:var(--fg); border:1px solid #2a355a; padding:8px 12px; border-radius:10px; cursor:pointer}
+    .btn:hover{filter:brightness(1.08)}
+    .controls{display:flex; gap:8px; justify-content:center; margin-top:8px}
+    .pad{width:96px; height:44px; border-radius:10px; background:#141b33cc; border:1px solid #24305a; display:flex; align-items:center; justify-content:center; color:#cde; user-select:none; touch-action:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="stage">
+      <canvas id="game" width="300" height="500"></canvas>
+
+      <div class="hud">
+        <div>점수: <span id="score">0</span></div>
+        <div>최고: <span id="best">0</span></div>
+      </div>
+
+      <div id="startOv" class="overlay">
+        <div class="card">
+          <h3 style="margin:6px 0 8px">Jump Tower</h3>
+          <p style="margin:0 0 10px; opacity:.85">좌/우로 이동하며 발판에 착지해 위로 올라가세요!</p>
+          <p style="margin:0 0 12px; font-size:12px; opacity:.8">키보드 ◀ ▶ / A D · 스페이스: 시작</p>
+          <button id="btnStart" class="btn">▶️ 시작</button>
+          <div class="controls" style="margin-top:10px">
+            <div class="pad" id="padL">◀</div>
+            <div class="pad" id="padR">▶</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="overOv" class="overlay" style="display:none">
+        <div class="card">
+          <h4 style="margin:6px 0 8px">게임 오버</h4>
+          <p style="margin:0 0 6px">기록: <b><span id="final">0</span></b></p>
+          <p style="margin:0 10px 12px; font-size:12px; opacity:.8">최고: <b><span id="best2">0</span></b></p>
+          <button id="btnAgain" class="btn">🔁 다시하기</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+(()=>{
+  // ==== Basics (fixed 300x500) ====
+  const W=300, H=500;
+  const cvs = document.getElementById('game');
+  const ctx = cvs.getContext('2d');
+
+  // ==== UI ====
+  const scoreEl = document.getElementById('score');
+  const bestEl  = document.getElementById('best');
+  const best2El = document.getElementById('best2');
+  const finalEl = document.getElementById('final');
+  const ovStart = document.getElementById('startOv');
+  const ovOver  = document.getElementById('overOv');
+  document.getElementById('btnStart').onclick = start;
+  document.getElementById('btnAgain').onclick = start;
+
+  // Mobile pads
+  const padL = document.getElementById('padL');
+  const padR = document.getElementById('padR');
+
+  // ==== Game State ====
+  const G = 0.35;           // gravity
+  const VX = 1.05; // 이동 속도 3배로 증가          // horizontal accel
+  const FRI = 0.90;         // horizontal friction
+  const JUMP_V = -9.8;      // jump impulse on landing
+  const GAP_MIN = 55, GAP_MAX = 85; // platform vertical gap
+  const PF_W_MIN = 50, PF_W_MAX = 120; // platform width
+
+  const keys = {left:false, right:false};
+  let running=false, paused=false;
+
+  let player, plats, score, best= Number(localStorage.getItem('jt_best')||0); let spawnSafe = 0;
+  bestEl.textContent = best;
+
+  // ==== Helpers ====
+  function rnd(a,b){ return a + Math.random()*(b-a); }
+
+  function makeLevel(){
+    plats = [];
+    // base floor
+    plats.push({x: W/2-60, y: H-20, w: 120, h: 10, type:'base'});
+    // ascending platforms from bottom to top
+    let y = H-80;
+    while(y > -H){
+      const w = rnd(PF_W_MIN, PF_W_MAX);
+      const x = rnd(10, W-10-w);
+      plats.push({x, y, w, h: 10, type: (Math.random()<0.18?'move':'norm'), vx: (Math.random()<0.5? 0.6:-0.6)});
+      y -= rnd(GAP_MIN, GAP_MAX);
+    }
+  }
+
+  function reset(){
+    makeLevel();
+    // spawn on the safest (lowest) platform surface
+    let base = plats[0];
+    for(const p of plats){ if(p.y > base.y) base = p; }
+    const pw = 20, ph = 24;
+    player = {
+      x: base.x + base.w/2 - pw/2,
+      y: base.y - ph - 1,  // 1px above so first frame collides and bounces
+      w: pw, h: ph,
+      vx:0, vy:0, alive:true
+    }
+;
+    score = 0; scoreEl.textContent = '0';
+  }
+
+  function start(){
+    reset(); running = true; paused=false; spawnSafe = 60; ovStart.style.display='none'; ovOver.style.display='none';
+    last=0; loop();
+  }
+
+  function gameOver(){
+    running=false; finalEl.textContent = Math.floor(score);
+    best = Math.max(best, Math.floor(score)); localStorage.setItem('jt_best', best);
+    bestEl.textContent = best; best2El.textContent = best;
+    ovOver.style.display = 'flex';
+  }
+
+  // ==== Input ====
+  window.addEventListener('keydown', e=>{
+    if(ovStart.style.display!=='none' && (e.key===' '||e.key==='Enter')) return start();
+    if(e.key==='ArrowLeft'||e.key==='a') keys.left=true;
+    if(e.key==='ArrowRight'||e.key==='d') keys.right=true;
+  });
+  window.addEventListener('keyup', e=>{
+    if(e.key==='ArrowLeft'||e.key==='a') keys.left=false;
+    if(e.key==='ArrowRight'||e.key==='d') keys.right=false;
+  });
+  const setPad=(dir,val)=>{ keys[dir]=val; };
+  ['pointerdown','mousedown','touchstart'].forEach(ev=>{
+    padL.addEventListener(ev, ()=>setPad('left',true));
+    padR.addEventListener(ev, ()=>setPad('right',true));
+  });
+  ['pointerup','mouseleave','touchend','pointercancel'].forEach(ev=>{
+    padL.addEventListener(ev, ()=>setPad('left',false));
+    padR.addEventListener(ev, ()=>setPad('right',false));
+  });
+
+  // ==== Update ====
+  function update(dt){
+    if(!player.alive) return;
+
+    // brief spawn protection so you don't die instantly
+    if(spawnSafe>0) spawnSafe--;
+
+    // horizontal
+    if(keys.left)  player.vx -= VX*dt;
+    if(keys.right) player.vx += VX*dt;
+    player.vx *= FRI; player.x += player.vx*dt;
+    if(player.x < -player.w) player.x = W; if(player.x > W) player.x = -player.w;
+
+    // vertical
+    player.vy += G*dt; player.y += player.vy*dt;
+
+    // move platforms (type move)
+    for(const p of plats){
+      if(p.type==='move'){
+        p.x += p.vx*dt;
+        if(p.x<8 || p.x+p.w>W-8) p.vx *= -1;
+      }
+    }
+
+    // collisions (landing only)
+    for(const p of plats){
+      const fromAbove = player.vy>0 && (player.y + player.h) <= (p.y + player.vy*dt) && (player.y + player.h) >= p.y - 4;
+      if(fromAbove && player.x + player.w > p.x && player.x < p.x + p.w){
+        player.y = p.y - player.h; player.vy = JUMP_V; // bounce
+      }
+    }
+
+    // scroll world up when player climbs above midline
+    if(player.y < 200){
+      const dy = 200 - player.y;
+      player.y += dy;
+      for(const p of plats) p.y += dy;
+      score += dy/10; // scoring
+      scoreEl.textContent = String(Math.floor(score));
+    }
+
+    // death: fell below bottom
+    if(player.y > H+40 && spawnSafe<=0) { player.alive=false; gameOver(); }
+
+    // recycle platforms: add new at top, remove at bottom
+    for(let i=plats.length-1;i>=0;i--){
+      if(plats[i].y > H+20) plats.splice(i,1);
+    }
+    // ensure enough platforms above
+    while(plats.filter(p=>p.y < 0).length < 10){
+      const topY = Math.min(...plats.map(p=>p.y));
+      const w = rnd(PF_W_MIN, PF_W_MAX);
+      const x = rnd(10, W-10-w);
+      const y = topY - rnd(GAP_MIN, GAP_MAX);
+      plats.push({x,y,w,h:10,type:(Math.random()<0.2?'move':'norm'), vx:(Math.random()<0.5?0.6:-0.6)});
+    }
+  }
+
+  // ==== Draw ====
+  function draw(){
+    // background gradient
+    const grd = ctx.createLinearGradient(0,0,0,H); grd.addColorStop(0,'#0a1636'); grd.addColorStop(1,'#060a18');
+    ctx.fillStyle = grd; ctx.fillRect(0,0,W,H);
+
+    // stars
+    ctx.fillStyle = '#89a';
+    for(let i=0;i<40;i++) ctx.fillRect((i*37)%W, (i*71)%H, 2, 2);
+
+    // platforms
+    for(const p of plats){
+      ctx.fillStyle = p.type==='move'? '#3f7a9e' : '#2a3e76';
+      ctx.fillRect(p.x, p.y, p.w, p.h);
+    }
+
+    // player
+    ctx.fillStyle = '#ffef'; ctx.fillRect(player.x, player.y, player.w, player.h);
+    ctx.fillStyle = '#6cf'; ctx.fillRect(player.x+player.w*0.2, player.y+player.h*0.22, player.w*0.6, player.h*0.28);
+  }
+
+  // ==== Main loop ====
+  let last=0;
+  function loop(ts){
+    if(!running) return; const now = ts || performance.now(); if(!last) last = now; const dt = Math.min(33, now-last); last = now;
+    update(dt*0.06); draw(); requestAnimationFrame(loop);
+  }
+
+  // allow keyboard start
+  window.addEventListener('keydown', (e)=>{ if(ovStart.style.display!=='none' && (e.key===' '||e.key==='Enter')) start(); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MiniGames — 메인</title>
+  <meta name="theme-color" content="#111827" />
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111827;
+      --panel-2: #0f172a;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #60a5fa;
+      --accent-2: #34d399;
+      --radius: 16px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Noto Sans CJK KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text);
+      background: radial-gradient(1200px 800px at 10% -10%, #1f2937 0%, transparent 50%),
+                  radial-gradient(800px 600px at 100% 0%, #0e7490 0%, transparent 55%),
+                  linear-gradient(180deg, #0b1220 0%, #030712 100%);
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px 16px 60px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(6px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: conic-gradient(from 220deg, #60a5fa, #34d399, #a78bfa, #60a5fa);
+      box-shadow: 0 6px 16px rgba(96,165,250,.4);
+    }
+
+    h1 { font-size: 22px; margin: 0; letter-spacing: 0.2px; }
+    .sub { color: var(--muted); font-size: 13px; }
+
+    .actions { display: flex; align-items: center; gap: 8px; }
+    .btn {
+      appearance: none; border: 0; cursor: pointer;
+      padding: 10px 14px; border-radius: 12px;
+      background: #1f2937; color: var(--text);
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .btn:hover { filter: brightness(1.06); }
+
+    /* Ad area (optional) */
+    .ad {
+      margin: 16px 0 22px; width: 100%; min-height: 90px;
+      border: 1px dashed rgba(255,255,255,.14);
+      border-radius: 14px; display:flex; align-items:center; justify-content:center;
+      color: var(--muted); font-size: 13px; background: rgba(255,255,255,.03);
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      position: relative; overflow: hidden; border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+      box-shadow: var(--shadow);
+      transition: transform .18s ease, box-shadow .18s ease;
+      outline: none;
+    }
+    .card:focus-visible { box-shadow: 0 0 0 3px rgba(96,165,250,.55), var(--shadow); }
+    .card:hover { transform: translateY(-3px); }
+
+    .thumb {
+      aspect-ratio: 16/10; width: 100%; display: block; object-fit: cover;
+      background: #0b1020;
+    }
+
+    .badge {
+      position: absolute; top: 10px; left: 10px; padding: 6px 10px; border-radius: 999px;
+      background: rgba(17,24,39,.8); border: 1px solid rgba(255,255,255,.12);
+      font-size: 12px; color: #e5e7eb; backdrop-filter: blur(6px);
+    }
+
+    .card-body { padding: 12px 14px 14px; }
+    .title { font-size: 16px; margin: 0 0 6px; }
+    .desc { color: var(--muted); font-size: 13px; margin: 0 0 10px; min-height: 36px; }
+
+    .meta { display:flex; align-items:center; gap:10px; color: var(--muted); font-size: 12px; }
+    .dot { width:6px; height:6px; border-radius: 999px; background: #22d3ee; opacity:.8; }
+
+    .play {
+      position: absolute; right: 10px; bottom: 10px; z-index: 2;
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.12);
+      background: linear-gradient(180deg, rgba(59,130,246,.2), rgba(59,130,246,.05));
+      color: #dbeafe; text-decoration: none; font-weight: 600; font-size: 14px;
+    }
+    .play:hover { filter: brightness(1.1); }
+
+    footer { margin-top: 36px; color: var(--muted); font-size: 12px; text-align: center; }
+
+    /* Small tweaks */
+    @media (max-width: 420px) {
+      h1 { font-size: 18px; }
+      .btn { padding: 8px 12px; }
+      .game-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand" aria-label="브랜드">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>미니게임 모음</h1>
+          <div class="sub">PC/모바일에서 바로 플레이 • 최근 플레이 기록 저장</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="shuffleBtn" title="랜덤 게임 시작">🎲 랜덤</button>
+        <button class="btn" id="resetBtn" title="기록 초기화">🧹 기록초기화</button>
+      </div>
+    </header>
+
+    <!-- 애드센스 삽입 위치 예시: 실제 운영 시 스니펫을 붙여넣으세요. -->
+    <div class="ad" id="ad-slot">광고 영역(예시) • Google AdSense 스크립트를 이 영역 위/아래에 삽입</div>
+
+    <section class="game-grid" id="grid" aria-label="게임 리스트">
+      <!-- JS에서 카드 렌더링 -->
+    </section>
+
+    <footer>
+      © <span id="year"></span> MiniGames. Made with ❤️
+    </footer>
+  </div>
+
+  <script>
+    /**
+     * 구성 방법
+     * - 각 미니게임은 /mini1, /mini2, /mini3 처럼 폴더에 있고, 각 폴더에 index.html이 있다고 가정합니다.
+     * - 썸네일은 각 폴더에 cover.png(또는 jpg/webp)로 두면 자동 경로가 사용됩니다.
+     * - 아래 games 배열에서 이름/설명만 바꿔도 됩니다.
+     */
+    const games = [
+      { id: 'mini1', title: '미니게임 1', path: 'mini1/', desc: '점프/회피 액션', thumb: 'mini1/cover.png' },
+      { id: 'mini2', title: '미니게임 2', path: 'mini2/', desc: '타이밍/리듬', thumb: 'mini2/cover.png' },
+      { id: 'mini3', title: '미니게임 3', path: 'mini3/', desc: '두뇌 퍼즐', thumb: 'mini3/cover.png' },
+    ];
+
+    const grid = document.getElementById('grid');
+    const year = document.getElementById('year');
+    year.textContent = new Date().getFullYear();
+
+    const KEY_LAST = 'mini:lastPlayed';
+    const KEY_COUNT = 'mini:playCounts';
+
+    function getPlayCounts() {
+      try { return JSON.parse(localStorage.getItem(KEY_COUNT)) || {}; } catch { return {}; }
+    }
+    function setPlayCounts(map) {
+      localStorage.setItem(KEY_COUNT, JSON.stringify(map));
+    }
+    function setLastPlayed(id) {
+      localStorage.setItem(KEY_LAST, JSON.stringify({ id, at: Date.now() }));
+    }
+    function getLastPlayed() {
+      try { return JSON.parse(localStorage.getItem(KEY_LAST)) } catch { return null }
+    }
+
+    function fmtTime(ms) {
+      const d = new Date(ms);
+      const z = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
+    }
+
+    function createCard(game, index) {
+      const counts = getPlayCounts();
+      const playCount = counts[game.id] || 0;
+
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.tabIndex = 0;
+      card.setAttribute('role', 'group');
+      card.setAttribute('aria-label', `${game.title} 카드`);
+
+      const img = document.createElement('img');
+      img.className = 'thumb';
+      img.alt = `${game.title} 썸네일`;
+      img.loading = 'lazy';
+      img.src = game.thumb;
+      img.onerror = () => {
+        // 썸네일 없으면 자동 대체 이미지 (SVG data URL)
+        img.src = makeFallbackThumb(game.title);
+      };
+
+      const badge = document.createElement('div');
+      badge.className = 'badge';
+      badge.textContent = `#${index+1}`;
+
+      const body = document.createElement('div');
+      body.className = 'card-body';
+
+      const title = document.createElement('h3');
+      title.className = 'title';
+      title.textContent = game.title;
+
+      const desc = document.createElement('p');
+      desc.className = 'desc';
+      desc.textContent = game.desc || '';
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      const cnt = document.createElement('span');
+      cnt.textContent = `플레이 ${playCount}회`;
+      meta.append(dot, cnt);
+
+      const a = document.createElement('a');
+      a.href = game.path; // 각 폴더의 index.html로 이동
+      a.className = 'play';
+      a.setAttribute('aria-label', `${game.title} 시작`);
+      a.textContent = '▶ 시작';
+
+      a.addEventListener('click', () => {
+        const map = getPlayCounts();
+        map[game.id] = (map[game.id] || 0) + 1;
+        setPlayCounts(map);
+        setLastPlayed(game.id);
+      });
+
+      // 카드 전체 클릭으로도 시작
+      card.addEventListener('click', (e) => {
+        if (e.target.tagName.toLowerCase() !== 'a') a.click();
+      });
+      card.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') a.click();
+      });
+
+      body.append(title, desc, meta);
+      card.append(img, badge, body, a);
+      return card;
+    }
+
+    function render() {
+      grid.innerHTML = '';
+      games.forEach((g, i) => grid.appendChild(createCard(g, i)));
+      // 최근 플레이가 있으면 가장 위에 안내
+      const last = getLastPlayed();
+      if (last && games.some(g => g.id === last.id)) {
+        const guide = document.createElement('div');
+        guide.style.margin = '6px 2px 18px';
+        guide.style.color = 'var(--muted)';
+        const g = games.find(x => x.id === last.id);
+        guide.textContent = `최근 플레이: ${g.title} • ${fmtTime(last.at)}`;
+        grid.before(guide);
+      }
+    }
+
+    function makeFallbackThumb(label='Game') {
+      const svg = encodeURIComponent(`
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500'>
+          <defs>
+            <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+              <stop offset='0%' stop-color='#1f2937'/>
+              <stop offset='100%' stop-color='#0ea5e9'/>
+            </linearGradient>
+          </defs>
+          <rect width='800' height='500' fill='url(#g)'/>
+          <g fill='white' fill-opacity='.9'>
+            <circle cx='120' cy='250' r='26'/>
+            <rect x='160' y='238' width='120' height='24' rx='12'/>
+          </g>
+          <text x='50%' y='62%' dominant-baseline='middle' text-anchor='middle'
+                font-family='system-ui, -apple-system, Segoe UI, Roboto, Arial' font-size='44' fill='white'
+                opacity='0.92'>${label}</text>
+        </svg>`);
+      return `data:image/svg+xml;charset=utf-8,${svg}`;
+    }
+
+    // Buttons
+    document.getElementById('shuffleBtn').addEventListener('click', () => {
+      const idx = Math.floor(Math.random() * games.length);
+      const g = games[idx];
+      const map = getPlayCounts();
+      map[g.id] = (map[g.id] || 0) + 1;
+      setPlayCounts(map);
+      setLastPlayed(g.id);
+      location.href = g.path;
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      if (confirm('로컬 플레이 기록을 초기화할까요?')) {
+        localStorage.removeItem(KEY_LAST);
+        localStorage.removeItem(KEY_COUNT);
+        render();
+      }
+    });
+
+    // 초기 렌더링
+    render();
+  </script>
+</body>
+</html>

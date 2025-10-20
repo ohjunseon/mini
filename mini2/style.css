@@ -1,0 +1,51 @@
+body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #222;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #eee;
+    overflow: hidden;
+}
+
+.game-container {
+    position: relative;
+    text-align: center;
+    background-color: #333;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+    width: 440px;
+}
+
+h1 {
+    color: #00ffff;
+    margin-bottom: 20px;
+}
+
+canvas {
+    background-color: #000;
+    border: 2px solid #00ffff;
+    display: block;
+    margin: 20px auto;
+}
+
+/* 기존 목숨 표시 (life-board-top-right) 관련 스타일 제거됨 */
+
+#startButton {
+    padding: 10px 20px;
+    font-size: 1.2em;
+    background-color: #00bfff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+}
+
+#startButton:hover {
+    background-color: #0080ff;
+}
