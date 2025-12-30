@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>교회 빙고 스크린</title>
+
+<style>
+body {
+  margin: 0;
+  background: #000;
+  color: #fff;
+  font-family: sans-serif;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  height: 100vh;
+}
+
+/* LEFT : 뽑힌 번호 */
+.left {
+  padding: 20px;
+  border-right: 2px solid #333;
+}
+.left h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.number-board {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+
+.number-cell {
+  padding: 22px;
+  background: #333;            /* 기본 회색 */
+  text-align: center;
+  font-size: 42px;             /* 기본 크기 */
+  font-weight: bold;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  color: #111;   /* ⭐ 기본 글자색 회색 */
+}
+
+/* 뽑힌 번호 */
+.number-cell.used {
+  background: #0a84ff;         /* 파란색 */
+  font-size: 42px;             /* 글자 크게 */
+  color: #fff;
+}
+
+/* CENTER */
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 220px;
+  font-weight: bold;
+}
+
+/* RIGHT : 빙고판 */
+.right {
+  padding: 20px;
+  border-left: 2px solid #333;
+}
+.right h2 {
+  text-align: center;
+}
+
+.bingo-board {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.cell {
+  padding: 30px;
+  background: #222;
+  text-align: center;
+  font-size: 56px;
+  font-weight: bold;
+  border-radius: 8px;
+}
+
+.cell.used {
+  background: #0a84ff;
+  color: #fff;
+}
+
+.cell.line {
+  outline: 6px solid gold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- LEFT -->
+  <div class="left">
+    <h2>뽑힌 번호</h2>
+    <div class="number-board" id="numberBoard"></div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center" id="currentNumber">-</div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <h2>빙고판</h2>
+    <div class="bingo-board" id="bingoBoard"></div>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL = "https://basbihjazmyziqbgablt.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhc2JpaGphem15emlxYmdhYmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMDQ2NjUsImV4cCI6MjA4MjY4MDY2NX0.VxFrmwM_LMjx6pY5bPnfFxwB4y5_MHCIik9yp7_IZQc";
+
+const ROW_ID = 1;
+
+const headers = {
+  apikey: SUPABASE_KEY,
+  Authorization: `Bearer ${SUPABASE_KEY}`
+};
+
+const LINES = {
+  "row-0":[0,1,2,3,4], "row-1":[5,6,7,8,9],
+  "row-2":[10,11,12,13,14], "row-3":[15,16,17,18,19],
+  "row-4":[20,21,22,23,24],
+  "col-0":[0,5,10,15,20], "col-1":[1,6,11,16,21],
+  "col-2":[2,7,12,17,22], "col-3":[3,8,13,18,23],
+  "col-4":[4,9,14,19,24],
+  "diag-main":[0,6,12,18,24],
+  "diag-sub":[4,8,12,16,20]
+};
+
+function render(state) {
+  const used = state.used_numbers || [];
+
+  /* CENTER */
+  document.getElementById("currentNumber").textContent =
+    state.current_number ?? "-";
+
+  /* LEFT : 1~25 항상 표시 */
+  const nb = document.getElementById("numberBoard");
+  nb.innerHTML = "";
+
+  for (let i = 1; i <= 25; i++) {
+    const c = document.createElement("div");
+    c.className = "number-cell" + (used.includes(i) ? " used" : "");
+    c.textContent = i;
+    nb.appendChild(c);
+  }
+
+  /* RIGHT : 빙고판 */
+  const board = document.getElementById("bingoBoard");
+  board.innerHTML = "";
+
+  for (let i = 1; i <= 25; i++) {
+    const c = document.createElement("div");
+    let cls = "cell";
+
+    //if (used.includes(i)) cls += " used";
+
+    if (
+      state.selected_line &&
+      LINES[state.selected_line] &&
+      LINES[state.selected_line].includes(i - 1)
+    ) {
+      cls += " line";
+    }
+
+    c.className = cls;
+    c.textContent = i;
+    board.appendChild(c);
+  }
+}
+
+async function poll() {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/bingo_state?id=eq.${ROW_ID}`,
+    { headers }
+  );
+  const data = await res.json();
+  if (data[0]) render(data[0]);
+}
+
+setInterval(poll, 1000);
+</script>
+
+</body>
+</html>
