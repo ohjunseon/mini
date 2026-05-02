@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌴 푸꾸옥 가족여행 4박6일</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #ffffff;
+  --sb: #f7f7f5;
+  --border: #e9e9e7;
+  --t1: #1a1a1a;
+  --t2: #6b6b6b;
+  --t3: #999;
+  --hover: #efefed;
+  --sel: #e8e8e6;
+  --sw: 260px;
+  /* tag colors */
+  --tg: #e4e4e2; --tgt: #5a5a5a;
+  --to: #fde8d8; --tot: #c4521a;
+  --ty: #fdf3d0; --tyt: #9a6f00;
+  --tgr: #d8f0e4; --tgrt: #2d7a50;
+  --tb: #ddeeff; --tbt: #1a5fa8;
+  --tp: #ecdffe; --tpt: #6930c3;
+  --tpk: #fde0ef; --tpkt: #b52f6e;
+  --tr: #fde0dc; --trt: #b52f2f;
+  --tbr: #f0e6da; --tbrt: #8b5e3c;
+}
+body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--t1); display: flex; min-height: 100vh; font-size: 14px; line-height: 1.5; }
+
+/* SIDEBAR */
+.sidebar { width: var(--sw); background: var(--sb); border-right: 1px solid var(--border); min-height: 100vh; position: fixed; top:0; left:0; display:flex; flex-direction:column; z-index:100; overflow-y:auto; }
+.sb-ws { padding:14px 12px 10px; display:flex; align-items:center; gap:8px; cursor:pointer; border-radius:6px; margin:4px 8px; }
+.sb-ws:hover { background:var(--hover); }
+.sb-ws .icon { width:24px;height:24px;background:#1a1a1a;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:13px;color:white;flex-shrink:0; }
+.sb-ws .name { font-size:13px;font-weight:600; }
+.sb-ws .arr { margin-left:auto;color:var(--t3);font-size:11px; }
+.sb-sec { padding:16px 20px 4px;font-size:11px;font-weight:600;color:var(--t3);letter-spacing:.06em;text-transform:uppercase; }
+.sb-item { display:flex;align-items:center;gap:7px;padding:5px 12px;margin:1px 8px;border-radius:5px;cursor:pointer;color:var(--t2);font-size:13px; }
+.sb-item:hover { background:var(--hover);color:var(--t1); }
+.sb-item.active { background:var(--sel);color:var(--t1);font-weight:500; }
+.sb-item .em { font-size:14px;width:18px;text-align:center;flex-shrink:0; }
+.sb-item .cnt { font-size:11px;color:var(--t3);background:var(--tg);padding:1px 6px;border-radius:20px;margin-left:auto; }
+.sb-div { height:1px;background:var(--border);margin:6px 16px; }
+
+/* TOPBAR */
+.topbar { position:fixed;top:0;left:var(--sw);right:0;height:44px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:8px;z-index:50;font-size:13px;color:var(--t3); }
+.bc { display:flex;align-items:center;gap:6px; }
+.bc span { color:var(--t2); }
+.bc .cur { color:var(--t1);font-weight:500; }
+.tb-act { margin-left:auto;display:flex;gap:6px; }
+.tb-btn { padding:4px 10px;border-radius:5px;border:none;background:transparent;font-size:12px;color:var(--t2);cursor:pointer;font-family:inherit; }
+.tb-btn:hover { background:var(--hover); }
+.tb-btn.pri { background:#1a1a1a;color:white; }
+
+/* CONTENT */
+.content { margin-left:var(--sw);padding-top:44px;flex:1;min-height:100vh; }
+
+/* COVER */
+.cover { width:100%;height:180px;position:relative;overflow:hidden; }
+.cover-inner { width:100%;height:100%;background:linear-gradient(150deg,#0b3d2e 0%,#1a6b50 45%,#b85830 100%); }
+.cover-inner::after { content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,.15)); }
+
+/* PAGE */
+.page { max-width:740px;margin:0 auto;padding:0 80px 120px; }
+.page-icon { font-size:56px;line-height:1;margin-top:-28px;position:relative;z-index:1;padding-top:12px; }
+.page-title { font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.2;margin:10px 0 4px; }
+.page-sub { font-size:13px;color:var(--t3);margin-bottom:20px; }
+
+/* PROPERTIES */
+.props { border-top:1px solid var(--border);padding:12px 0;margin-bottom:28px; }
+.prop { display:flex;align-items:center;min-height:30px;padding:1px 4px;border-radius:4px; }
+.prop:hover { background:var(--hover); }
+.pk { width:130px;flex-shrink:0;font-size:12.5px;color:var(--t3);display:flex;align-items:center;gap:5px; }
+.pv { flex:1;font-size:13px;color:var(--t1);display:flex;align-items:center;gap:5px;flex-wrap:wrap; }
+
+/* TAGS */
+.tag { display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;font-size:11.5px;font-weight:500;white-space:nowrap; }
+.tg  { background:var(--tg);  color:var(--tgt); }
+.to  { background:var(--to);  color:var(--tot); }
+.ty  { background:var(--ty);  color:var(--tyt); }
+.tgr { background:var(--tgr); color:var(--tgrt); }
+.tb  { background:var(--tb);  color:var(--tbt); }
+.tp  { background:var(--tp);  color:var(--tpt); }
+.tpk { background:var(--tpk); color:var(--tpkt); }
+.tr  { background:var(--tr);  color:var(--trt); }
+.tbr { background:var(--tbr); color:var(--tbrt); }
+
+hr.div { border:none;border-top:1px solid var(--border);margin:24px 0; }
+
+/* HEADINGS */
+h2.n { font-size:19px;font-weight:700;margin:28px 0 12px;display:flex;align-items:center;gap:8px; }
+h3.n { font-size:14px;font-weight:600;margin:16px 0 8px;display:flex;align-items:center;gap:6px; }
+p.n  { font-size:13.5px;color:var(--t2);line-height:1.7;margin:5px 0; }
+.muted { font-size:12px;color:var(--t3);margin-top:5px; }
+
+/* CALLOUT */
+.callout { display:flex;gap:10px;border-radius:6px;padding:11px 14px;margin:12px 0;font-size:13px;line-height:1.6; }
+.callout.y { background:var(--ty); }
+.callout.b { background:var(--tb); }
+.callout.g { background:var(--tgr); }
+.callout.o { background:var(--to); }
+.callout .ci { font-size:17px;flex-shrink:0;padding-top:1px; }
+
+/* OVERVIEW GRID */
+.ov { display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0; }
+.ov-card { border:1px solid var(--border);border-radius:7px;padding:10px 13px; }
+.ov-card .l { font-size:11px;color:var(--t3);margin-bottom:3px; }
+.ov-card .v { font-size:16px;font-weight:700; }
+.ov-card .s { font-size:11px;color:var(--t3);margin-top:1px; }
+
+/* REGION BANNER */
+.region-banner { border-radius:8px;padding:10px 16px;margin:20px 0 12px;display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px; }
+.region-banner .icon { font-size:20px; }
+.region-banner .sub { font-size:12px;font-weight:400;opacity:.75;margin-top:1px; }
+.rb-mid  { background:#e8f4f0;color:#1a5f4a;border-left:3px solid #1a9e78; }
+.rb-south{ background:#f0eaf8;color:#4a2885;border-left:3px solid #7c44d6; }
+.rb-north{ background:#fff3e0;color:#7a3f00;border-left:3px solid #e07b20; }
+
+/* DAY BLOCK */
+.day-block { border:1px solid var(--border);border-radius:8px;margin:8px 0;overflow:hidden; }
+.day-header { display:flex;align-items:center;gap:10px;padding:11px 16px;background:var(--sb);border-bottom:1px solid var(--border);cursor:pointer;user-select:none; }
+.day-header:hover { background:var(--hover); }
+.day-num { font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--t3);text-transform:uppercase;width:34px;flex-shrink:0; }
+.day-em { font-size:17px;flex-shrink:0; }
+.day-title { font-size:13.5px;font-weight:600;flex:1; }
+.day-sub { font-size:11.5px;color:var(--t3); }
+.day-chev { color:var(--t3);font-size:11px;transition:transform .2s;margin-left:4px; }
+.day-block.open .day-chev { transform:rotate(90deg); }
+.day-body { display:none; }
+.day-block.open .day-body { display:block; }
+
+/* TIMELINE */
+.tl { padding:14px 18px 18px; }
+.tl-row { display:flex;gap:12px;position:relative;padding-bottom:16px; }
+.tl-row:last-child { padding-bottom:0; }
+.tl-l { display:flex;flex-direction:column;align-items:center;width:46px;flex-shrink:0; }
+.tl-time { font-size:11px;color:var(--t3);font-weight:500;white-space:nowrap;margin-bottom:5px;text-align:center; }
+.tl-dot { width:9px;height:9px;border-radius:50%;border:2px solid;background:white;flex-shrink:0;z-index:1; }
+.tl-line { width:1px;flex:1;background:var(--border);margin-top:2px; }
+.tl-row:last-child .tl-line { display:none; }
+.tl-r { flex:1;padding-top:0; }
+.tl-act { font-size:13px;font-weight:600;line-height:1.4;margin-bottom:2px; }
+.tl-desc { font-size:12.5px;color:var(--t2);line-height:1.6; }
+.tl-tip { display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:11.5px;color:var(--tot);background:var(--to);padding:2px 7px;border-radius:4px;font-weight:500; }
+.tl-info { display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:11.5px;color:var(--tbt);background:var(--tb);padding:2px 7px;border-radius:4px;font-weight:500; }
+.tl-green { display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:11.5px;color:var(--tgrt);background:var(--tgr);padding:2px 7px;border-radius:4px;font-weight:500; }
+
+/* dot colors */
+.dg  { border-color:#aaa; }
+.dgr { border-color:#2d7a50; }
+.do  { border-color:#c4521a; }
+.db  { border-color:#1a5fa8; }
+.dp  { border-color:#6930c3; }
+.dy  { border-color:#9a6f00; }
+.dpk { border-color:#b52f6e; }
+.dt  { border-color:#0e7490; }
+
+/* FLIGHT CARD */
+.flight-card { border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin:7px 0; }
+.fl-label { font-size:10.5px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px; }
+.fl-row { display:flex;align-items:center;gap:8px; }
+.fc { text-align:center;min-width:65px; }
+.fc .code { font-size:20px;font-weight:700;letter-spacing:-.02em; }
+.fc .name { font-size:11px;color:var(--t3); }
+.fc .time { font-size:14px;font-weight:600;color:var(--tot);margin-top:3px; }
+.fm { flex:1;text-align:center; }
+.fm .airl { font-size:11px;color:var(--t3);margin-bottom:3px; }
+.fm .line { display:flex;align-items:center;gap:5px; }
+.fm .line hr { flex:1;border:none;border-top:1.5px dashed var(--border); }
+.fm .dur { font-size:11px;color:var(--t3);margin-top:3px; }
+
+/* TOGGLE */
+.toggle { margin:3px 0; }
+.tog-hd { display:flex;align-items:flex-start;gap:6px;padding:4px 5px;border-radius:4px;cursor:pointer;user-select:none; }
+.tog-hd:hover { background:var(--hover); }
+.tog-arr { font-size:10px;color:var(--t3);margin-top:3px;flex-shrink:0;transition:transform .2s;width:14px;text-align:center; }
+.toggle.open .tog-arr { transform:rotate(90deg); }
+.tog-title { font-size:13.5px;font-weight:600; }
+.tog-body { display:none;padding-left:20px;margin-top:4px; }
+.toggle.open .tog-body { display:block; }
+
+/* TABLE */
+.ntable { width:100%;border-collapse:collapse;font-size:12.5px;border:1px solid var(--border);border-radius:7px;overflow:hidden; }
+.ntable th { background:var(--sb);padding:7px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--t3);border-bottom:1px solid var(--border); }
+.ntable td { padding:8px 12px;border-bottom:1px solid var(--border);color:var(--t2);vertical-align:top;line-height:1.55; }
+.ntable tr:last-child td { border-bottom:none; }
+.ntable tr:hover td { background:var(--sb); }
+.ntable td:first-child { color:var(--t1);font-weight:500;white-space:nowrap; }
+
+/* BUDGET */
+.budget { border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:8px 0; }
+.brow { display:flex;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);gap:9px;font-size:12.5px; }
+.brow:last-child { border-bottom:none; }
+.brow.tot { background:var(--sb);font-weight:700; }
+.bdot { width:7px;height:7px;border-radius:50%;flex-shrink:0; }
+.blbl { flex:1;color:var(--t2); }
+.blbl b { color:var(--t1);font-weight:500;display:block; }
+.bamt { font-weight:600; }
+
+/* CHECKLIST */
+.cl { list-style:none;margin:5px 0; }
+.cl li { display:flex;align-items:flex-start;gap:7px;padding:3px 0;font-size:13px;color:var(--t2);line-height:1.5; }
+.cb { width:14px;height:14px;border:1.5px solid var(--border);border-radius:3px;flex-shrink:0;margin-top:2px;background:white; }
+
+/* HOTEL CARD */
+.hotel-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:8px 0; }
+.hotel-card { border:1px solid var(--border);border-radius:7px;padding:11px 13px; }
+.hotel-card .region-tag { font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px; }
+.hotel-card .hname { font-size:13px;font-weight:600;margin-bottom:3px; }
+.hotel-card .hdesc { font-size:12px;color:var(--t2);line-height:1.5; }
+.hotel-card .hprice { font-size:12px;color:var(--t3);margin-top:5px; }
+
+@media(max-width:780px){
+  .sidebar{display:none;}
+  .content{margin-left:0;}
+  .topbar{left:0;}
+  .page{padding:0 20px 80px;}
+  .ov{grid-template-columns:repeat(2,1fr);}
+  .hotel-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sb-ws">
+    <div class="icon">🌴</div>
+    <div class="name">가족여행 2026</div>
+    <div class="arr">⌄</div>
+  </div>
+  <div class="sb-sec">페이지</div>
+  <div class="sb-item active"><span class="em">🗓️</span>푸꾸옥 4박6일 일정</div>
+  <div class="sb-item"><span class="em">✈️</span>항공권 정보</div>
+  <div class="sb-item"><span class="em">🏨</span>숙소 정보 (중·남·북)</div>
+  <div class="sb-item"><span class="em">💰</span>예산 계획</div>
+  <div class="sb-item"><span class="em">📋</span>준비물 체크리스트</div>
+  <div class="sb-div"></div>
+  <div class="sb-sec">지역별</div>
+  <div class="sb-item"><span class="em">🟢</span>중부 — 즈엉동</div>
+  <div class="sb-item"><span class="em">🟣</span>남부 — 안터이</div>
+  <div class="sb-item"><span class="em">🟠</span>북부 — 빈펄·그랜드월드</div>
+  <div class="sb-div"></div>
+  <div class="sb-sec">예약</div>
+  <div class="sb-item"><span class="em">🚡</span>썬월드<span class="cnt">클룩</span></div>
+  <div class="sb-item"><span class="em">🎡</span>빈원더스+사파리<span class="cnt">클룩</span></div>
+  <div class="sb-item"><span class="em">💆</span>마사지<span class="cnt">MRT</span></div>
+  <div class="sb-item"><span class="em">🎭</span>키스 오브 더 씨<span class="cnt">클룩</span></div>
+  <div class="sb-item"><span class="em">🚗</span>공항 픽업 서비스<span class="cnt">MRT</span></div>
+</nav>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="bc"><span>가족여행 2026</span><span>›</span><span class="cur">푸꾸옥 4박6일 일정</span></div>
+  <div class="tb-act">
+    <button class="tb-btn">공유</button>
+    <button class="tb-btn pri">편집</button>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+  <div class="cover"><div class="cover-inner"></div></div>
+
+  <div class="page">
+    <div class="page-icon">🌴</div>
+    <div class="page-title">푸꾸옥 가족여행 4박 6일</div>
+    <div class="page-sub">부모님 + 아이 동반 · 부산 김해 출발 · 중부→남부→북부→중부 순환 동선</div>
+
+    <!-- PROPS -->
+    <div class="props">
+      <div class="prop"><div class="pk">📅 출발</div><div class="pv">일요일 저녁 · 김해 18:55</div></div>
+      <div class="prop"><div class="pk">📅 귀국</div><div class="pv">금요일 새벽 · 푸꾸옥 00:45 → 김해 08:00</div></div>
+      <div class="prop"><div class="pk">✈️ 항공</div><div class="pv">제주항공 7C2355/2356 · 직항</div></div>
+      <div class="prop"><div class="pk">👨‍👩‍👧‍👦 구성</div><div class="pv"><span class="tag tg">👴👵 부모님</span><span class="tag tb">👫 자녀부부</span><span class="tag tp">🧒 아이</span></div></div>
+      <div class="prop"><div class="pk">🗺️ 동선</div><div class="pv"><span class="tag tgr">중부</span> → <span class="tag tp">남부</span> → <span class="tag to">북부</span> → <span class="tag tgr">중부(공항)</span></div></div>
+      <div class="prop"><div class="pk">🏷️ 태그</div><div class="pv"><span class="tag tgr">가족여행</span><span class="tag to">베트남</span><span class="tag ty">휴양</span><span class="tag tpk">아이동반</span><span class="tag tbr">부모님동반</span></div></div>
+      <div class="prop"><div class="pk">💰 예상경비</div><div class="pv">1인 약 50~80만원 (숙소 제외)</div></div>
+    </div>
+
+    <!-- CALLOUT -->
+    <div class="callout y"><span class="ci">💡</span><div><strong>동선 핵심</strong> — 공항이 중부에 있어 도착·출발 모두 중부 체류. 남부(썬월드·선셋타운) → 북부(빈원더스·그랜드월드) 순으로 이동하며 숙소를 3번 옮기는 구성입니다. 숙소 이동 시 <strong>그랩 미니밴</strong> 또는 <strong>마이리얼트립 단독 차량 서비스</strong> 활용 권장.</div></div>
+
+    <!-- OVERVIEW -->
+    <div class="ov">
+      <div class="ov-card"><div class="l">총 일정</div><div class="v">4박 6일</div><div class="s">현지 이동 3회</div></div>
+      <div class="ov-card"><div class="l">숙소</div><div class="v">3곳</div><div class="s">중부·남부·북부</div></div>
+      <div class="ov-card"><div class="l">항공 예상</div><div class="v">25~40만</div><div class="s">1인 왕복 기준</div></div>
+      <div class="ov-card"><div class="l">비자</div><div class="v">무비자</div><div class="s">한국 여권 45일</div></div>
+      <div class="ov-card"><div class="l">통화</div><div class="v">VND 동</div><div class="s">1만동 ≈ 560원</div></div>
+      <div class="ov-card"><div class="l">이동수단</div><div class="v">그랩</div><div class="s">앱 설치 필수</div></div>
+    </div>
+
+    <hr class="div">
+
+    <!-- FLIGHT -->
+    <h2 class="n">✈️ 항공편</h2>
+    <div class="flight-card">
+      <div class="fl-label">가는 편 — 일요일</div>
+      <div class="fl-row">
+        <div class="fc"><div class="code">PUS</div><div class="name">부산 김해</div><div class="time">18:55</div></div>
+        <div class="fm"><div class="airl">제주항공 7C2355</div><div class="line"><hr>✈️<hr></div><div class="dur">직항 · 약 4시간 5분</div></div>
+        <div class="fc"><div class="code">PQC</div><div class="name">푸꾸옥</div><div class="time">23:00</div></div>
+      </div>
+    </div>
+    <div class="flight-card">
+      <div class="fl-label">오는 편 — 금요일 새벽</div>
+      <div class="fl-row">
+        <div class="fc"><div class="code">PQC</div><div class="name">푸꾸옥</div><div class="time">00:45</div></div>
+        <div class="fm"><div class="airl">제주항공 7C2356</div><div class="line"><hr>✈️<hr></div><div class="dur">직항 · 약 4시간 15분</div></div>
+        <div class="fc"><div class="code">PUS</div><div class="name">부산 김해</div><div class="time">08:00</div></div>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <!-- 공항 픽업 -->
+    <h2 class="n">🚗 공항 픽업 & 이동 수단</h2>
+    <div class="callout b"><span class="ci">ℹ️</span><div>공항은 <strong>중부(즈엉동)</strong> 위치. 새벽 23:00 도착이라 그랩 택시도 가능하지만, 부모님·아이 동반 대가족이라면 <strong>사전 예약 단독 차량</strong>이 훨씬 편합니다.</div></div>
+    <table class="ntable">
+      <thead><tr><th>방법</th><th>특징</th><th>비용</th><th>추천도</th></tr></thead>
+      <tbody>
+        <tr><td>🥇 마이리얼트립<br>단독 차량 픽업</td><td>이름 피켓 대기 · 7인승/16인승 선택 · 새벽·심야 가능 · 연착 대응 · 경유지(마트) 추가 가능</td><td>차량당 4~8만원</td><td><span class="tag tgr">강력 추천</span></td></tr>
+        <tr><td>🥈 호텔 픽업 서비스</td><td>인터컨티넨탈·프리미어빌리지 등 일부 리조트 무료 제공 · 체크인 7일 전 사전 신청 필수</td><td>무료 (해당 숙소)</td><td><span class="tag tb">조건부 추천</span></td></tr>
+        <tr><td>🥉 그랩 (Grab)</td><td>앱으로 바로 호출 · 새벽에도 이용 가능 · 대가족이면 2대 필요할 수 있음</td><td>1~2만원/대</td><td><span class="tag tg">일반</span></td></tr>
+      </tbody>
+    </table>
+    <p class="muted">※ 부모님+아이 동반 대가족 → 16인승 미니밴 단독 차량 예약 권장 · 짐 많을 경우 더욱 필수</p>
+
+    <hr class="div">
+
+    <!-- 숙소 추천 -->
+    <h2 class="n">🏨 지역별 숙소 추천</h2>
+    <div class="callout g"><span class="ci">📌</span><div>숙소를 <strong>3곳</strong> 예약해야 합니다. 중부(1박) → 남부(1박) → 북부(2박) 순서입니다.</div></div>
+    <div class="hotel-grid">
+      <div class="hotel-card">
+        <div class="region-tag" style="color:#1a9e78">🟢 중부 (1박)</div>
+        <div class="hname">인터컨티넨탈 롱비치 리조트</div>
+        <div class="hdesc">공항 픽업 무료 셔틀 제공 · 즈엉동 야시장·시장 도보 접근 · 부모님 편의시설 우수</div>
+        <div class="hprice">1박 약 20~35만원</div>
+      </div>
+      <div class="hotel-card">
+        <div class="region-tag" style="color:#1a9e78">🟢 중부 (가성비)</div>
+        <div class="hname">라주르 리조트 / 살린다 리조트</div>
+        <div class="hdesc">즈엉동 인근 · 깔끔하고 가성비 좋음 · 공항 픽업 서비스 있음</div>
+        <div class="hprice">1박 약 10~20만원</div>
+      </div>
+      <div class="hotel-card">
+        <div class="region-tag" style="color:#7c44d6">🟣 남부 (1박)</div>
+        <div class="hname">프리미어 빌리지 리조트</div>
+        <div class="hdesc">풀 빌라 예약 시 공항 왕복 픽업 무료 · 키스 오브 더 씨 티켓 포함 · 남부 중심</div>
+        <div class="hprice">1박 약 30~60만원</div>
+      </div>
+      <div class="hotel-card">
+        <div class="region-tag" style="color:#7c44d6">🟣 남부 (가성비)</div>
+        <div class="hname">뉴월드 푸꾸옥 리조트</div>
+        <div class="hdesc">선셋타운·썬월드 인근 · 가족 친화 시설 · 수영장 좋음</div>
+        <div class="hprice">1박 약 15~30만원</div>
+      </div>
+      <div class="hotel-card">
+        <div class="region-tag" style="color:#e07b20">🟠 북부 (2박)</div>
+        <div class="hname">빈펄 리조트 & 스파</div>
+        <div class="hdesc">빈원더스·사파리·그랜드월드 도보·차량 이동 최적 위치 · 빈펄 그룹 리조트</div>
+        <div class="hprice">1박 약 20~40만원</div>
+      </div>
+      <div class="hotel-card">
+        <div class="region-tag" style="color:#e07b20">🟠 북부 (가성비)</div>
+        <div class="hname">크라운플라자 / 모벤픽 리조트</div>
+        <div class="hdesc">북부 옹랑 비치 인근 · 깨끗하고 가족 친화 · 그랜드월드 그랩 10분</div>
+        <div class="hprice">1박 약 15~25만원</div>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <!-- ITINERARY -->
+    <h2 class="n">🗓️ 상세 일정</h2>
+
+    <!-- ====== 중부 ====== -->
+    <div class="region-banner rb-mid">
+      <div class="icon">🟢</div>
+      <div>
+        <div>중부 (즈엉동) — 공항 인근</div>
+        <div class="sub">D-1 ~ 1일차 · 1박 · 킹콩마트·야시장·쇼핑</div>
+      </div>
+    </div>
+
+    <!-- D-1 -->
+    <div class="day-block open" onclick="this.classList.toggle('open')">
+      <div class="day-header">
+        <div class="day-num">D-1</div>
+        <div class="day-em">✈️</div>
+        <div class="day-title">출발 → 푸꾸옥 도착 · 중부 체크인</div>
+        <div class="day-sub">일요일</div>
+        <div class="day-chev">▶</div>
+      </div>
+      <div class="day-body"><div class="tl">
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">15:55</div><div class="tl-dot do"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">김해공항 도착 · 수속</div>
+            <div class="tl-desc">출발 3시간 전 · 제주항공 카운터 체크인 · 위탁수하물 · 소액 환전</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">18:55</div><div class="tl-dot db"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">✈️ 김해 출발 → 푸꾸옥 (7C2355)</div>
+            <div class="tl-desc">직항 약 4시간 · LCC 기내식 없음 — 출발 전 식사 필수</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">23:00</div><div class="tl-dot dgr"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">푸꾸옥 공항 도착 · 입국</div>
+            <div class="tl-desc">입국심사 → 짐 수령 → 피켓 미팅 or 그랩 호출</div>
+            <div class="tl-tip">💡 공항 내 유심 구매 — 데이터 무제한 약 3,000원</div>
+            <div class="tl-info">🚗 사전 예약 단독 차량 or 그랩으로 중부 숙소 이동 (약 10~15분)</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">24:00~</div><div class="tl-dot dg"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🏨 중부 숙소 체크인 · 취침</div>
+            <div class="tl-desc">도착 당일 바로 휴식 — 부모님·아이 체력 비축</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- DAY 1 -->
+    <div class="day-block open" onclick="this.classList.toggle('open')">
+      <div class="day-header">
+        <div class="day-num">1일차</div>
+        <div class="day-em">🛍️</div>
+        <div class="day-title">중부 쇼핑 투어 → 남부 이동</div>
+        <div class="day-sub">월요일 · 체크아웃 후 남부로</div>
+        <div class="day-chev">▶</div>
+      </div>
+      <div class="day-body"><div class="tl">
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">09:00</div><div class="tl-dot dgr"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🏨 중부 숙소 체크아웃</div>
+            <div class="tl-desc">짐은 숙소에 맡기거나 그랩 차량 트렁크에 싣고 이동</div>
+            <div class="tl-tip">💡 짐 보관 — 체크아웃 후 숙소 프런트에 맡기기 가능. 오후 픽업 후 남부로 이동</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">09:30</div><div class="tl-dot do"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🛒 킹콩마트 (King Kong Mart) 쇼핑</div>
+            <div class="tl-desc">한국인 대형 마트 · 크록스·샌들·수영복 · 옷 · 현지 간식 · 음료 · 생활용품<br>가격 합리적 · 부모님도 편하게 구경</div>
+            <div class="tl-tip">💡 수영복·아쿠아슈즈 여기서 구매 가능</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">11:00</div><div class="tl-dot dy"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🏪 즈엉동 시장 & 거리 구경</div>
+            <div class="tl-desc">로컬 시장 분위기 · 열대과일 맛보기 · 후추·느억맘·캐슈넛 쇼핑<br>부모님 천천히 구경, 사람 구경하며 현지 분위기 만끽</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">12:30</div><div class="tl-dot dy"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🍜 점심 — 즈엉동 현지 식당</div>
+            <div class="tl-desc">쌀국수·반미·해산물 · 가격 저렴 · 현지 맛 첫 경험</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">14:00</div><div class="tl-dot dp"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🚗 남부로 이동 (그랩 or 단독 차량)</div>
+            <div class="tl-desc">중부 → 남부 약 30~40분 · 짐 챙겨서 이동 · 아이 차 안에서 낮잠 가능</div>
+            <div class="tl-info">🚗 그랩 미니밴 or 마이리얼트립 단독 차량 권장 (짐 많음)</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">15:00</div><div class="tl-dot dp"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🏨 남부 숙소 체크인</div>
+            <div class="tl-desc">체크인 후 잠시 휴식 · 수영복으로 갈아입기</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">16:00</div><div class="tl-dot dp"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🏖️ 남부 해변 or 숙소 풀 자유 시간</div>
+            <div class="tl-desc">사오 비치 인근 해변 · 아이 모래놀이 · 부모님 선베드 휴식</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">17:30</div><div class="tl-dot dp"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🌅 선셋타운 이동 · 키스 브릿지 일몰</div>
+            <div class="tl-desc">유럽풍 건축물 · 일몰 포토존 · 아이 포토 스팟</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">19:30</div><div class="tl-dot dpk"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🎭 키스 오브 더 씨 쇼 + 불꽃놀이</div>
+            <div class="tl-desc">30분 · 불·빛·물 라스베가스급 공연 + 7분 불꽃놀이 · 앉아서 관람 · 전 연령 강추</div>
+            <div class="tl-tip">💡 약 3만원 · 사전 예약 필수</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">21:00</div><div class="tl-dot dg"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🦞 저녁 — 남부 해산물 레스토랑</div>
+            <div class="tl-desc">푸꾸옥 후추 랍스터 · 갈릭 가리비 · 생새우 · 숙소 귀환</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ====== 남부 ====== -->
+    <div class="region-banner rb-south" style="margin-top:20px;">
+      <div class="icon">🟣</div>
+      <div>
+        <div>남부 — 안터이·혼똠섬</div>
+        <div class="sub">2일차 · 1박 · 썬월드 케이블카·워터파크</div>
+      </div>
+    </div>
+
+    <!-- DAY 2 -->
+    <div class="day-block open" onclick="this.classList.toggle('open')">
+      <div class="day-header">
+        <div class="day-num">2일차</div>
+        <div class="day-em">🚡</div>
+        <div class="day-title">남부 체크아웃 → 썬월드 혼똠섬 → 북부 이동</div>
+        <div class="day-sub">화요일 · 케이블카·워터파크 풀코스</div>
+        <div class="day-chev">▶</div>
+      </div>
+      <div class="day-body"><div class="tl">
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">08:30</div><div class="tl-dot dp"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🏨 남부 숙소 체크아웃 · 짐 차량에 싣기</div>
+            <div class="tl-desc">짐을 그랩 미니밴 트렁크에 싣고 썬월드로 바로 이동</div>
+            <div class="tl-tip">💡 그랩 미니밴 사전 예약 권장 — 짐+인원 넉넉하게</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">09:00</div><div class="tl-dot dt"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🚡 썬월드 — 세계 최장 해상 케이블카 (8km)</div>
+            <div class="tl-desc">기네스북 등재 · 전면 통유리 · 에메랄드 바다 위 절경 · 앉아서 20분<br>부모님이 가장 감동 받는 코스</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">09:30</div><div class="tl-dot db"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🏝️ 혼똠섬 자유 탐방</div>
+            <div class="tl-desc">
+              <strong>아이·어른:</strong> 아쿠아토피아 워터파크 (추가 요금 없음)<br>
+              <strong>부모님:</strong> 프라이빗 비치 그늘 선베드 · 섬 내 카페
+            </div>
+            <div class="tl-tip">💡 수영복·아쿠아슈즈·수건 필수 · 섬 내 현금만 가능</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">12:30</div><div class="tl-dot dy"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🍽️ 점심 — 혼똠섬 내 식당</div>
+            <div class="tl-desc">해산물 위주 · 현금 결제 필수</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">15:00</div><div class="tl-dot dt"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">케이블카로 섬 복귀 (17:00 마감 전)</div>
+            <div class="tl-desc">여유롭게 복귀 후 그랩 미니밴 호출 (짐 보관 중)</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">16:00</div><div class="tl-dot do"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🚗 북부로 이동</div>
+            <div class="tl-desc">남부 → 북부 약 40~50분 · 그랩 미니밴 · 아이 차 안 휴식</div>
+            <div class="tl-info">📍 남부(안터이) → 북부(빈펄·그랜드월드) 섬 세로로 이동</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">17:00</div><div class="tl-dot do"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🏨 북부 숙소 체크인</div>
+            <div class="tl-desc">체크인 · 짐 풀기 · 잠시 휴식</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">18:30</div><div class="tl-dot dp"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🏙️ 그랜드월드 저녁 산책</div>
+            <div class="tl-desc">유럽풍 테마 거리 · 완전 평지 (부모님 부담 없음) · 입장 무료 · 포토존 풍성</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">19:30</div><div class="tl-dot dy"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🍽️ 저녁 — 그랜드월드 인근 식당</div>
+            <div class="tl-desc">북부 도착 첫 저녁 · 가볍게 식사</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">20:15</div><div class="tl-dot dp"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🎇 그랜드월드 야간 분수쇼</div>
+            <div class="tl-desc">미디어아트·불꽃·라이트 쇼 · 무료 관람 · 앉아서 편하게</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">21:30</div><div class="tl-dot dg"></div></div>
+          <div class="tl-r"><div class="tl-act">숙소 귀환 · 취침</div></div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ====== 북부 ====== -->
+    <div class="region-banner rb-north" style="margin-top:20px;">
+      <div class="icon">🟠</div>
+      <div>
+        <div>북부 — 빈펄·그랜드월드</div>
+        <div class="sub">3~4일차 · 2박 · 사파리·빈원더스·마사지</div>
+      </div>
+    </div>
+
+    <!-- DAY 3 -->
+    <div class="day-block open" onclick="this.classList.toggle('open')">
+      <div class="day-header">
+        <div class="day-num">3일차</div>
+        <div class="day-em">🎡</div>
+        <div class="day-title">빈펄 사파리 + 빈원더스 풀코스</div>
+        <div class="day-sub">수요일 · 북부 테마파크 하루</div>
+        <div class="day-chev">▶</div>
+      </div>
+      <div class="day-body"><div class="tl">
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">08:30</div><div class="tl-dot dgr"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🦁 빈펄 사파리 오픈런</div>
+            <div class="tl-desc">트램 탑승 위주 (도보 최소 — 부모님 편안) · 기린·코끼리 먹이주기 · 동물 공연</div>
+            <div class="tl-tip">💡 아침이 동물 가장 활기차고 대기 짧음</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">12:00</div><div class="tl-dot dy"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🍽️ 점심 — 기린 레스토랑</div>
+            <div class="tl-desc">사파리 내 기린 보며 식사 · 부모님 특별 경험</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">13:30</div><div class="tl-dot do"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🎢 빈원더스 입장 (콤보 티켓)</div>
+            <div class="tl-desc">
+              <strong>아이·어른:</strong> 롤러코스터 · 타이푼 워터파크 (수영복 필수)<br>
+              <strong>부모님:</strong> 아쿠아리움 (9,000여 종) · 대관람차 · 그늘 카페
+            </div>
+            <div class="tl-tip">💡 워터파크·아쿠아리움 추가 요금 없음</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">19:00</div><div class="tl-dot dp"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🎆 원스 분수쇼</div>
+            <div class="tl-desc">빛·불·물·3D 매핑 야간 쇼 · 앉아서 편하게</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">20:30</div><div class="tl-dot dg"></div></div>
+          <div class="tl-r"><div class="tl-act">숙소 귀환 · 취침 (하루 풀코스 — 일찍 귀숙)</div></div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- DAY 4 -->
+    <div class="day-block open" onclick="this.classList.toggle('open')">
+      <div class="day-header">
+        <div class="day-num">4일차</div>
+        <div class="day-em">💆</div>
+        <div class="day-title">자유 휴양 + 마사지 2회</div>
+        <div class="day-sub">목요일 · 여유로운 회복일</div>
+        <div class="day-chev">▶</div>
+      </div>
+      <div class="day-body"><div class="tl">
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">오전</div><div class="tl-dot db"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🏊 숙소 풀 자유 휴식</div>
+            <div class="tl-desc">어제 빈원더스 피로 회복 · 부모님·아이 수영장에서 여유</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">12:00</div><div class="tl-dot dy"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🍽️ 점심 — 북부 현지 식당</div>
+            <div class="tl-desc">가볍고 맛있는 현지식 · 쌀국수 or 반쎄오</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">14:00</div><div class="tl-dot dpk"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">💆 마사지 1차 (60~90분) — 아로마 추천</div>
+            <div class="tl-desc">커플룸 + 별도룸 · 피로 회복 · 1인 약 15,000~25,000원</div>
+            <div class="tl-tip">💡 클룩·마이리얼트립 사전 예약 권장</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">16:00</div><div class="tl-dot dpk"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">💆 마사지 2차 (60분) — 발마사지 or 타이</div>
+            <div class="tl-desc">여행 전 총 피로 싹 해소 · 귀국 전 컨디션 최상으로</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">18:00</div><div class="tl-dot dg"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">숙소 귀환 · 짐 정리</div>
+            <div class="tl-desc">내일 중부 이동 준비 · 부모님 충분한 휴식</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">19:30</div><div class="tl-dot dy"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🦞 저녁 — 마지막 푸짐한 만찬</div>
+            <div class="tl-desc">북부 해산물 레스토랑 · 푸꾸옥 후추 랍스터 · 갈릭 가리비 · 생새우</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ====== 중부(공항) ====== -->
+    <div class="region-banner rb-mid" style="margin-top:20px;">
+      <div class="icon">🟢</div>
+      <div>
+        <div>중부 (즈엉동) → 공항 — 귀국</div>
+        <div class="sub">5일차 · 마지막 관광 후 출국</div>
+      </div>
+    </div>
+
+    <!-- DAY 5 -->
+    <div class="day-block open" onclick="this.classList.toggle('open')">
+      <div class="day-header">
+        <div class="day-num">5일차</div>
+        <div class="day-em">🏠</div>
+        <div class="day-title">북부 체크아웃 → 중부 관광 → 공항 → 귀국</div>
+        <div class="day-sub">금요일 · 출국일</div>
+        <div class="day-chev">▶</div>
+      </div>
+      <div class="day-body"><div class="tl">
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">10:00</div><div class="tl-dot do"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🏨 북부 숙소 체크아웃</div>
+            <div class="tl-desc">짐 챙겨서 그랩 미니밴으로 중부 이동 (약 30~40분)</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">11:00</div><div class="tl-dot dgr"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🏪 중부 즈엉동 — 마지막 관광 & 사람 구경</div>
+            <div class="tl-desc">즈엉동 시내 거리 산책 · 현지 카페 여유 · 기념품 마저 쇼핑<br>야시장 낮 버전 구경 · 현지인 생활 풍경 감상</div>
+            <div class="tl-tip">💡 짐은 공항 인근 카페 or 숙소에 잠시 맡기기</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">13:00</div><div class="tl-dot dy"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🍜 점심 — 즈엉동 마지막 현지 식사</div>
+            <div class="tl-desc">좋아했던 메뉴 다시 먹기 · 부모님 입맛에 맞는 메뉴</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">14:30</div><div class="tl-dot dg"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">공항 이동 (공항까지 약 10~15분)</div>
+            <div class="tl-desc">출발 약 2시간 전 공항 도착 · 밤 11시 이전 출발 권장</div>
+            <div class="tl-info">🚗 그랩 or 마이리얼트립 공항 샌딩 서비스</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">22:45</div><div class="tl-dot do"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">공항 수속 · 탑승 대기</div>
+            <div class="tl-desc">출국 수속 · 면세 구역 · 남은 동 환전 or 사용</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">00:45</div><div class="tl-dot db"></div><div class="tl-line"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">✈️ 푸꾸옥 출발 (7C2356)</div>
+            <div class="tl-desc">직항 · 기내 수면</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-l"><div class="tl-time">08:00</div><div class="tl-dot dgr"></div></div>
+          <div class="tl-r">
+            <div class="tl-act">🏠 부산 김해공항 도착</div>
+            <div class="tl-desc">입국 · 수화물 수령 · 귀가</div>
+            <div class="tl-green">🎉 푸꾸옥 4박6일 가족여행 완료!</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <hr class="div">
+
+    <!-- BUDGET -->
+    <h2 class="n">💰 예상 경비 (1인 기준)</h2>
+    <div class="budget">
+      <div class="brow"><div class="bdot" style="background:#2d7a50"></div><div class="blbl"><b>항공권</b>제주항공 왕복 (세금·유류할증 포함)</div><div class="bamt">25~40만원</div></div>
+      <div class="brow"><div class="bdot" style="background:#c4521a"></div><div class="blbl"><b>빈원더스+사파리</b>콤보 티켓</div><div class="bamt">4~6만원</div></div>
+      <div class="brow"><div class="bdot" style="background:#6930c3"></div><div class="blbl"><b>썬월드 혼똠섬</b>케이블카+워터파크</div><div class="bamt">3~5만원</div></div>
+      <div class="brow"><div class="bdot" style="background:#0e7490"></div><div class="blbl"><b>키스 오브 더 씨 쇼</b>1인 기준</div><div class="bamt">2~3만원</div></div>
+      <div class="brow"><div class="bdot" style="background:#b52f6e"></div><div class="blbl"><b>마사지</b>2회 (60~90분)</div><div class="bamt">3~5만원</div></div>
+      <div class="brow"><div class="bdot" style="background:#9a6f00"></div><div class="blbl"><b>식사</b>4박 5일 현지식 기준</div><div class="bamt">8~15만원</div></div>
+      <div class="brow"><div class="bdot" style="background:#1a5fa8"></div><div class="blbl"><b>그랩·차량이동·기타</b>유심·환전·기념품 포함</div><div class="bamt">5~8만원</div></div>
+      <div class="brow tot"><div class="bdot" style="background:#1a1a1a"></div><div class="blbl"><b>합계 (1인 예상)</b></div><div class="bamt">약 50~82만원</div></div>
+    </div>
+    <p class="muted">※ 숙소 제외 · 아이 일부 할인 · 시즌·예약 시기에 따라 변동</p>
+
+    <hr class="div">
+
+    <!-- TIPS -->
+    <h2 class="n">📋 준비 & 핵심 팁</h2>
+
+    <div class="toggle open">
+      <div class="tog-hd" onclick="this.parentElement.classList.toggle('open')">
+        <span class="tog-arr">▶</span><span class="tog-title">✅ 출발 전 준비물 체크리스트</span>
+      </div>
+      <div class="tog-body">
+        <ul class="cl">
+          <li><div class="cb"></div>여권 (유효기간 6개월 이상)</li>
+          <li><div class="cb"></div>영문 가족관계증명서 (아이 동반 입국 필수)</li>
+          <li><div class="cb"></div>여행자 보험 (부모님 의료비 보장 확인)</li>
+          <li><div class="cb"></div>그랩 앱 설치 + 카드 등록</li>
+          <li><div class="cb"></div>마이리얼트립 공항 픽업·샌딩 사전 예약</li>
+          <li><div class="cb"></div>빈원더스·썬월드·키스쇼·마사지 사전 예약</li>
+          <li><div class="cb"></div>수영복·아쿠아슈즈·물안경 (또는 킹콩마트 현지 구매)</li>
+          <li><div class="cb"></div>선크림 SPF50+ · 모자 · 선글라스</li>
+          <li><div class="cb"></div>현지 유심 (공항 도착 후 구매)</li>
+          <li><div class="cb"></div>베트남 동 소액 환전 (현금 필수 상황 많음)</li>
+          <li><div class="cb"></div>상비약 — 지사제·소화제·멀미약·해열제·밴드</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="toggle open" style="margin-top:8px;">
+      <div class="tog-hd" onclick="this.parentElement.classList.toggle('open')">
+        <span class="tog-arr">▶</span><span class="tog-title">🚗 지역 간 이동 정리</span>
+      </div>
+      <div class="tog-body">
+        <table class="ntable" style="margin-top:6px;">
+          <thead><tr><th>구간</th><th>소요시간</th><th>추천 수단</th><th>비용</th></tr></thead>
+          <tbody>
+            <tr><td>공항 → 중부</td><td>약 10~15분</td><td>단독 차량 픽업 or 그랩</td><td>1~4만원</td></tr>
+            <tr><td>중부 → 남부</td><td>약 30~40분</td><td>그랩 미니밴 (짐 있음)</td><td>2~4만원</td></tr>
+            <tr><td>남부 → 북부</td><td>약 40~50분</td><td>그랩 미니밴 (짐 있음)</td><td>3~5만원</td></tr>
+            <tr><td>북부 → 중부</td><td>약 30~40분</td><td>그랩 미니밴</td><td>2~4만원</td></tr>
+            <tr><td>중부 → 공항</td><td>약 10~15분</td><td>그랩 or 마이리얼트립 샌딩</td><td>1~4만원</td></tr>
+          </tbody>
+        </table>
+        <p class="muted" style="margin-top:6px;">※ 대가족+짐 많음 → 16인승 미니밴 단독 차량 강력 권장</p>
+      </div>
+    </div>
+
+    <div class="toggle open" style="margin-top:8px;">
+      <div class="tog-hd" onclick="this.parentElement.classList.toggle('open')">
+        <span class="tog-arr">▶</span><span class="tog-title">👴👵 부모님 동반 꿀팁</span>
+      </div>
+      <div class="tog-body">
+        <table class="ntable" style="margin-top:6px;">
+          <thead><tr><th>항목</th><th>내용</th></tr></thead>
+          <tbody>
+            <tr><td>🚗 이동</td><td>뚝뚝·오토바이 절대 금지 — 항상 그랩 이용</td></tr>
+            <tr><td>🚡 썬월드</td><td>앉아서 절경 감상 — 체력 소모 없이 최고 경험. 부모님 베스트 코스</td></tr>
+            <tr><td>🎡 빈원더스</td><td>트램·대관람차 위주. 아쿠아리움 앉아서 관람. 그늘 카페 활용</td></tr>
+            <tr><td>🏙️ 그랜드월드</td><td>완전 평지 · 실내 카페 많음 · 에어컨 피서 가능</td></tr>
+            <tr><td>🌡️ 더위</td><td>30°C 이상 — 2시간마다 그늘 휴식 · 수분 자주 보충</td></tr>
+            <tr><td>💊 건강</td><td>지사제·소화제 필수 · 현지 음식 첫날은 가볍게</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="height:50px;"></div>
+  </div>
+</div>
+
+</body>
+</html>
