@@ -104,13 +104,19 @@
       font-weight: 500;
     }
     #board, #pool {
-      min-height: 80px;
+      min-height: 100px;
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       padding: 16px;
       border-radius: 12px;
       margin-bottom: 20px;
+      align-content: flex-start;
+    }
+    #board[data-drag-over-zone="true"] {
+      background: #e8f0ff;
+      border-color: #667eea;
+      box-shadow: 0 0 12px rgba(102, 126, 234, 0.3);
     }
     #board {
       background: #fff;
@@ -128,13 +134,18 @@
       cursor: grab;
       font-size: 16px;
       user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: none;
       transition: all 0.2s;
     }
     .chip:hover {
       background: #f0f2ff;
     }
     .chip.dragging {
-      opacity: 0.4;
+      opacity: 0.6;
+      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+      background: #f0f2ff;
     }
     .button-group {
       display: flex;
@@ -223,6 +234,7 @@
       <div style="font-size: 16px; margin-bottom: 20px;" id="resultName"></div>
       <div class="result-score" id="resultScore"></div>
       <div class="result-text" id="resultText"></div>
+      <div style="font-size: 20px; margin-top: 20px; font-weight: bold;" id="resultRank"></div>
     </div>
     <button onclick="app.goToScoreboard()">순위 확인</button>
     <button onclick="app.goToStart()">처음부터 다시</button>
@@ -263,7 +275,8 @@
     questions: [],
     answers: [],
     correctCount: 0,
-    dragEl: null
+    dragEl: null,
+    touchOffset: { x: 0, y: 0 }
   };
 
   async function loadQuestions() {
@@ -293,6 +306,9 @@
     el.textContent = word;
     el.className = 'chip';
     el.draggable = true;
+    el.style.touchAction = 'none';
+    el.style.position = 'relative';
+
     el.addEventListener('dragstart', () => {
       gameState.dragEl = el;
       el.classList.add('dragging');
@@ -300,6 +316,36 @@
     el.addEventListener('dragend', () => {
       el.classList.remove('dragging');
     });
+
+    el.addEventListener('pointerdown', (e) => {
+      gameState.dragEl = el;
+      el.classList.add('dragging');
+      const rect = el.getBoundingClientRect();
+      gameState.touchOffset = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+      el.style.zIndex = '1000';
+    });
+
+    el.addEventListener('pointermove', (e) => {
+      if (gameState.dragEl === el) {
+        el.style.position = 'fixed';
+        el.style.left = (e.clientX - gameState.touchOffset.x) + 'px';
+        el.style.top = (e.clientY - gameState.touchOffset.y) + 'px';
+      }
+    });
+
+    el.addEventListener('pointerup', () => {
+      if (gameState.dragEl === el) {
+        el.classList.remove('dragging');
+        el.style.position = 'relative';
+        el.style.left = '0';
+        el.style.top = '0';
+        el.style.zIndex = 'auto';
+      }
+    });
+
     return el;
   }
 
@@ -309,6 +355,19 @@
       e.preventDefault();
       if (gameState.dragEl) {
         zone.appendChild(gameState.dragEl);
+      }
+    });
+
+    zone.addEventListener('pointerover', () => {
+      zone.dataset.dragOverZone = 'true';
+    });
+    zone.addEventListener('pointerout', () => {
+      delete zone.dataset.dragOverZone;
+    });
+    zone.addEventListener('pointerup', () => {
+      if (gameState.dragEl && zone.dataset.dragOverZone === 'true') {
+        zone.appendChild(gameState.dragEl);
+        gameState.dragEl = null;
       }
     });
   }
@@ -415,10 +474,38 @@
         finishTime: Date.now()
       });
 
+      // 현재 순위 계산
+      const snapshot = await get(ref(db, 'players'));
+      let players = [];
+      snapshot.forEach((child) => {
+        players.push(child.val());
+      });
+
+      players.sort((a, b) => {
+        if (b.completed === a.completed) {
+          return (b.percentage || 0) - (a.percentage || 0);
+        }
+        return b.completed - a.completed;
+      });
+
+      let rank = 0;
+      for (let i = 0; i < players.length; i++) {
+        if (players[i].name === gameState.studentName &&
+            Math.round((players[i].score / players[i].total) * 100) === score) {
+          rank = i + 1;
+          break;
+        }
+      }
+
       document.getElementById('resultName').textContent = gameState.studentName;
       document.getElementById('resultScore').textContent = score + '점';
       document.getElementById('resultText').textContent =
         `${gameState.correctCount}/${gameState.questions.length} 정답`;
+
+      const rankElement = document.getElementById('resultRank');
+      if (rankElement) {
+        rankElement.textContent = `🏆 현재 순위: ${rank}등 (총 ${players.length}명)`;
+      }
 
       showScreen('resultScreen');
     },
