@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>미로 탈출 (mini24)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            background: #111;
+            border: 2px solid #555;
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🌀 미로 탈출</h1>
+                    <p>목표(🟩)까지 이동하세요!</p>
+                </header>
+
+                <canvas id="game" width="300" height="300"></canvas>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">새 미로</button>
+                </div>
+
+                <div class="stats-bar mt-4">
+                    <div class="stat-item">단계: <span id="level">1</span></div>
+                </div>
+
+                <div class="controls mt-4"
+                    style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; max-width: 200px; margin: 20px auto;">
+                    <div></div><button class="btn secondary" id="btnUp">▲</button>
+                    <div></div>
+                    <button class="btn secondary" id="btnLeft">◀</button>
+                    <div></div><button class="btn secondary" id="btnRight">▶</button>
+                    <div></div><button class="btn secondary" id="btnDown">▼</button>
+                    <div></div>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹 (최고 단계)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini24";
+        if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
+            const rl = document.getElementById('rankList');
+            rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}단계)</li>`).join('');
+        });
+
+        const cvs = document.getElementById('game');
+        const ctx = cvs.getContext('2d');
+        const btn = document.getElementById('btnStart');
+        const lvlEl = document.getElementById('level');
+
+        let size = 15; // 15x15 maze
+        let cellSize = 20;
+        let maze = [];
+        let player = { x: 0, y: 0 };
+        let goal = { x: 0, y: 0 };
+        let level = 1;
+        let playing = false;
+
+        function initMaze(s) {
+            size = s;
+            cellSize = 300 / size;
+            maze = [];
+            for (let y = 0; y < size; y++) {
+                let row = [];
+                for (let x = 0; x < size; x++) row.push(1); // 1: Wall
+                maze.push(row);
+            }
+
+            // Recursive Backtracker
+            let stack = [];
+            let curr = { x: 1, y: 1 };
+            maze[1][1] = 0;
+            stack.push(curr);
+
+            while (stack.length > 0) {
+                curr = stack[stack.length - 1]; // Peek
+                // Neighbors
+                let ns = [];
+                if (curr.x > 2 && maze[curr.y][curr.x - 2] === 1) ns.push({ x: curr.x - 2, y: curr.y, dx: -1, dy: 0 });
+                if (curr.x < size - 2 && maze[curr.y][curr.x + 2] === 1) ns.push({ x: curr.x + 2, y: curr.y, dx: 1, dy: 0 });
+                if (curr.y > 2 && maze[curr.y - 2][curr.x] === 1) ns.push({ x: curr.x, y: curr.y - 2, dx: 0, dy: -1 });
+                if (curr.y < size - 2 && maze[curr.y + 2][curr.x] === 1) ns.push({ x: curr.x, y: curr.y + 2, dx: 0, dy: 1 });
+
+                if (ns.length > 0) {
+                    let n = ns[Math.floor(Math.random() * ns.length)];
+                    maze[curr.y + n.dy][curr.x + n.dx] = 0; // Remove wall between
+                    maze[n.y][n.x] = 0; // Mark new cell visited
+                    stack.push({ x: n.x, y: n.y });
+                } else {
+                    stack.pop();
+                }
+            }
+
+            player = { x: 1, y: 1 };
+            goal = { x: size - 2, y: size - 2 };
+            // Ensure goal is open
+            maze[goal.y][goal.x] = 0;
+        }
+
+        function draw() {
+            ctx.fillStyle = "#111";
+            ctx.fillRect(0, 0, 300, 300);
+
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    if (maze[y][x] === 1) {
+                        ctx.fillStyle = "#555";
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+
+            // Goal
+            ctx.fillStyle = "#22c55e";
+            ctx.fillRect(goal.x * cellSize + 4, goal.y * cellSize + 4, cellSize - 8, cellSize - 8);
+
+            // Player
+            ctx.fillStyle = "#3b82f6";
+            ctx.beginPath();
+            ctx.arc(player.x * cellSize + cellSize / 2, player.y * cellSize + cellSize / 2, cellSize / 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function move(dx, dy) {
+            if (!playing) return;
+            let nx = player.x + dx;
+            let ny = player.y + dy;
+
+            if (nx >= 0 && nx < size && ny >= 0 && ny < size && maze[ny][nx] === 0) {
+                player.x = nx;
+                player.y = ny;
+                draw();
+                if (player.x === goal.x && player.y === goal.y) {
+                    alert("탈출 성공!");
+                    level++;
+                    lvlEl.textContent = level;
+                    initMaze(Math.min(25, 15 + Math.floor(level / 2)));
+                    draw();
+                }
+            }
+        }
+
+        function start() {
+            playing = true;
+            level = 1; lvlEl.textContent = 1;
+            initMaze(15);
+            draw();
+            btn.style.display = 'none';
+        }
+
+        // Save on exit? Or just max level reached in session?
+        // Let's allow manual save button or auto save on high level?
+        // Simple: Save every level up.
+        // ...
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowLeft') move(-1, 0);
+            if (e.key === 'ArrowRight') move(1, 0);
+            if (e.key === 'ArrowUp') move(0, -1);
+            if (e.key === 'ArrowDown') move(0, 1);
+        });
+
+        document.getElementById('btnUp').onclick = () => move(0, -1);
+        document.getElementById('btnDown').onclick = () => move(0, 1);
+        document.getElementById('btnLeft').onclick = () => move(-1, 0);
+        document.getElementById('btnRight').onclick = () => move(1, 0);
+
+        btn.onclick = start;
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>점프 런 (mini23)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            background: #222;
+            border-bottom: 2px solid #fff;
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🦖 점프 런</h1>
+                    <p>장애물을 점프해서 피하세요! (스페이스바 / 터치)</p>
+                </header>
+
+                <canvas id="game" width="600" height="200"></canvas>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">달리기 시작</button>
+                </div>
+
+                <div class="stats-bar mt-4">
+                    <div class="stat-item">거리: <span id="score">0</span>m</div>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini23";
+        if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
+            const rl = document.getElementById('rankList');
+            rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}m)</li>`).join('');
+        });
+
+        const cvs = document.getElementById('game');
+        const ctx = cvs.getContext('2d');
+        const btn = document.getElementById('btnStart');
+        const sEl = document.getElementById('score');
+
+        let dino = { x: 50, y: 150, w: 30, h: 50, vy: 0, grounded: true };
+        let obstacles = [];
+        let frame = 0;
+        let score = 0;
+        let running = false;
+        let speed = 5;
+
+        function jump() {
+            if (dino.grounded) {
+                dino.vy = -12;
+                dino.grounded = false;
+            }
+        }
+
+        function update() {
+            if (!running) return;
+            frame++;
+            score = Math.floor(frame / 10);
+            sEl.textContent = score;
+
+            // Dino Physics
+            dino.vy += 0.8; // Gravity
+            dino.y += dino.vy;
+
+            if (dino.y >= 150) {
+                dino.y = 150;
+                dino.grounded = true;
+                dino.vy = 0;
+            }
+
+            // Spawn
+            if (frame % Math.max(60, 100 - speed * 2) === 0) {
+                if (Math.random() < 0.7) obstacles.push({ x: 600, y: 160, w: 20, h: 40 }); // Cactus
+                else obstacles.push({ x: 600, y: 130, w: 30, h: 30 }); // Bird/Box
+            }
+
+            // Update Obs
+            for (let i = 0; i < obstacles.length; i++) {
+                obstacles[i].x -= speed;
+                if (obstacles[i].x < -30) {
+                    obstacles.splice(i, 1); i--;
+                    speed += 0.05; // Accel
+                }
+                // Collision
+                let o = obstacles[i];
+                if (
+                    dino.x < o.x + o.w &&
+                    dino.x + dino.w > o.x &&
+                    dino.y < o.y + o.h &&
+                    dino.y + dino.h > o.y
+                ) {
+                    gameOver();
+                    return;
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = "#222";
+            ctx.fillRect(0, 0, 600, 200);
+
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0, 195, 600, 2); // Ground line
+
+            // Dino
+            ctx.fillStyle = "#22c55e";
+            ctx.fillRect(dino.x, dino.y, dino.w, dino.h);
+
+            // Obs
+            ctx.fillStyle = "#ef4444";
+            for (let o of obstacles) {
+                ctx.fillRect(o.x, o.y, o.w, o.h);
+            }
+        }
+
+        function loop() {
+            if (running) {
+                update();
+                draw();
+                requestAnimationFrame(loop);
+            }
+        }
+
+        function gameOver() {
+            running = false;
+            alert(`게임 오버! 기록: ${score}m`);
+            const nick = localStorage.getItem('nickname') || '익명';
+            if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+            btn.style.display = 'inline-block';
+        }
+
+        function start() {
+            dino.y = 150; dino.vy = 0;
+            obstacles = [];
+            score = 0; frame = 0; speed = 5;
+            running = true;
+            btn.style.display = 'none';
+            loop();
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.code === 'Space' || e.key === 'ArrowUp') jump();
+        });
+        cvs.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            jump();
+        });
+        cvs.addEventListener('mousedown', () => {
+            jump();
+        });
+
+        btn.onclick = start;
+    </script>
+</body>
+
+</html>

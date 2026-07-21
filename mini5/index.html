@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <title>벽돌깨기 Lite (mini5)</title>
+  <link rel="stylesheet" href="../shared/style.css">
+</head>
+
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header class="mb-4">
+          <h1>🧱 벽돌 깨기</h1>
+          <p>공을 튀겨 모든 벽돌을 제거하세요.</p>
+        </header>
+
+        <canvas id="gameCanvas" width="480" height="320"
+          style="background:#eee; display:block; margin:0 auto; border-radius:4px; max-width:100%;"></canvas>
+
+        <div class="controls mt-4">
+          <button id="btnStart" class="btn">게임 시작</button>
+        </div>
+
+        <div class="stats-bar mt-4">
+          <div class="stat-item">점수: <span id="score">0</span></div>
+          <div class="stat-item">목숨: <span id="lives">3</span></div>
+        </div>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 랭킹</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="../shared/firebase.js"></script>
+
+  <script>
+    // Firebase 랭킹 연동
+    const PAGE_ID = "mini5";
+    const rankList = document.getElementById('rankList');
+    if (window.GameStats) {
+      GameStats.listenTopScores(PAGE_ID, 5, arr => {
+        rankList.innerHTML = "";
+        if (!arr || !arr.length) { rankList.innerHTML = "<li>기록 없음</li>"; return; }
+        arr.forEach((d, i) => rankList.innerHTML += `<li>${i + 1}위 ${d.name} (${d.score})</li>`);
+      });
+    }
+
+    // Canvas & Game Variables
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const btnStart = document.getElementById('btnStart');
+    const scoreEl = document.getElementById('score');
+    const livesEl = document.getElementById('lives');
+
+    let x, y, dx, dy;
+    let paddleH = 10, paddleW = 75, paddleX;
+    let rightPressed = false, leftPressed = false;
+    let score = 0, lives = 3;
+    let bricks = [];
+    const ballRadius = 10;
+    const brickRowCount = 5; // 좀 더 많게
+    const brickColumnCount = 5;
+    const brickW = 75;
+    const brickH = 20;
+    const brickPadding = 10;
+    const brickOffsetTop = 30;
+    const brickOffsetLeft = 30;
+
+    let interval = null;
+
+    function init() {
+      x = canvas.width / 2;
+      y = canvas.height - 30;
+      dx = 3; dy = -3;
+      paddleX = (canvas.width - paddleW) / 2;
+      score = 0; lives = 3;
+
+      bricks = [];
+      for (let c = 0; c < brickColumnCount; c++) {
+        bricks[c] = [];
+        for (let r = 0; r < brickRowCount; r++) {
+          bricks[c][r] = { x: 0, y: 0, status: 1 };
+        }
+      }
+      updateUI();
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+      ctx.fillStyle = "#0095DD";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawPaddle() {
+      ctx.beginPath();
+      ctx.rect(paddleX, canvas.height - paddleH, paddleW, paddleH);
+      ctx.fillStyle = "#0095DD";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawBricks() {
+      for (let c = 0; c < brickColumnCount; c++) {
+        for (let r = 0; r < brickRowCount; r++) {
+          if (bricks[c][r].status === 1) {
+            const brickX = (c * (brickW + brickPadding)) + brickOffsetLeft;
+            const brickY = (r * (brickH + brickPadding)) + brickOffsetTop;
+            bricks[c][r].x = brickX;
+            bricks[c][r].y = brickY;
+            ctx.beginPath();
+            ctx.rect(brickX, brickY, brickW, brickH);
+            ctx.fillStyle = "#0095DD";
+            ctx.fill();
+            ctx.closePath();
+          }
+        }
+      }
+    }
+
+    function collisionDetection() {
+      for (let c = 0; c < brickColumnCount; c++) {
+        for (let r = 0; r < brickRowCount; r++) {
+          const b = bricks[c][r];
+          if (b.status === 1) {
+            if (x > b.x && x < b.x + brickW && y > b.y && y < b.y + brickH) {
+              dy = -dy;
+              b.status = 0;
+              score++;
+              updateUI();
+              if (score === brickRowCount * brickColumnCount) {
+                endGame("YOU WIN! 점수: " + score);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    function updateUI() {
+      scoreEl.textContent = score;
+      livesEl.textContent = lives;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBricks();
+      drawBall();
+      drawPaddle();
+      collisionDetection();
+
+      if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
+        dx = -dx;
+      }
+      if (y + dy < ballRadius) {
+        dy = -dy;
+      } else if (y + dy > canvas.height - ballRadius) {
+        if (x > paddleX && x < paddleX + paddleW) {
+          dy = -dy;
+        } else {
+          lives--;
+          updateUI();
+          if (!lives) {
+            endGame("GAME OVER");
+          } else {
+            x = canvas.width / 2;
+            y = canvas.height - 30;
+            dx = 3; dy = -3;
+            paddleX = (canvas.width - paddleW) / 2;
+          }
+        }
+      }
+
+      if (rightPressed && paddleX < canvas.width - paddleW) {
+        paddleX += 7;
+      }
+      else if (leftPressed && paddleX > 0) {
+        paddleX -= 7;
+      }
+
+      x += dx;
+      y += dy;
+    }
+
+    function endGame(msg) {
+      clearInterval(interval);
+      interval = null;
+      alert(msg);
+
+      // Save
+      if (score > 0) {
+        const nick = localStorage.getItem('nickname') || prompt("닉네임?") || "익명";
+        if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      btnStart.style.display = 'inline-block';
+    }
+
+    function startGame() {
+      if (interval) return;
+      init();
+      btnStart.style.display = 'none';
+      interval = setInterval(draw, 10);
+    }
+
+    document.addEventListener("keydown", keyDownHandler, false);
+    document.addEventListener("keyup", keyUpHandler, false);
+
+    function keyDownHandler(e) {
+      if (e.key == "Right" || e.key == "ArrowRight") rightPressed = true;
+      else if (e.key == "Left" || e.key == "ArrowLeft") leftPressed = true;
+    }
+
+    function keyUpHandler(e) {
+      if (e.key == "Right" || e.key == "ArrowRight") rightPressed = false;
+      else if (e.key == "Left" || e.key == "ArrowLeft") leftPressed = false;
+    }
+
+    btnStart.onclick = startGame;
+  </script>
+</body>
+
+</html>

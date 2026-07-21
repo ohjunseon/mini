@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>지뢰찾기 (mini18)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .mine-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 2px;
+            background: #999;
+            margin: 20px auto;
+            width: fit-content;
+            border: 4px solid #999;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            background: #bdbdbd;
+            border: 2px solid;
+            border-color: #fff #7b7b7b #7b7b7b #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            font-size: 1.1rem;
+        }
+
+        .cell.revealed {
+            border: 1px solid #7b7b7b;
+            background: #cfcfcf;
+        }
+
+        .cell.mine {
+            background: #ff4444;
+        }
+
+        .cell.flag {
+            color: red;
+        }
+
+        .c1 {
+            color: blue;
+        }
+
+        .c2 {
+            color: green;
+        }
+
+        .c3 {
+            color: red;
+        }
+
+        .c4 {
+            color: darkblue;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>💣 지뢰찾기</h1>
+                    <p>9x9, 지뢰 10개 (우클릭: 깃발)</p>
+                </header>
+
+                <div class="stats-bar">
+                    <div class="stat-item">남은 지뢰: <span id="mines">10</span></div>
+                    <div class="stat-item">시간: <span id="time">0</span>s</div>
+                </div>
+
+                <div class="mine-grid" id="grid"></div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">새 게임</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹 (클리어 시간)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini18";
+        if (window.GameStats) {
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                const rl = document.getElementById('rankList');
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${Math.abs(d.score)}s)</li>`).join('');
+            });
+        }
+
+        const grid = document.getElementById('grid');
+        const mineEl = document.getElementById('mines');
+        const timeEl = document.getElementById('time');
+        const btn = document.getElementById('btnStart');
+
+        const SIZE = 9;
+        const MINES = 10;
+
+        let board = [];
+        let revealed = [];
+        let flagged = [];
+        let startTime = 0;
+        let timer = null;
+        let playing = false;
+        let flags = 0;
+
+        function init() {
+            grid.innerHTML = '';
+            board = [];
+            revealed = [];
+            flagged = [];
+            flags = 0;
+            mineEl.textContent = MINES;
+            timeEl.textContent = 0;
+
+            // Init Arrays
+            for (let i = 0; i < SIZE * SIZE; i++) {
+                board.push(0);
+                revealed.push(false);
+                flagged.push(false);
+                const div = document.createElement('div');
+                div.className = 'cell';
+                div.dataset.id = i;
+                div.onmousedown = (e) => handleClick(e, i);
+                div.oncontextmenu = (e) => { e.preventDefault(); return false; };
+                grid.appendChild(div);
+            }
+
+            // Place Mines
+            let placed = 0;
+            while (placed < MINES) {
+                const idx = Math.floor(Math.random() * (SIZE * SIZE));
+                if (board[idx] !== 'M') {
+                    board[idx] = 'M';
+                    placed++;
+                }
+            }
+
+            // Calc Numbers
+            for (let i = 0; i < SIZE * SIZE; i++) {
+                if (board[i] === 'M') continue;
+                let cnt = 0;
+                const x = i % SIZE; const y = Math.floor(i / SIZE);
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        const nx = x + dx; const ny = y + dy;
+                        if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE) {
+                            if (board[ny * SIZE + nx] === 'M') cnt++;
+                        }
+                    }
+                }
+                board[i] = cnt;
+            }
+
+            playing = true;
+            startTime = Date.now();
+            clearInterval(timer);
+            timer = setInterval(() => {
+                timeEl.textContent = Math.floor((Date.now() - startTime) / 1000);
+            }, 1000);
+        }
+
+        function handleClick(e, idx) {
+            if (!playing) return;
+            if (e.button === 2) { // Right Click
+                toggleFlag(idx);
+            } else {
+                reveal(idx);
+            }
+        }
+
+        function toggleFlag(idx) {
+            if (revealed[idx]) return;
+            flagged[idx] = !flagged[idx];
+            const cell = grid.children[idx];
+            if (flagged[idx]) {
+                cell.textContent = '🚩';
+                cell.classList.add('flag');
+                flags++;
+            } else {
+                cell.textContent = '';
+                cell.classList.remove('flag');
+                flags--;
+            }
+            mineEl.textContent = MINES - flags;
+        }
+
+        function reveal(idx) {
+            if (revealed[idx] || flagged[idx]) return;
+            revealed[idx] = true;
+            const cell = grid.children[idx];
+            cell.classList.add('revealed');
+
+            if (board[idx] === 'M') {
+                cell.classList.add('mine');
+                cell.textContent = '💣';
+                gameOver(false);
+                return;
+            }
+
+            if (board[idx] > 0) {
+                cell.textContent = board[idx];
+                cell.classList.add('c' + board[idx]);
+            } else {
+                // Flood Fill
+                const x = idx % SIZE; const y = Math.floor(idx / SIZE);
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        const nx = x + dx; const ny = y + dy;
+                        if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE) {
+                            reveal(ny * SIZE + nx);
+                        }
+                    }
+                }
+            }
+
+            checkWin();
+        }
+
+        function checkWin() {
+            let safeRevealed = 0;
+            for (let i = 0; i < SIZE * SIZE; i++) {
+                if (board[i] !== 'M' && revealed[i]) safeRevealed++;
+            }
+            if (safeRevealed === (SIZE * SIZE - MINES)) {
+                gameOver(true);
+            }
+        }
+
+        function gameOver(win) {
+            playing = false;
+            clearInterval(timer);
+            if (win) {
+                const time = Math.floor((Date.now() - startTime) / 1000);
+                alert(`클리어! 시간: ${time}초`);
+
+                // Save negative for sorting
+                const nick = localStorage.getItem('nickname') || '익명';
+                if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, -time);
+            } else {
+                alert('펑! 지뢰가 터졌습니다.');
+                // Reveal all mines
+                board.forEach((v, i) => {
+                    if (v === 'M') {
+                        grid.children[i].classList.add('revealed', 'mine');
+                        grid.children[i].textContent = '💣';
+                    }
+                });
+            }
+        }
+
+        btn.onclick = init;
+        init(); // start immediately
+    </script>
+</body>
+
+</html>

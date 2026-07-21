@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Flappy Bird Clone (mini10)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            background: #70c5ce;
+            /* Sky blue */
+            border: 2px solid var(--accent);
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🐦 플래피 버드</h1>
+                    <p>화면을 클릭하여 날아가세요!</p>
+                </header>
+
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="stats-bar mt-4">
+                    <div class="stat-item">점수: <span id="score">0</span></div>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini10";
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
+        }
+
+        const cvs = document.getElementById('gameCanvas');
+        const ctx = cvs.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const btnStart = document.getElementById('btnStart');
+
+        // Game Vars
+        let frames = 0;
+        let score = 0;
+        let running = false;
+        let requestId = null;
+
+        const DEGREE = Math.PI / 180;
+
+        const bird = {
+            x: 50, y: 150, w: 20, h: 20, radius: 10,
+            speed: 0, gravity: 0.25, jump: 4.6, rotation: 0,
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.fillStyle = "yellow";
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            },
+            update() {
+                this.speed += this.gravity;
+                this.y += this.speed;
+
+                if (this.y + this.h / 2 >= cvs.height - 20) { // floor
+                    this.y = cvs.height - 20 - this.h / 2;
+                    gameOver();
+                }
+                if (this.speed < this.jump) {
+                    this.rotation = -25 * DEGREE;
+                } else {
+                    this.rotation += 5 * DEGREE;
+                    this.rotation = this.rotation > 90 * DEGREE ? 90 * DEGREE : this.rotation;
+                }
+            },
+            flap() {
+                this.speed = -this.jump;
+            }
+        };
+
+        const pipes = {
+            position: [],
+            w: 40, h: 100, dx: 2, gap: 100, maxYPos: -150,
+            draw() {
+                ctx.fillStyle = "green";
+                for (let i = 0; i < this.position.length; i++) {
+                    let p = this.position[i];
+                    let topY = p.y;
+                    let bottomY = p.y + this.h + this.gap;
+                    ctx.fillRect(p.x, topY, this.w, this.h); // Top Pipe (simplified)
+                    ctx.fillRect(p.x, bottomY, this.w, 400); // Bottom Pipe
+                }
+            },
+            update() {
+                if (frames % 100 === 0) {
+                    this.position.push({
+                        x: cvs.width,
+                        y: Math.max(-200, Math.random() * 200 - 200) // random Y
+                    });
+                }
+                for (let i = 0; i < this.position.length; i++) {
+                    let p = this.position[i];
+                    p.x -= this.dx;
+
+                    // Collision
+                    let bottomPipeY = p.y + this.h + this.gap; // h used as top pipe height
+
+                    // Top pipe logic needed actual height
+                    // Simplified: Top pipe y is absolute. 
+                    // Let's redraw properly
+                    // p.y is top pipe Y position (e.g. -100)
+                    // We draw top pipe from p.y to p.y+this.h? No.
+                    // Let's reimplement similar to classic
+
+                }
+            }
+        }
+
+        // Simplification for reliability
+        let pipeArr = [];
+        const pipeW = 50;
+        const pipeGap = 120;
+
+        function updatePipes() {
+            if (frames % 100 === 0) {
+                let topH = Math.random() * (cvs.height - pipeGap - 50) + 20;
+                pipeArr.push({ x: cvs.width, top: topH });
+            }
+            for (let i = 0; i < pipeArr.length; i++) {
+                let p = pipeArr[i];
+                p.x -= 2;
+
+                // Collision with bird
+                // Bird Circle: bird.x, bird.y, radius 10
+                // Rect 1: p.x, 0, width, p.top
+                // Rect 2: p.x, p.top+pipeGap, width, height...
+
+                if (
+                    bird.x + 10 > p.x &&
+                    bird.x - 10 < p.x + pipeW &&
+                    (bird.y - 10 < p.top || bird.y + 10 > p.top + pipeGap)
+                ) {
+                    gameOver();
+                }
+
+                if (p.x + pipeW < 0) {
+                    pipeArr.shift();
+                    score++;
+                    scoreEl.textContent = score;
+                    i--;
+                }
+            }
+        }
+
+        function drawPipes() {
+            ctx.fillStyle = "#2ecc71";
+            for (let i = 0; i < pipeArr.length; i++) {
+                let p = pipeArr[i];
+                ctx.fillRect(p.x, 0, pipeW, p.top);
+                ctx.fillRect(p.x, p.top + pipeGap, pipeW, cvs.height);
+            }
+        }
+
+        function loop() {
+            if (!running) return;
+            ctx.fillStyle = "#70c5ce";
+            ctx.fillRect(0, 0, cvs.width, cvs.height);
+
+            // Floor
+            ctx.fillStyle = "#ded895";
+            ctx.fillRect(0, cvs.height - 20, cvs.width, 20);
+
+            updatePipes();
+            drawPipes();
+
+            bird.update();
+            bird.draw();
+
+            frames++;
+            requestId = requestAnimationFrame(loop);
+        }
+
+        function gameOver() {
+            running = false;
+            cancelAnimationFrame(requestId);
+            alert(`게임 오버! 점수: ${score}`);
+            if (score > 0) {
+                const nick = localStorage.getItem('nickname') || prompt('닉네임?') || '익명';
+                localStorage.setItem('nickname', nick);
+                if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+            }
+            btnStart.style.display = 'inline-block';
+            btnStart.textContent = "다시 시작";
+            score = 0;
+        }
+
+        function start() {
+            if (running) return;
+            running = true;
+            bird.y = 150; bird.speed = 0;
+            pipeArr = []; frames = 0; score = 0;
+            scoreEl.textContent = 0;
+            btnStart.style.display = 'none';
+            loop();
+        }
+
+        window.addEventListener("mousedown", () => {
+            if (running) bird.flap();
+        });
+        window.addEventListener("keydown", (e) => {
+            if (e.key === ' ') if (running) bird.flap();
+        });
+
+        btnStart.onclick = start;
+
+    </script>
+</body>
+
+</html>

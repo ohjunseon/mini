@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>같은 색 찾기 게임</title>
+  <style>
+    :root{
+      --bg:#0b1020; --panel:#121931; --accent:#5b9cff; --text:#e9eef9; --muted:#9fb3d9;
+      --good:#2ecc71; --bad:#ff5b5b; --warn:#ffd166;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Pretendard,Apple SD Gothic Neo,Helvetica,Arial,sans-serif;
+      color:var(--text); background:linear-gradient(180deg,#0b1020,#0c1328 40%, #0a0f1f);
+      display:flex; align-items:center; justify-content:center; padding:16px;
+    }
+    .wrap{width:min(100%, 980px);}
+    .card{
+      background:radial-gradient(1200px 400px at 50% -200px, #1b2447 0%, #121931 60%, #0c1328 100%);
+      border:1px solid #1a2244; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,.35);
+      overflow:hidden;
+    }
+    header{
+      display:grid; grid-template-columns: 1fr auto; gap:16px; align-items:center; padding:16px 20px; border-bottom:1px solid #212a4e;
+    }
+    .title{font-weight:800; letter-spacing:.2px;}
+    .pill{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#172045; color:var(--muted); font-size:12px}
+    .row{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+    .stat{background:#0f1735; padding:8px 12px; border-radius:12px; border:1px solid #1a2246; font-weight:700;}
+    .stat small{display:block; font-weight:600; color:var(--muted);}
+
+    .controls{display:flex; flex-wrap:wrap; gap:10px; padding:12px 20px; border-bottom:1px solid #212a4e;}
+    select,button,input[type="checkbox"]{accent-color:var(--accent)}
+    .btn{background:linear-gradient(180deg,#2b68ff,#2a57e6); color:white; border:none; padding:10px 14px; border-radius:12px; font-weight:800; letter-spacing:.3px; cursor:pointer; box-shadow:0 6px 16px rgba(43,104,255,.35);}
+    .btn.secondary{background:#16204a; color:#cdd8ff; border:1px solid #28356b; box-shadow:none}
+    .btn.ghost{background:transparent; border:1px dashed #334072; color:#9fb3d9}
+    .btn:disabled{opacity:.6; cursor:not-allowed}
+
+    .swatch{width:34px; height:34px; border-radius:10px; border:2px solid rgba(255,255,255,.25)}
+
+    .board-wrap{padding:16px;}
+    .board{display:grid; gap:10px; width:100%; aspect-ratio:1/1; background:#0e1631; border:1px solid #1a2246; border-radius:18px; padding:10px}
+    .cell{
+      border-radius:12px; position:relative; cursor:pointer; outline: none; border:1px solid rgba(255,255,255,.06);
+      transition: transform .06s ease, box-shadow .2s ease;
+    }
+    .cell:active{transform:scale(.98)}
+    .cell.correct{box-shadow:0 0 0 3px rgba(46,204,113,.45) inset, 0 8px 20px rgba(46,204,113,.25)}
+    .cell.wrong{box-shadow:0 0 0 3px rgba(255,91,91,.45) inset, 0 8px 20px rgba(255,91,91,.25)}
+    .cell .mark{position:absolute; inset:auto 6px 6px auto; width:18px; height:18px; border-radius:50%; background:rgba(255,255,255,.9); mix-blend:overlay; display:none}
+    .cell.pattern::after{content:""; position:absolute; inset:0; background: repeating-linear-gradient(45deg, rgba(255,255,255,.25) 0 6px, transparent 6px 12px); border-radius:inherit;}
+
+    .status-bar{display:flex; gap:10px; padding:0 20px 16px; align-items:center}
+    .progress{flex:1; height:10px; border-radius:999px; background:#10183a; border:1px solid #1a2246; position:relative; overflow:hidden}
+    .progress>i{position:absolute; inset:0; width:50%; background:linear-gradient(90deg, var(--accent), #61d8ff); border-radius:999px}
+
+    .footer{padding:10px 20px 20px; color:#a9b8e8; font-size:12px}
+
+    .hidden{display:none !important}
+    .tag{padding:6px 10px; background:#111a3a; border:1px solid #253163; border-radius:999px; color:#a9b8e8; font-size:12px}
+    .target-chip{display:flex; align-items:center; gap:10px; padding:8px 12px; background:#0f1735; border:1px solid #1a2246; border-radius:12px}
+    .kbd{padding:2px 6px; border:1px solid #36406c; border-radius:6px; font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace; font-size:12px; color:#d5def9}
+
+    @media (max-width:520px){
+      header{grid-template-columns:1fr; gap:8px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <header>
+        <div class="title">
+          <div class="row" style="gap:8px">
+            <span class="pill">미니게임</span>
+            <span style="font-size:22px">같은 색 찾기</span>
+          </div>
+          <div style="margin-top:8px; color:var(--muted); font-weight:600;">
+            목표 색과 <u>완전히 같은</u> 칸을 모두 찾아 터치/클릭하세요.
+          </div>
+        </div>
+        <div class="row">
+          <div class="stat"><small>점수</small><span id="score">0</span></div>
+          <div class="stat"><small>최고</small><span id="best">0</span></div>
+          <div class="stat"><small>라운드</small><span id="round">1</span></div>
+          <div class="target-chip">
+            <div class="swatch" id="targetSwatch"></div>
+            <div style="display:grid; line-height:1.1">
+              <small style="color:var(--muted)">목표 색</small>
+              <strong id="targetText">#000000</strong>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="controls">
+        <button class="btn" id="startBtn">시작 / 다음 라운드</button>
+        <button class="btn secondary" id="restartBtn">처음부터</button>
+        <label class="tag">난이도
+          <select id="difficulty" style="margin-left:8px">
+            <option value="easy">쉬움</option>
+            <option value="normal" selected>보통</option>
+            <option value="hard">어려움</option>
+          </select>
+        </label>
+        <label class="tag">격자
+          <select id="gridSize" style="margin-left:8px">
+            <option value="3">3 × 3</option>
+            <option value="4" selected>4 × 4</option>
+            <option value="5">5 × 5</option>
+            <option value="6">6 × 6</option>
+            <option value="7">7 × 7</option>
+            <option value="8">8 × 8</option>
+          </select>
+        </label>
+        <label class="tag"><input type="checkbox" id="cbAssist" /> 색약 보조</label>
+        <label class="tag"><input type="checkbox" id="cbSound" checked/> 효과음</label>
+      </div>
+
+      <div class="board-wrap">
+        <div id="board" class="board" aria-label="게임 보드" role="grid"></div>
+      </div>
+
+      <div class="status-bar">
+        <div class="progress" aria-label="남은 시간"><i id="bar"></i></div>
+        <span class="stat" style="min-width:92px; text-align:center"><small>남은 시간</small><span id="time">0.0s</span></span>
+      </div>
+
+      <div class="footer">
+        팁: 같은 색을 모두 찾으면 즉시 다음 라운드로 넘어갑니다. 잘못 누르면 시간이 <b>-1초</b> 감소합니다.
+        <span class="kbd">R</span> 키로 재시작, <span class="kbd">N</span> 키로 다음 라운드.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const elBoard = document.getElementById('board');
+    const elScore = document.getElementById('score');
+    const elBest = document.getElementById('best');
+    const elRound = document.getElementById('round');
+    const elTargetSwatch = document.getElementById('targetSwatch');
+    const elTargetText = document.getElementById('targetText');
+    const elTime = document.getElementById('time');
+    const bar = document.getElementById('bar');
+    const cbAssist = document.getElementById('cbAssist');
+    const cbSound = document.getElementById('cbSound');
+
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const selDiff = document.getElementById('difficulty');
+    const selGrid = document.getElementById('gridSize');
+
+    let state = {
+      score:0, best: Number(localStorage.getItem('sameColorBest')||0), round:1,
+      grid:4, matchesLeft:0, target:'#000000', timer:null, remain:0, duration:0,
+      running:false
+    };
+
+    elBest.textContent = state.best;
+
+    const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    function beep(freq=880,ms=120,gain=0.04){
+      if(!cbSound.checked) return;
+      const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
+      o.frequency.value=freq; o.type='sine'; g.gain.value=gain; o.connect(g); g.connect(audioCtx.destination);
+      o.start(); setTimeout(()=>{o.stop();},ms);
+    }
+
+    function hslToHex(h,s,l){
+      s/=100; l/=100;
+      const c=(1-Math.abs(2*l-1))*s; const x=c*(1-Math.abs((h/60)%2-1)); const m=l-c/2;
+      let [r,g,b]=[0,0,0];
+      if(0<=h&&h<60){[r,g,b]=[c,x,0]} else if(60<=h&&h<120){[r,g,b]=[x,c,0]}
+      else if(120<=h&&h<180){[r,g,b]=[0,c,x]} else if(180<=h&&h<240){[r,g,b]=[0,x,c]}
+      else if(240<=h&&h<300){[r,g,b]=[x,0,c]} else {[r,g,b]=[c,0,x]}
+      const R=Math.round((r+m)*255).toString(16).padStart(2,'0');
+      const G=Math.round((g+m)*255).toString(16).padStart(2,'0');
+      const B=Math.round((b+m)*255).toString(16).padStart(2,'0');
+      return `#${R}${G}${B}`;
+    }
+
+    function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min}
+
+    function newRound({advance=true}={}){
+      if(advance) state.round++;
+      const grid = Number(selGrid.value);
+      state.grid = grid;
+      const diff = selDiff.value; // easy/normal/hard
+      const total = grid*grid;
+      const matches = Math.max(1, Math.round(grid/2));
+      state.matchesLeft = matches;
+
+      // difficulty knobs
+      const delta = diff==='easy'? 16 : diff==='normal'? 10 : 6; // H or L delta
+      const baseTime = diff==='easy'? 22 : diff==='normal'? 18 : 14; // seconds base
+      const roundBonus = Math.max(0, (grid-3))*1.2; // bigger grid → more time
+      state.duration = Math.max(8, baseTime - (state.round*0.4) + roundBonus);
+      state.remain = state.duration;
+
+      // pick target color
+      const H = rand(0,359), S = rand(70,95), L = rand(40,60);
+      const target = hslToHex(H,S,L);
+      state.target = target;
+      elTargetSwatch.style.background = target; elTargetText.textContent = `${target}`;
+
+      // build cells
+      elBoard.innerHTML='';
+      elBoard.style.gridTemplateColumns = `repeat(${grid}, 1fr)`;
+
+      // choose positions for exact matches
+      const pos = new Set();
+      while(pos.size<matches){ pos.add(rand(0,total-1)); }
+
+      for(let i=0;i<total;i++){
+        const cell = document.createElement('button');
+        cell.className='cell'; cell.setAttribute('role','gridcell'); cell.setAttribute('aria-label','색 칸');
+
+        let color;
+        if(pos.has(i)){
+          color = target;
+          cell.dataset.answer = '1';
+        }else{
+          // generate a near-miss color
+          const mode = Math.random()<0.5? 'H':'L';
+          const d = rand(delta, delta+6)*(Math.random()<0.5?-1:1);
+          const h2 = (H + (mode==='H'? d: 0) + 360)%360;
+          const l2 = Math.max(20, Math.min(80, L + (mode==='L'? d: 0)));
+          color = hslToHex(h2,S,l2);
+        }
+        cell.style.background = color;
+        if(cbAssist.checked) cell.classList.add('pattern');
+        const dot = document.createElement('i'); dot.className='mark'; cell.appendChild(dot);
+
+        cell.addEventListener('click', ()=> onPick(cell));
+        elBoard.appendChild(cell);
+      }
+
+      startTimer();
+    }
+
+    function onPick(cell){
+      if(!state.running) return;
+      if(cell.dataset.done) return;
+      const correct = cell.dataset.answer==='1';
+      if(correct){
+        cell.dataset.done='1';
+        state.score += 100; elScore.textContent = state.score;
+        state.matchesLeft--; cell.classList.add('correct');
+        if(cbAssist.checked) cell.querySelector('.mark').style.display='block';
+        beep(880,90,0.05);
+        if(state.matchesLeft<=0){
+          // round clear → small time bonus & next round
+          state.remain = Math.min(state.remain+2.5, state.duration+5);
+          stopTimer();
+          setTimeout(()=>{ newRound({advance:true}); }, 350);
+        }
+      } else {
+        cell.classList.add('wrong');
+        setTimeout(()=>cell.classList.remove('wrong'), 250);
+        state.remain = Math.max(0, state.remain-1);
+        state.score = Math.max(0, state.score-30); elScore.textContent = state.score;
+        beep(220,120,0.04);
+      }
+    }
+
+    function startTimer(){
+      stopTimer(); state.running=true; const start = performance.now();
+      const totalMs = state.remain*1000;
+      const tick = (now)=>{
+        if(!state.running) return;
+        const elapsed = now - start;
+        const left = Math.max(0, totalMs - elapsed)/1000;
+        state.remain = left;
+        renderTime();
+        if(left<=0){ gameOver(); return; }
+        state.timer = requestAnimationFrame(tick);
+      }
+      state.timer = requestAnimationFrame(tick);
+    }
+
+    function renderTime(){
+      elTime.textContent = `${state.remain.toFixed(1)}s`;
+      const ratio = Math.max(0, Math.min(1, state.remain / state.duration));
+      bar.style.width = `${ratio*100}%`;
+      bar.style.filter = `saturate(${0.6 + 0.6*ratio})`;
+    }
+
+    function stopTimer(){ if(state.timer){ cancelAnimationFrame(state.timer); state.timer=null; } }
+
+    function gameOver(){
+      state.running=false; beep(140,240,0.06);
+      elBoard.querySelectorAll('.cell').forEach(c=>c.style.filter='grayscale(40%)');
+      // update best
+      if(state.score>state.best){ state.best=state.score; localStorage.setItem('sameColorBest', String(state.best)); }
+      elBest.textContent = state.best;
+      startBtn.disabled=false; startBtn.textContent='다시 도전 (다음 라운드)';
+    }
+
+    function restart(){
+      state.score=0; elScore.textContent='0'; state.round=0; elRound.textContent='1';
+      state.running=false; stopTimer();
+      elBoard.innerHTML='';
+      newRound({advance:true});
+    }
+
+    // UI events
+    startBtn.addEventListener('click', ()=>{ if(!state.running){ newRound({advance:true}); startBtn.disabled=true; } });
+    restartBtn.addEventListener('click', ()=>{ restart(); });
+    selDiff.addEventListener('change', ()=>{ if(state.running) newRound({advance:false}); });
+    selGrid.addEventListener('change', ()=>{ if(state.running) newRound({advance:false}); });
+    cbAssist.addEventListener('change', ()=>{
+      document.querySelectorAll('.cell').forEach(c=> c.classList.toggle('pattern', cbAssist.checked));
+    });
+
+    // keyboard
+    window.addEventListener('keydown', (e)=>{
+      if(e.key==='r' || e.key==='R'){ restart(); }
+      if(e.key==='n' || e.key==='N'){ newRound({advance:true}); }
+    });
+
+    // initial
+    (function init(){
+      elRound.textContent = state.round;
+      elTargetSwatch.style.background = state.target; elTargetText.textContent = state.target;
+      renderTime();
+    })();
+
+    // update round label continuously
+    const obs = new MutationObserver(()=>{ elRound.textContent = state.round; });
+    obs.observe(elBoard, {childList:true});
+  </script>
+</body>
+</html>

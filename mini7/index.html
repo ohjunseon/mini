@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>스네이크 게임 (mini7)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            background: #111;
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🐍 스네이크</h1>
+                    <p>사과를 먹고 꼬리를 늘리세요! (방향키 이동)</p>
+                </header>
+
+                <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="stats-bar mt-4">
+                    <div class="stat-item">점수: <span id="score">0</span></div>
+                </div>
+
+                <!-- Mobile Controls -->
+                <div class="controls mt-4"
+                    style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; max-width: 200px; margin: 20px auto;">
+                    <div></div><button class="btn secondary" id="btnUp">▲</button>
+                    <div></div>
+                    <button class="btn secondary" id="btnLeft">◀</button>
+                    <div></div><button class="btn secondary" id="btnRight">▶</button>
+                    <div></div><button class="btn secondary" id="btnDown">▼</button>
+                    <div></div>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>로딩 중...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini7";
+        const rankList = document.getElementById('rankList');
+        if (window.GameStats) {
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rankList.innerHTML = "";
+                if (!arr || !arr.length) { rankList.innerHTML = "<li>기록 없음</li>"; return; }
+                arr.forEach((d, i) => rankList.innerHTML += `<li>${i + 1}위 ${d.name} (${d.score})</li>`);
+            });
+        }
+
+        const cvs = document.getElementById('gameCanvas');
+        const ctx = cvs.getContext('2d');
+        const btnStart = document.getElementById('btnStart');
+        const scoreEl = document.getElementById('score');
+
+        const gridSize = 20;
+        const tileCount = 20;
+
+        let xv = 0, yv = 0;
+        let px = 10, py = 10;
+        let trail = [];
+        let tail = 5;
+        let ax = 15, ay = 15;
+        let score = 0;
+        let interval = null;
+        let running = false;
+
+        function game() {
+            px += xv;
+            py += yv;
+
+            // Wrap
+            if (px < 0) px = tileCount - 1;
+            if (px > tileCount - 1) px = 0;
+            if (py < 0) py = tileCount - 1;
+            if (py > tileCount - 1) py = 0;
+
+            ctx.fillStyle = "#111"; // BG
+            ctx.fillRect(0, 0, cvs.width, cvs.height);
+
+            ctx.fillStyle = "lime"; // Snake
+            for (let i = 0; i < trail.length; i++) {
+                ctx.fillRect(trail[i].x * gridSize, trail[i].y * gridSize, gridSize - 2, gridSize - 2);
+                if (trail[i].x === px && trail[i].y === py && tail > 5) {
+                    gameOver();
+                    return;
+                }
+            }
+            trail.push({ x: px, y: py });
+            while (trail.length > tail) {
+                trail.shift();
+            }
+
+            if (ax === px && ay === py) {
+                tail++;
+                score += 10;
+                scoreEl.textContent = score;
+                ax = Math.floor(Math.random() * tileCount);
+                ay = Math.floor(Math.random() * tileCount);
+            }
+
+            ctx.fillStyle = "red"; // Apple
+            ctx.fillRect(ax * gridSize, ay * gridSize, gridSize - 2, gridSize - 2);
+        }
+
+        function keyPush(e) {
+            if (!running) return;
+            switch (e.key) {
+                case "ArrowLeft": if (xv !== 1) { xv = -1; yv = 0; } break;
+                case "ArrowUp": if (yv !== 1) { xv = 0; yv = -1; } break;
+                case "ArrowRight": if (xv !== -1) { xv = 1; yv = 0; } break;
+                case "ArrowDown": if (yv !== -1) { xv = 0; yv = 1; } break;
+            }
+        }
+
+        // Mobile Buttons
+        document.getElementById('btnLeft').onclick = () => { if (xv !== 1) { xv = -1; yv = 0; } };
+        document.getElementById('btnUp').onclick = () => { if (yv !== 1) { xv = 0; yv = -1; } };
+        document.getElementById('btnRight').onclick = () => { if (xv !== -1) { xv = 1; yv = 0; } };
+        document.getElementById('btnDown').onclick = () => { if (yv !== -1) { xv = 0; yv = 1; } };
+
+        function gameOver() {
+            running = false;
+            clearInterval(interval);
+            alert(`게임 오버! 점수: ${score}`);
+            if (score > 0) {
+                const nick = localStorage.getItem('nickname') || prompt('닉네임?') || '익명';
+                localStorage.setItem('nickname', nick);
+                if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+            }
+            btnStart.style.display = 'inline-block';
+            btnStart.textContent = '다시 하기';
+        }
+
+        function start() {
+            if (running) return;
+            running = true;
+            px = 10; py = 10;
+            trail = []; tail = 5; count = 0; score = 0;
+            xv = 1; yv = 0; // Start moving right
+            scoreEl.textContent = 0;
+            btnStart.style.display = 'none';
+            interval = setInterval(game, 1000 / 15);
+        }
+
+        document.addEventListener("keydown", keyPush);
+        btnStart.onclick = start;
+    </script>
+</body>
+
+</html>

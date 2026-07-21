@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>절대 시간 (mini28)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .timer-disp {
+            font-size: 4rem;
+            font-weight: bold;
+            margin: 40px 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .target {
+            color: var(--accent);
+        }
+
+        .hidden {
+            color: #222;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>⏱️ 10.00초 맞추기</h1>
+                    <p>정확히 10.00초에 멈추세요! (3초 뒤 화면 가려짐)</p>
+                </header>
+
+                <div class="timer-disp" id="disp">0.00</div>
+
+                <div class="controls mt-4">
+                    <button id="btnAction" class="btn" style="padding: 20px 40px; font-size: 1.5rem;">START</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹 (오차 적은 순)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini28";
+        if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
+            // Sort by smallest abs(score) manually if needed, but assuming saveScore logic for mini28 is customized or we store negative error
+            // Simplest: Store score as (100 - abs_error)*100 ?
+            // Let's store -abs_error. then max is best. -0.01 > -0.05
+            const rl = document.getElementById('rankList');
+            rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${Math.abs(d.score).toFixed(2)}s 오차)</li>`).join('');
+        });
+
+        const disp = document.getElementById('disp');
+        const btn = document.getElementById('btnAction');
+
+        let startTime;
+        let timer;
+        let running = false;
+
+        btn.onclick = () => {
+            if (!running) {
+                // Start
+                running = true;
+                btn.textContent = "STOP";
+                btn.style.background = "var(--accent)";
+                startTime = Date.now();
+                disp.classList.remove('hidden');
+
+                timer = requestAnimationFrame(loop);
+            } else {
+                // Stop
+                running = false;
+                cancelAnimationFrame(timer);
+                const diff = (Date.now() - startTime) / 1000;
+                disp.textContent = diff.toFixed(2);
+                disp.classList.remove('hidden');
+
+                const error = Math.abs(10.00 - diff);
+                // Save as negative error
+                const score = -error;
+
+                alert(`기록: ${diff.toFixed(2)}초 (오차 ${error.toFixed(2)}초)`);
+
+                const nick = localStorage.getItem('nickname') || '익명';
+                if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+
+                btn.textContent = "START";
+                btn.style.background = "";
+            }
+        };
+
+        function loop() {
+            if (running) {
+                const cur = (Date.now() - startTime) / 1000;
+                disp.textContent = cur.toFixed(2);
+                if (cur > 3.0) disp.classList.add('hidden');
+                requestAnimationFrame(loop);
+            }
+        }
+    </script>
+</body>
+
+</html>

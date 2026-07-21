@@ -10,7 +10,7 @@ let player;
 let bullets = [];
 let enemies = [];
 let score = 0;
-let lives = 3; 
+let lives = 3;
 let gameInterval;
 let isGameOver = true;
 
@@ -46,8 +46,8 @@ function drawUI() {
     // 1. 점수 (왼쪽 상단)
     ctx.font = '20px Arial';
     ctx.fillStyle = 'yellow';
-    ctx.textAlign = 'left'; 
-    ctx.fillText(`점수: ${score}`, 10, 25); 
+    ctx.textAlign = 'left';
+    ctx.fillText(`점수: ${score}`, 10, 25);
 
     // 2. 목숨 (오른쪽 상단)
     ctx.textAlign = 'right';
@@ -117,12 +117,12 @@ class Enemy {
         this.x = Math.random() * (CANVAS_WIDTH - this.width);
         this.y = -this.height;
         this.speed = Math.random() * (MAX_ENEMY_SPEED - MIN_ENEMY_SPEED) + MIN_ENEMY_SPEED;
-        
+
         const speedRatio = (this.speed - MIN_ENEMY_SPEED) / (MAX_ENEMY_SPEED - MIN_ENEMY_SPEED);
-        const red = Math.round(255 * speedRatio); 
-        const blue = Math.round(255 * (1 - speedRatio)); 
+        const red = Math.round(255 * speedRatio);
+        const blue = Math.round(255 * (1 - speedRatio));
         this.color = `rgb(${red}, 0, ${blue})`;
-        
+
         if (this.speed < 1.8) {
             this.points = 10;
         } else if (this.speed < 2.8) {
@@ -166,9 +166,9 @@ function initGame() {
 // 충돌 감지 함수 (변경 없음)
 function checkCollision(obj1, obj2) {
     return obj1.x < obj2.x + obj2.width &&
-           obj1.x + obj1.width > obj2.x &&
-           obj1.y < obj2.y + obj2.height &&
-           obj1.y + obj1.height > obj2.y;
+        obj1.x + obj1.width > obj2.x &&
+        obj1.y < obj2.y + obj2.height &&
+        obj1.y + obj1.height > obj2.y;
 }
 
 // 게임 루프
@@ -204,13 +204,13 @@ function gameLoop() {
         if (checkCollision(player, enemy)) {
             lives--;
             enemies.splice(i, 1); // 충돌한 적 제거
-            
+
             if (lives <= 0) {
                 gameOver();
                 return;
-            } 
+            }
             // **이전 버전의 `bullets = []`와 `continue`를 제거하여 공격 가능하도록 수정**
-            continue; 
+            continue;
         }
 
         if (enemy.y > CANVAS_HEIGHT) {
@@ -230,42 +230,63 @@ function gameLoop() {
     }
 
     // 3. **UI 그리기 (가장 마지막에 호출하여 항상 위에 표시되도록 함)**
-    drawUI(); 
+    drawUI();
 
     requestAnimationFrame(gameLoop);
 }
+
+// Firebase & Stats Logic
+const PAGE_ID = "mini2";
+const bestScoreEl = document.getElementById('bestScore');
+const rankList = document.getElementById('rankList');
+
+// Initial Load
+if (window.GameStats) {
+    GameStats.listenTopScores(PAGE_ID, 5, (arr) => {
+        rankList.innerHTML = "";
+        if (!arr || arr.length === 0) {
+            rankList.innerHTML = "<li>기록 없음</li>";
+            return;
+        }
+        arr.forEach((item, idx) => {
+            const li = document.createElement('li');
+            li.textContent = `${idx + 1}위: ${item.name} - ${item.score}점`;
+            rankList.appendChild(li);
+        });
+        // Update local best based on top score if needed, or just keep local storage logic
+    });
+}
+
+// ... (Existing Game Logic) ...
 
 // 게임 오버 처리 (점수 표시 로직은 drawUI가 처리하도록 변경)
 function gameOver() {
     isGameOver = true;
     clearInterval(gameInterval);
-    ctx.font = '32px Arial'; 
+
+    // Save Score
+    if (score > 0) {
+        const nick = localStorage.getItem('nickname') || prompt("기록 저장을 위한 닉네임 입력:") || "익명";
+        localStorage.setItem('nickname', nick);
+        if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+    }
+
+    ctx.font = '32px Arial';
     ctx.fillStyle = 'white';
     ctx.textAlign = 'center';
     ctx.fillText('게임 오버!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
     ctx.fillText(`최종 점수: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
-    startButton.style.display = 'block';
+    startButton.style.display = 'inline-block';
+    startButton.textContent = "다시 시작";
 }
 
-// 게임 오버 시 화면에 '게임 오버' 메시지 표시
-function displayGameOver() {
-    // UI를 제외한 나머지 화면을 지우고 게임 오버 메시지 표시
-    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); 
-    
-    ctx.font = '32px Arial'; 
-    ctx.fillStyle = 'white';
-    ctx.textAlign = 'center';
-    ctx.fillText('게임 오버!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
-    ctx.fillText(`최종 점수: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
-    
-    // 게임 오버 시에도 UI를 그려 최종 점수와 남은 목숨(0)을 표시
-    drawUI(); 
-}
+// ... (Existing displayGameOver) ...
 
-// 시작 버튼 이벤트 리스너 (변경 없음)
+// 시작 버튼 이벤트 리스너
 startButton.addEventListener('click', initGame);
 
-// 초기 게임 오버 상태 및 UI 표시
+// 초기화
 displayGameOver();
-startButton.style.display = 'block';
+startButton.style.display = 'inline-block';
+
 

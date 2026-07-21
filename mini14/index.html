@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>가위바위보 (mini14)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .rps-choices {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .choice-btn {
+            font-size: 3rem;
+            padding: 20px;
+            border-radius: 20px;
+            background: var(--panel-border);
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .choice-btn:hover {
+            transform: translateY(-5px);
+            background: #2a355a;
+        }
+
+        .result-area {
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            font-size: 2rem;
+        }
+
+        .vs {
+            font-size: 1rem;
+            color: var(--muted);
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>✌️✊🖐 가위바위보</h1>
+                    <p>AI를 상대로 연승에 도전하세요!</p>
+                </header>
+
+                <div class="result-area">
+                    <div id="uChoice">❔</div>
+                    <div class="vs">VS</div>
+                    <div id="cChoice">❔</div>
+                </div>
+
+                <div id="msg" class="mt-4" style="font-weight:bold; font-size: 1.2rem;">선택하세요!</div>
+
+                <div class="rps-choices">
+                    <button class="choice-btn" onclick="play('rock')">✊</button>
+                    <button class="choice-btn" onclick="play('scissors')">✌️</button>
+                    <button class="choice-btn" onclick="play('paper')">🖐</button>
+                </div>
+
+                <div class="stats-bar mt-4">
+                    <div class="stat-item">현재 연승: <span id="streak">0</span></div>
+                    <div class="stat-item">최고 연승: <span id="maxStreak">0</span></div>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹 (최다 연승)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini14";
+        if (window.GameStats) {
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                const rl = document.getElementById('rankList');
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}연승)</li>`).join('');
+            });
+        }
+
+        const uEl = document.getElementById('uChoice');
+        const cEl = document.getElementById('cChoice');
+        const msg = document.getElementById('msg');
+        const sEl = document.getElementById('streak');
+        const mEl = document.getElementById('maxStreak');
+
+        let streak = 0;
+        let max = 0;
+
+        const MAP = { rock: '✊', scissors: '✌️', paper: '🖐' };
+        const KEYS = ['rock', 'scissors', 'paper'];
+
+        function play(user) {
+            const comp = KEYS[Math.floor(Math.random() * 3)];
+
+            uEl.textContent = MAP[user];
+            cEl.textContent = MAP[comp];
+
+            let res = ''; // win, lose, draw
+
+            if (user === comp) {
+                res = 'draw';
+                msg.textContent = "무승부! 연승 유지";
+                msg.style.color = "var(--text)";
+            } else if (
+                (user === 'rock' && comp === 'scissors') ||
+                (user === 'scissors' && comp === 'paper') ||
+                (user === 'paper' && comp === 'rock')
+            ) {
+                res = 'win';
+                streak++;
+                if (streak > max) max = streak;
+                msg.textContent = "승리! 🎉";
+                msg.style.color = "var(--good)";
+            } else {
+                res = 'lose';
+                if (streak > 0) save(streak);
+                streak = 0;
+                msg.textContent = "패배 😭 다시 시작";
+                msg.style.color = "var(--bad)";
+            }
+
+            sEl.textContent = streak;
+            mEl.textContent = max;
+        }
+
+        function save(s) {
+            const nick = localStorage.getItem('nickname') || prompt("기록 저장을 위한 닉네임?") || "익명";
+            localStorage.setItem('nickname', nick);
+            if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, s);
+        }
+    </script>
+</body>
+
+</html>

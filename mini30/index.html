@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>탭 전쟁 (mini30)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .tap-btn {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 10px solid #fff;
+            font-size: 3rem;
+            font-weight: bold;
+            color: #fff;
+            cursor: pointer;
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            transition: transform 0.05s;
+        }
+
+        .tap-btn:active {
+            transform: scale(0.95);
+            background: #2563eb;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🔥 탭 전쟁</h1>
+                    <p>10초 동안 최대한 많이 탭하세요!</p>
+                </header>
+
+                <div class="stats-bar mb-4">
+                    <div class="stat-item">시간: <span id="time">10.0</span>s</div>
+                    <div class="stat-item">탭 횟수: <span id="score">0</span></div>
+                </div>
+
+                <div class="tap-btn" id="tapArea">START</div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹 (TPS)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini30";
+        if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
+            document.getElementById('rankList').innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+        });
+
+        const tapBtn = document.getElementById('tapArea');
+        const timeEl = document.getElementById('time');
+        const scoreEl = document.getElementById('score');
+
+        let score = 0;
+        let time = 10.0;
+        let running = false;
+        let timer = null;
+
+        function tick() {
+            time -= 0.1;
+            if (time <= 0) {
+                time = 0;
+                end();
+            }
+            timeEl.textContent = time.toFixed(1);
+        }
+
+        function end() {
+            running = false;
+            clearInterval(timer);
+            tapBtn.textContent = "RETRY";
+            alert(`종료! 총 ${score}회 (TPS: ${(score / 10).toFixed(1)})`);
+
+            const nick = localStorage.getItem('nickname') || '익명';
+            if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+        }
+
+        tapBtn.addEventListener('mousedown', handleTap);
+        tapBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleTap(); });
+
+        function handleTap() {
+            if (tapBtn.textContent === "RETRY" || tapBtn.textContent === "START") {
+                score = 0;
+                time = 10.0;
+                running = true;
+                tapBtn.textContent = "TAP!";
+                scoreEl.textContent = 0;
+                timer = setInterval(tick, 100);
+                return;
+            }
+
+            if (running) {
+                score++;
+                scoreEl.textContent = score;
+            }
+        }
+    </script>
+</body>
+
+</html>

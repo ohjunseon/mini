@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>암산 왕 (mini27)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .prob {
+            font-size: 2.5rem;
+            margin: 30px 0;
+            font-weight: bold;
+        }
+
+        input.ans {
+            font-size: 1.5rem;
+            padding: 10px;
+            width: 120px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🧠 암산 왕</h1>
+                    <p>1분 동안 문제를 푸세요!</p>
+                </header>
+
+                <div class="stats-bar mb-4">
+                    <div class="stat-item">시간: <span id="time">60</span>s</div>
+                    <div class="stat-item">점수: <span id="score">0</span></div>
+                </div>
+
+                <div class="prob" id="prob">Ready?</div>
+
+                <div style="display:flex; justify-content:center; gap:10px;">
+                    <input type="number" id="ans" class="ans" placeholder="?" disabled
+                        onkeypress="if(event.key==='Enter') runCheck()">
+                    <button id="btnSub" class="btn" style="width: auto;" onclick="runCheck()" disabled>제출</button>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini27";
+        if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
+            const rl = document.getElementById('rankList');
+            rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}점)</li>`).join('');
+        });
+
+        const pEl = document.getElementById('prob');
+        const inp = document.getElementById('ans');
+        const btnSub = document.getElementById('btnSub');
+        const btnS = document.getElementById('btnStart');
+        const tEl = document.getElementById('time');
+        const sEl = document.getElementById('score');
+
+        let score = 0;
+        let time = 60;
+        let answer = 0;
+        let timer = null;
+
+        function gen() {
+            const ops = ['+', '-', '*'];
+            const op = ops[Math.floor(Math.random() * 3)];
+            let a = Math.floor(Math.random() * 50) + 1;
+            let b = Math.floor(Math.random() * 50) + 1;
+
+            if (op === '*') { a = Math.floor(Math.random() * 12) + 1; b = Math.floor(Math.random() * 9) + 1; }
+            if (op === '-') { if (a < b) [a, b] = [b, a]; } // positive result
+
+            if (op === '+') answer = a + b;
+            if (op === '-') answer = a - b;
+            if (op === '*') answer = a * b;
+
+            pEl.textContent = `${a} ${op} ${b}`;
+            inp.value = '';
+            inp.focus();
+        }
+
+        function runCheck() {
+            if (parseInt(inp.value) === answer) {
+                score++;
+                sEl.textContent = score;
+                gen();
+            } else {
+                inp.value = '';
+                inp.focus();
+            }
+        }
+
+        function start() {
+            score = 0; sEl.textContent = 0; time = 60;
+            inp.disabled = false; btnSub.disabled = false;
+            btnS.style.display = 'none';
+            gen();
+            timer = setInterval(() => {
+                time--;
+                tEl.textContent = time;
+                if (time <= 0) {
+                    clearInterval(timer);
+                    inp.disabled = true; btnSub.disabled = true;
+                    alert(`종료! 점수: ${score}`);
+                    const nick = localStorage.getItem('nickname') || '익명';
+                    if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+                    btnS.style.display = 'inline-block';
+                }
+            }, 1000);
+        }
+
+        btnS.onclick = start;
+    </script>
+</body>
+
+</html>

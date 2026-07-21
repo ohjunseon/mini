@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>탑 쌓기 (mini21)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .tower-box {
+            width: 300px;
+            height: 400px;
+            background: #111;
+            border: 2px solid var(--panel-border);
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+        }
+
+        .block {
+            height: 20px;
+            background: var(--accent);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            position: absolute;
+        }
+
+        .block.moving {
+            animation: move 1.5s infinite alternate linear;
+        }
+
+        @keyframes move {
+            from {
+                left: 0;
+            }
+
+            to {
+                left: calc(100% - var(--w));
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🏗️ 탑 쌓기</h1>
+                    <p>타이밍에 맞춰 블록을 쌓으세요!</p>
+                </header>
+
+                <div class="stats-bar mb-4">
+                    <div class="stat-item">점수: <span id="score">0</span></div>
+                </div>
+
+                <div class="tower-box" id="gameArea" onclick="placeBlock()"></div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini21";
+        if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
+            const rl = document.getElementById('rankList');
+            rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}층)</li>`).join('');
+        });
+
+        const box = document.getElementById('gameArea');
+        const scoreEl = document.getElementById('score');
+        const btn = document.getElementById('btnStart');
+
+        let score = 0;
+        let running = false;
+        let width = 200; // init width
+        let currentBlock = null;
+        let speed = 1.5;
+        let prevLeft = 50; // centerish (300-200)/2 = 50
+        let prevWidth = 200;
+
+        function start() {
+            running = true;
+            score = 0; scoreEl.textContent = 0;
+            width = 200;
+            prevLeft = 50;
+            prevWidth = 200;
+            speed = 1.5;
+            box.innerHTML = `<div class="block" style="width:200px; bottom:0; left:50px; background:var(--muted);"></div>`;
+            spawn();
+            btn.style.display = 'none';
+        }
+
+        function spawn() {
+            if (!running) return;
+            const b = document.createElement('div');
+            b.className = 'block moving';
+            b.style.width = width + 'px';
+            b.style.setProperty('--w', width + 'px');
+            b.style.bottom = ((score + 1) * 20) + 'px';
+            b.style.animationDuration = speed + 's';
+
+            // Random color
+            const hue = (score * 10) % 360;
+            b.style.backgroundColor = `hsl(${hue}, 70%, 60%)`;
+
+            box.appendChild(b);
+            currentBlock = b;
+
+            // Move container down if too high
+            if (score > 10) {
+                box.scrollTop = box.scrollHeight;
+                // Simplified: just shift blocks down? 
+                // CSS absolute checks bottom. We need to scroll wrapper?
+                // Actually flex-reverse isn't used here, absolute is.
+                // Let's just shift 'bottom' of all children
+                Array.from(box.children).forEach(c => {
+                    let old = parseInt(c.style.bottom);
+                    c.style.bottom = (old - 20) + 'px';
+                });
+                b.style.bottom = '200px'; // Clamp visual height or keep offset?
+                // Keeping it simple: max height limited by div size.
+                // If score > 15, we need to handle "Camera".
+                // Simple hack: shift all down.
+            }
+        }
+
+        function placeBlock() {
+            if (!running || !currentBlock) return;
+
+            const rect = currentBlock.getBoundingClientRect();
+            const boxRect = box.getBoundingClientRect();
+
+            // Stop animation
+            currentBlock.classList.remove('moving');
+            const left = rect.left - boxRect.left;
+            currentBlock.style.left = left + 'px';
+
+            // Calculate overlap
+            const right = left + width;
+            const prevRight = prevLeft + prevWidth;
+
+            const overlapLeft = Math.max(left, prevLeft);
+            const overlapRight = Math.min(right, prevRight);
+            const overlapWidth = overlapRight - overlapLeft;
+
+            if (overlapWidth <= 0) {
+                gameOver();
+                return;
+            }
+
+            // Update width
+            width = overlapWidth;
+            currentBlock.style.width = width + 'px';
+            currentBlock.style.left = overlapLeft + 'px';
+
+            prevLeft = overlapLeft;
+            prevWidth = width;
+
+            score++;
+            scoreEl.textContent = score;
+            speed = Math.max(0.5, speed * 0.98);
+
+            spawn();
+        }
+
+        // Bind click to box is done in HTML.
+        // Also bind spacebar
+        document.addEventListener('keydown', e => {
+            if (e.key === ' ' || e.key === 'Enter') placeBlock();
+        });
+
+        function gameOver() {
+            running = false;
+            alert(`무너졌습니다! ${score}층`);
+            const nick = localStorage.getItem('nickname') || '익명';
+            if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+            btn.style.display = 'inline-block';
+        }
+
+        btn.onclick = start;
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>행운의 로또 (mini29)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .balls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+
+        .ball {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #fff;
+            color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .ball.hit {
+            background: var(--good);
+            color: #fff;
+            box-shadow: 0 0 15px var(--good);
+        }
+
+        .my-nums {
+            font-size: 1.2rem;
+            min-height: 40px;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🍀 행운의 로또</h1>
+                    <p>1~45 중 6개 숫자를 추첨합니다. 몇 개나 맞을까요?</p>
+                </header>
+
+                <div class="my-nums" id="myDisp">나의 숫자: ?</div>
+
+                <div class="balls" id="resultBalls">
+                    <div class="ball">?</div>
+                    <div class="ball">?</div>
+                    <div class="ball">?</div>
+                    <div class="ball">?</div>
+                    <div class="ball">?</div>
+                    <div class="ball">?</div>
+                </div>
+
+                <div class="stats-bar mb-4">
+                    <div class="stat-item">맞춘 개수: <span id="hits">0</span></div>
+                    <div class="stat-item">점수: <span id="score">0</span></div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">추첨 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹 (누적 점수)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini29";
+        if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
+            document.getElementById('rankList').innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}점)</li>`).join('');
+        });
+
+        const myDisp = document.getElementById('myDisp');
+        const box = document.getElementById('resultBalls');
+        const btn = document.getElementById('btnStart');
+        const hEl = document.getElementById('hits');
+        const sEl = document.getElementById('score');
+
+        let totalScore = 0; // Cumulative? Or just one session. Let's make it one lucky try.
+        // Actually High Score is better suited for "Max hits" but that is capped at 6.
+        // Let's make score = 10^hits. 
+
+        function getNums() {
+            let arr = [];
+            while (arr.length < 6) {
+                let n = Math.floor(Math.random() * 45) + 1;
+                if (!arr.includes(n)) arr.push(n);
+            }
+            return arr.sort((a, b) => a - b);
+        }
+
+        btn.onclick = () => {
+            btn.disabled = true;
+
+            // 1. Assign My Nums
+            const myParams = getNums();
+            myDisp.textContent = "나의 숫자: " + myParams.join(", ");
+
+            // 2. Draw Animation
+            const winNums = getNums();
+            box.innerHTML = '';
+            winNums.forEach((n, i) => {
+                const b = document.createElement('div');
+                b.className = 'ball';
+                b.textContent = '?';
+                box.appendChild(b);
+
+                setTimeout(() => {
+                    b.textContent = n;
+                    if (myParams.includes(n)) {
+                        b.classList.add('hit');
+                    }
+                }, (i + 1) * 500);
+            });
+
+            setTimeout(() => {
+                // Check
+                const hits = winNums.filter(x => myParams.includes(x)).length;
+                hEl.textContent = hits;
+
+                let pts = 0;
+                if (hits === 3) pts = 5000;
+                if (hits === 4) pts = 50000;
+                if (hits === 5) pts = 1000000;
+                if (hits === 6) pts = 100000000;
+                if (hits < 3) pts = hits * 100;
+
+                sEl.textContent = pts;
+                alert(`${hits}개 일치! 점수: ${pts}`);
+
+                const nick = localStorage.getItem('nickname') || '익명';
+                if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, pts);
+                btn.disabled = false;
+            }, 3500);
+        };
+    </script>
+</body>
+
+</html>

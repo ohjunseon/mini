@@ -1,19 +1,65 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>간단한 HTML 슈팅 게임</title>
-    <link rel="stylesheet" href="style.css">
+    <title>슈팅 게임</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        /* Shared Styles override or specific tweaks */
+        canvas {
+            background-color: #000;
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto 20px;
+            max-width: 100%;
+            box-shadow: 0 0 20px rgba(91, 156, 255, 0.2);
+        }
+    </style>
 </head>
+
 <body>
-    <div class="game-container">
-        <h1>HTML 슈팅 게임</h1>
-        <canvas id="gameCanvas" width="400" height="500"></canvas>
-        
-        <button id="startButton">게임 시작</button>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🚀 우주 슈팅 게임</h1>
+                    <p>적을 피해 살아남으세요! (방향키 이동, 스페이스바 발사)</p>
+                </header>
+
+                <canvas id="gameCanvas" width="400" height="500"></canvas>
+
+                <div class="controls">
+                    <button id="startButton" class="btn">게임 시작</button>
+                    <a href="../index.html" class="btn secondary">나가기</a>
+                </div>
+
+                <div class="stats-bar mt-4">
+                    <div class="stat-item">
+                        <span class="stat-label">최고 점수</span>
+                        <span class="stat-value" id="bestScore">0</span>
+                    </div>
+                </div>
+
+                <!-- Leaderboard -->
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 명예의 전당</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>로딩 중...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
 
     <script src="game.js"></script>
 </body>
+
 </html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>에임 트레이너 (mini20)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .aim-area {
+            width: 300px;
+            height: 300px;
+            background: #222;
+            border: 2px solid var(--panel-border);
+            position: relative;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        .target {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, red 40%, white 40%, white 60%, red 60%);
+            border-radius: 50%;
+            transition: transform 0.1s;
+        }
+
+        .target:active {
+            transform: scale(0.9);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🎯 에임 트레이너</h1>
+                    <p>30초 동안 최대한 많은 타겟을 맞추세요!</p>
+                </header>
+
+                <div class="stats-bar mb-4">
+                    <div class="stat-item">남은 시간: <span id="time">30</span>s</div>
+                    <div class="stat-item">점수: <span id="score">0</span></div>
+                </div>
+
+                <div class="aim-area" id="area"></div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">훈련 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini20";
+        if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
+            const rl = document.getElementById('rankList');
+            rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}점)</li>`).join('');
+        });
+
+        const area = document.getElementById('area');
+        const timeEl = document.getElementById('time');
+        const scoreEl = document.getElementById('score');
+        const btn = document.getElementById('btnStart');
+
+        let score = 0;
+        let time = 30;
+        let timer = null;
+        let running = false;
+
+        function spawn() {
+            if (!running) return;
+            area.innerHTML = '';
+            const t = document.createElement('div');
+            t.className = 'target';
+            // Random pos (300 - 30 = 270 max)
+            t.style.left = Math.floor(Math.random() * 270) + 'px';
+            t.style.top = Math.floor(Math.random() * 270) + 'px';
+            t.onmousedown = hit;
+            t.ontouchstart = (e) => { e.preventDefault(); hit(); };
+            area.appendChild(t);
+        }
+
+        function hit() {
+            if (!running) return;
+            score++;
+            scoreEl.textContent = score;
+            spawn();
+        }
+
+        function start() {
+            running = true;
+            score = 0; scoreEl.textContent = 0;
+            time = 30; timeEl.textContent = 30;
+            btn.style.display = 'none';
+            spawn();
+
+            timer = setInterval(() => {
+                time--;
+                timeEl.textContent = time;
+                if (time <= 0) {
+                    running = false;
+                    clearInterval(timer);
+                    alert(`훈련 종료! 점수: ${score}`);
+                    const nick = localStorage.getItem('nickname') || '익명';
+                    if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+                    btn.style.display = 'inline-block';
+                    area.innerHTML = '';
+                }
+            }, 1000);
+        }
+
+        btn.onclick = start;
+    </script>
+</body>
+
+</html>

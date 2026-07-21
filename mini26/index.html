@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>하이 앤 로우 (mini26)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .card-disp {
+            width: 100px;
+            height: 140px;
+            background: #fff;
+            color: #000;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            margin: 20px auto;
+            border: 2px solid #999;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🃏 하이 앤 로우</h1>
+                    <p>다음에 나올 숫자가 더 클까요 작을까요?</p>
+                </header>
+
+                <div class="card-disp" id="currentCard">?</div>
+
+                <div class="stats-bar mb-4">
+                    <div class="stat-item">연승: <span id="streak">0</span></div>
+                </div>
+
+                <div class="controls mt-4" style="display: flex; gap: 20px; justify-content: center;">
+                    <button class="btn secondary" id="btnHigh">⬆ HIGH</button>
+                    <button class="btn secondary" id="btnLow">⬇ LOW</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹 (연승)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini26";
+        if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
+            document.getElementById('rankList').innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}연승)</li>`).join('');
+        });
+
+        const cEl = document.getElementById('currentCard');
+        const sEl = document.getElementById('streak');
+
+        let currentVal = Math.floor(Math.random() * 13) + 1;
+        let streak = 0;
+
+        function render() {
+            let disp = currentVal;
+            if (currentVal === 1) disp = 'A';
+            if (currentVal === 11) disp = 'J';
+            if (currentVal === 12) disp = 'Q';
+            if (currentVal === 13) disp = 'K';
+            cEl.textContent = disp;
+            sEl.textContent = streak;
+        }
+
+        function guess(isHigh) {
+            const next = Math.floor(Math.random() * 13) + 1;
+
+            // Show next briefly? Or just update.
+            // Let's alert result.
+
+            let win = false;
+            if (isHigh && next >= currentVal) win = true;
+            if (!isHigh && next <= currentVal) win = true;
+
+            currentVal = next;
+            render();
+
+            if (win) {
+                streak++;
+                sEl.textContent = streak;
+            } else {
+                alert(`틀렸습니다! (나온 숫자: ${next}) 최종 연승: ${streak}`);
+                const nick = localStorage.getItem('nickname') || '익명';
+                if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, streak);
+                streak = 0;
+                sEl.textContent = streak;
+            }
+        }
+
+        document.getElementById('btnHigh').onclick = () => guess(true);
+        document.getElementById('btnLow').onclick = () => guess(false);
+        render();
+    </script>
+</body>
+
+</html>

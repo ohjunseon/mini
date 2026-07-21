@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>핑퐁 (mini17)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            background: #000;
+            border: 2px solid var(--accent);
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🏓 핑퐁 게임</h1>
+                    <p>AI(오른쪽)를 이기세요! 5점 내기 (마우스/터치)</p>
+                </header>
+
+                <canvas id="pong" width="600" height="400"></canvas>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">시작</button>
+                </div>
+
+                <div class="stats-bar mt-4">
+                    <div class="stat-item">나: <span id="pScore">0</span></div>
+                    <div class="stat-item">AI: <span id="cScore">0</span></div>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹 (점수 차)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini17";
+        if (window.GameStats) {
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                const rl = document.getElementById('rankList');
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}점)</li>`).join('');
+            });
+        }
+
+        const cvs = document.getElementById('pong');
+        const ctx = cvs.getContext('2d');
+        const btn = document.getElementById('btnStart');
+        const pScoreEl = document.getElementById('pScore');
+        const cScoreEl = document.getElementById('cScore');
+
+        const user = { x: 0, y: cvs.height / 2 - 50, w: 10, h: 100, color: "WHITE", score: 0 };
+        const com = { x: cvs.width - 10, y: cvs.height / 2 - 50, w: 10, h: 100, color: "WHITE", score: 0 };
+        const ball = { x: cvs.width / 2, y: cvs.height / 2, r: 10, speed: 7, velocityX: 5, velocityY: 5, color: "WHITE" };
+        const net = { x: (cvs.width - 2) / 2, y: 0, w: 2, h: 10, color: "WHITE" };
+
+        let loopId;
+        let running = false;
+
+        function drawRect(x, y, w, h, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, w, h);
+        }
+        function drawCircle(x, y, r, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2, false);
+            ctx.closePath();
+            ctx.fill();
+        }
+        function drawNet() {
+            for (let i = 0; i <= cvs.height; i += 15) {
+                drawRect(net.x, net.y + i, net.w, net.h, net.color);
+            }
+        }
+
+        function resetBall() {
+            ball.x = cvs.width / 2;
+            ball.y = cvs.height / 2;
+            ball.velocityX = -ball.velocityX; // Sent to scorer
+            ball.speed = 7;
+        }
+
+        function update() {
+            if (!running) return;
+
+            // Move ball
+            ball.x += ball.velocityX;
+            ball.y += ball.velocityY;
+
+            // AI Move (Simple)
+            let level = 0.1;
+            com.y += (ball.y - (com.y + com.h / 2)) * level;
+
+            // Collision Top/Bottom
+            if (ball.y + ball.r > cvs.height || ball.y - ball.r < 0) {
+                ball.velocityY = -ball.velocityY;
+            }
+
+            // Paddle Hit
+            let player = (ball.x < cvs.width / 2) ? user : com;
+            if (collision(ball, player)) {
+                let collidePoint = (ball.y - (player.y + player.h / 2));
+                collidePoint = collidePoint / (player.h / 2);
+                let angleRad = (Math.PI / 4) * collidePoint;
+                let dir = (ball.x < cvs.width / 2) ? 1 : -1;
+                ball.velocityX = dir * ball.speed * Math.cos(angleRad);
+                ball.velocityY = ball.speed * Math.sin(angleRad);
+                ball.speed += 0.5;
+            }
+
+            // Score
+            if (ball.x - ball.r < 0) {
+                com.score++;
+                cScoreEl.textContent = com.score;
+                resetBall();
+            } else if (ball.x + ball.r > cvs.width) {
+                user.score++;
+                pScoreEl.textContent = user.score;
+                resetBall();
+            }
+
+            if (user.score >= 5 || com.score >= 5) end();
+        }
+
+        function collision(b, p) {
+            p.top = p.y;
+            p.bottom = p.y + p.h;
+            p.left = p.x;
+            p.right = p.x + p.w;
+            b.top = b.y - b.r;
+            b.bottom = b.y + b.r;
+            b.left = b.x - b.r;
+            b.right = b.x + b.r;
+            return p.left < b.right && p.top < b.bottom && p.right > b.left && p.bottom > b.top;
+        }
+
+        function draw() {
+            drawRect(0, 0, cvs.width, cvs.height, "#000");
+            drawNet();
+            drawRect(user.x, user.y, user.w, user.h, user.color);
+            drawRect(com.x, com.y, com.w, com.h, com.color);
+            drawCircle(ball.x, ball.y, ball.r, ball.color);
+        }
+
+        function game() {
+            update();
+            draw();
+            if (running) loopId = requestAnimationFrame(game);
+        }
+
+        function end() {
+            running = false;
+            cancelAnimationFrame(loopId);
+
+            let msg = user.score >= 5 ? "승리! 🎉" : "패배 😢";
+            alert(msg);
+
+            // Save score if win (e.g. margin of victory or just 1 win)
+            if (user.score > com.score) {
+                // Store points difference as score?
+                const score = user.score - com.score + 5; // offset
+                const nick = localStorage.getItem('nickname') || '익명';
+                if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+            }
+
+            btn.style.display = 'inline-block';
+            btn.textContent = '다시 하기';
+        }
+
+        function start() {
+            user.score = 0; com.score = 0;
+            pScoreEl.textContent = 0; cScoreEl.textContent = 0;
+            resetBall();
+            running = true;
+            btn.style.display = 'none';
+            game();
+        }
+
+        cvs.addEventListener("mousemove", getMousePos);
+        function getMousePos(evt) {
+            let rect = cvs.getBoundingClientRect();
+            user.y = evt.clientY - rect.top - user.h / 2;
+        }
+        // Touch support simple
+        cvs.addEventListener("touchmove", (e) => {
+            e.preventDefault();
+            let rect = cvs.getBoundingClientRect();
+            user.y = e.touches[0].clientY - rect.top - user.h / 2;
+        }, { passive: false });
+
+        btn.onclick = start;
+    </script>
+</body>
+
+</html>

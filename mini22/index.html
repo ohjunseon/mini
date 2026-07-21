@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>사과 받기 (mini22)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            background: #87CEEB;
+            border: 2px solid #fff;
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🍎 사과 받기</h1>
+                    <p>바구니를 움직여 사과를 받으세요! (폭탄💣 조심)</p>
+                </header>
+
+                <canvas id="game" width="300" height="400"></canvas>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">시작</button>
+                </div>
+
+                <div class="stats-bar mt-4">
+                    <div class="stat-item">점수: <span id="score">0</span></div>
+                </div>
+
+                <div class="controls mt-4" style="display: flex; gap: 20px; justify-content: center;">
+                    <button class="btn secondary" id="btnLeft" style="padding: 20px;">◀</button>
+                    <button class="btn secondary" id="btnRight" style="padding: 20px;">▶</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini22";
+        if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
+            const rl = document.getElementById('rankList');
+            rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}점)</li>`).join('');
+        });
+
+        const cvs = document.getElementById('game');
+        const ctx = cvs.getContext('2d');
+        const btn = document.getElementById('btnStart');
+        const sEl = document.getElementById('score');
+
+        let basket = { x: 120, y: 360, w: 60, h: 20 };
+        let items = [];
+        let score = 0;
+        let running = false;
+        let left = false, right = false;
+
+        function spawn() {
+            if (Math.random() < 0.05) {
+                items.push({
+                    x: Math.random() * 280, y: -20, r: 10,
+                    type: Math.random() < 0.8 ? 'apple' : 'bomb',
+                    speed: 3 + Math.random() * 2
+                });
+            }
+        }
+
+        function update() {
+            if (!running) return;
+
+            if (left && basket.x > 0) basket.x -= 5;
+            if (right && basket.x < 240) basket.x += 5;
+
+            spawn();
+
+            for (let i = 0; i < items.length; i++) {
+                items[i].y += items[i].speed;
+                const o = items[i];
+
+                // Catch
+                if (o.y > basket.y && o.y < basket.y + basket.h && o.x > basket.x && o.x < basket.x + basket.w) {
+                    if (o.type === 'apple') {
+                        score += 10;
+                        items.splice(i, 1); i--;
+                    } else {
+                        gameOver();
+                        return;
+                    }
+                } else if (o.y > 400) {
+                    items.splice(i, 1); i--;
+                }
+            }
+
+            sEl.textContent = score;
+        }
+
+        function draw() {
+            ctx.fillStyle = "#87CEEB";
+            ctx.fillRect(0, 0, 300, 400);
+
+            // Ground
+            ctx.fillStyle = "#4caf50";
+            ctx.fillRect(0, 380, 300, 20);
+
+            // Basket
+            ctx.fillStyle = "#8d6e63";
+            ctx.fillRect(basket.x, basket.y, basket.w, basket.h);
+
+            // Items
+            for (let o of items) {
+                ctx.beginPath();
+                ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+                ctx.fillStyle = o.type === 'apple' ? 'red' : 'black';
+                ctx.fill();
+                if (o.type === 'apple') {
+                    // leaf
+                    ctx.fillStyle = 'green'; ctx.fillRect(o.x - 2, o.y - 14, 4, 6);
+                } else {
+                    // fuse
+                    ctx.fillStyle = 'white'; ctx.fillRect(o.x, o.y - 5, 2, 2);
+                }
+            }
+        }
+
+        function loop() {
+            if (running) {
+                update();
+                draw();
+                requestAnimationFrame(loop);
+            }
+        }
+
+        function gameOver() {
+            running = false;
+            alert(`폭탄! 최종 점수: ${score}`);
+            const nick = localStorage.getItem('nickname') || '익명';
+            if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+            btn.style.display = 'inline-block';
+        }
+
+        function start() {
+            running = true;
+            score = 0; sEl.textContent = 0;
+            items = [];
+            btn.style.display = 'none';
+            loop();
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowLeft') left = true;
+            if (e.key === 'ArrowRight') right = true;
+        });
+        document.addEventListener('keyup', e => {
+            if (e.key === 'ArrowLeft') left = false;
+            if (e.key === 'ArrowRight') right = false;
+        });
+
+        const bL = document.getElementById('btnLeft');
+        const bR = document.getElementById('btnRight');
+        bL.addEventListener('touchstart', (e) => { e.preventDefault(); left = true; });
+        bL.addEventListener('touchend', (e) => { e.preventDefault(); left = false; });
+        bR.addEventListener('touchstart', (e) => { e.preventDefault(); right = true; });
+        bR.addEventListener('touchend', (e) => { e.preventDefault(); right = false; });
+        bL.addEventListener('mousedown', () => { left = true; });
+        bL.addEventListener('mouseup', () => { left = false; });
+        bR.addEventListener('mousedown', () => { right = true; });
+        bR.addEventListener('mouseup', () => { right = false; });
+
+        btn.onclick = start;
+    </script>
+</body>
+
+</html>

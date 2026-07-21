@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>카드 뒤집기 (mini11)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .card-item {
+            aspect-ratio: 3/4;
+            background: var(--panel-border);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            user-select: none;
+            transition: transform 0.3s, background 0.3s;
+        }
+
+        .card-item.flipped {
+            background: var(--accent);
+            transform: rotateY(180deg);
+            color: white;
+        }
+
+        .card-item.matched {
+            background: var(--good);
+            cursor: default;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🃏 카드 짝 맞추기</h1>
+                    <p>모든 카드의 쌍을 찾아보세요!</p>
+                </header>
+
+                <div class="grid" id="grid"></div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="stats-bar mt-4">
+                    <div class="stat-item">클릭 수: <span id="moves">0</span></div>
+                    <div class="stat-item">소요 시간: <span id="time">0s</span></div>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹 (최단 시간)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini11"; // Note: Special case, lower score (time) is better? 
+        // Currently GameStats uses > for better unless ID is "mini1".
+        // We should probably treat 'moves' or 'time' as score. For simplicity let's stick to time.
+        // If we want "lower is better", we might need to patch firebase.js or just invert score (10000 - time).
+        // Let's assume High Score = Better for now, so maybe Score = 10000 / Seconds? Or just use "mini1" logic patch.
+        // *Patch*: I'll reuse "mini1" logic if I can, but I can't easily change shared file right now without breaking others.
+        // Hack: Store score as negative value? Then sort descending works (-10 > -20). 
+        // Display: Math.abs(score).
+
+        if (window.GameStats) {
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                const rl = document.getElementById('rankList');
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${Math.abs(d.score)}s)</li>`).join('');
+            });
+        }
+
+        const grid = document.getElementById('grid');
+        const moveEl = document.getElementById('moves');
+        const timeEl = document.getElementById('time');
+        const btn = document.getElementById('btnStart');
+
+        const icons = ['🍎', '🍌', '🍇', '🍉', '🍒', '🍓', '🍍', '🥝']; // 8 pairs
+        let cards = [];
+        let first = null;
+        let locked = false;
+        let moves = 0;
+        let matches = 0;
+        let startTime = 0;
+        let timer = null;
+        let running = false;
+
+        function init() {
+            grid.innerHTML = '';
+            moves = 0; matches = 0;
+            moveEl.textContent = 0; timeEl.textContent = '0s';
+
+            const deck = [...icons, ...icons].sort(() => Math.random() - 0.5);
+            deck.forEach(icon => {
+                const el = document.createElement('div');
+                el.className = 'card-item';
+                el.dataset.icon = icon;
+                el.innerHTML = '';
+                el.onclick = () => flip(el);
+                grid.appendChild(el);
+            });
+        }
+
+        function flip(el) {
+            if (!running || locked || el.classList.contains('flipped') || el.classList.contains('matched')) return;
+
+            el.classList.add('flipped');
+            el.textContent = el.dataset.icon;
+
+            if (!first) {
+                first = el;
+            } else {
+                moves++;
+                moveEl.textContent = moves;
+                locked = true;
+                if (first.dataset.icon === el.dataset.icon) {
+                    first.classList.add('matched');
+                    el.classList.add('matched');
+                    resetTurn();
+                    matches++;
+                    if (matches === 8) win();
+                } else {
+                    setTimeout(() => {
+                        first.classList.remove('flipped');
+                        first.textContent = '';
+                        el.classList.remove('flipped');
+                        el.textContent = '';
+                        resetTurn();
+                    }, 1000);
+                }
+            }
+        }
+
+        function resetTurn() {
+            first = null; locked = false;
+        }
+
+        function win() {
+            clearInterval(timer);
+            running = false;
+            const finalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+            alert(`완료! 시간: ${finalTime}s, 클릭: ${moves}`);
+
+            // Save as negative to exploit "Higher is Better" default sort
+            // -10s > -20s
+            const saveScore = -parseFloat(finalTime);
+
+            if (window.GameStats) {
+                const nick = localStorage.getItem('nickname') || prompt('닉네임?') || '익명';
+                localStorage.setItem('nickname', nick);
+                GameStats.saveScore(PAGE_ID, nick, saveScore);
+            }
+
+            btn.style.display = 'inline-block';
+            btn.textContent = '다시 하기';
+        }
+
+        btn.onclick = () => {
+            init();
+            running = true;
+            btn.style.display = 'none';
+            startTime = Date.now();
+            timer = setInterval(() => {
+                timeEl.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+            }, 100);
+        };
+
+        // Preview
+        const deck = [...icons, ...icons].sort(() => Math.random() - 0.5);
+        deck.forEach(icon => {
+            const el = document.createElement('div');
+            el.className = 'card-item';
+            // el.innerHTML = icon; // Show for visual test but hidden in real game
+            grid.appendChild(el);
+        });
+
+    </script>
+</body>
+
+</html>

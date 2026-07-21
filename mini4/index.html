@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>산수 퀴즈 (mini4)</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .question {
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--text);
+      margin: 30px 0;
+      min-height: 80px;
+    }
+
+    .choices {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .choice-btn {
+      padding: 20px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      color: var(--text);
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .choice-btn:hover {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .progress-wrap {
+      height: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+      overflow: hidden;
+      margin: 20px 0;
+    }
+
+    .bar {
+      height: 100%;
+      background: var(--good);
+      width: 100%;
+      transition: width 0.2s linear;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="font-size: 1.5rem; margin:0;">🧮 산수 퀴즈</h1>
+            <div class="stats-bar" style="margin:0; gap: 10px;">
+              <span class="stat-item" id="timeLabel">60.0s</span>
+              <span class="stat-item" id="score">0점</span>
+            </div>
+          </div>
+          <div class="progress-wrap">
+            <div class="bar" id="bar"></div>
+          </div>
+        </header>
+
+        <main>
+          <div id="status" style="height: 24px; color: var(--warn); font-weight: bold;"></div>
+          <div class="question" id="question">Ready?</div>
+
+          <div class="choices" id="choices">
+            <!-- Buttons injected by JS -->
+          </div>
+
+          <div class="controls mt-4">
+            <button id="btnStart" class="btn">시작</button>
+            <div style="margin-top: 10px;">
+              <span style="font-size: 0.9rem; color: var(--muted);">Space: 시작/일시정지</span>
+            </div>
+          </div>
+        </main>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 랭킹</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+            <li>...</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="../shared/firebase.js"></script>
+
+  <script>
+    const PAGE_ID = "mini4";
+    const rankList = document.getElementById('rankList');
+    if (window.GameStats) {
+      GameStats.listenTopScores(PAGE_ID, 5, arr => {
+        rankList.innerHTML = "";
+        if (!arr || !arr.length) { rankList.innerHTML = "<li>기록 없음</li>"; return; }
+        arr.forEach((d, i) => {
+          const li = document.createElement('li');
+          li.textContent = `${i + 1}위 ${d.name} (${d.score}점)`;
+          rankList.appendChild(li);
+        });
+      });
+    }
+
+    // Logic
+    const qEl = document.getElementById('question');
+    const cBox = document.getElementById('choices');
+    const bar = document.getElementById('bar');
+    const tLabel = document.getElementById('timeLabel');
+    const sLabel = document.getElementById('score');
+    const stEl = document.getElementById('status');
+    const btnStart = document.getElementById('btnStart');
+
+    let running = false;
+    let score = 0;
+    let time = 60;
+    let timer = null;
+    let ans = 0;
+
+    function setStatus(msg) {
+      stEl.textContent = msg;
+      setTimeout(() => stEl.textContent = '', 1000);
+    }
+
+    function diff() {
+      if (score < 20) return { max: 10, ops: ['+', '-'] };
+      if (score < 50) return { max: 30, ops: ['+', '-', '*'] };
+      return { max: 99, ops: ['+', '-', '*', '/'] };
+    }
+
+    function makeProb() {
+      if (!running) return;
+      const { max, ops } = diff();
+      const op = ops[Math.floor(Math.random() * ops.length)];
+      let a, b;
+      if (op === '+') { a = r(0, max); b = r(0, max); ans = a + b; }
+      else if (op === '-') { a = r(0, max); b = r(0, max); if (a < b) [a, b] = [b, a]; ans = a - b; }
+      else if (op === '*') { a = r(1, Math.floor(max / 2) + 1); b = r(1, 9); ans = a * b; }
+      else { b = r(2, 9); ans = r(1, 20); a = b * ans; } // /
+
+      qEl.textContent = `${a} ${op === '*' ? '×' : op === '/' ? '÷' : op} ${b} = ?`;
+
+      // Choices
+      const s = new Set([ans]);
+      while (s.size < 4) {
+        let fal = ans + r(-10, 10);
+        if (fal < 0) fal = Math.abs(fal);
+        s.add(fal);
+      }
+      const arr = [...s].sort(() => Math.random() - 0.5);
+
+      cBox.innerHTML = '';
+      arr.forEach(v => {
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.textContent = v;
+        btn.onclick = () => check(v);
+        cBox.appendChild(btn);
+      });
+    }
+
+    function r(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+
+    function check(v) {
+      if (!running) return;
+      if (v === ans) {
+        score += 10;
+        time = Math.min(60, time + 2);
+        setStatus("정답! +2s");
+        sLabel.textContent = `${score}점`;
+        makeProb();
+      } else {
+        time = Math.max(0, time - 5);
+        setStatus("오답! -5s");
+        updateTime();
+      }
+    }
+
+    function updateTime() {
+      tLabel.textContent = time.toFixed(1) + 's';
+      bar.style.width = (time / 60 * 100) + '%';
+      if (time <= 0) end();
+    }
+
+    function tick() {
+      time -= 0.1;
+      updateTime();
+    }
+
+    function start() {
+      if (running) return;
+      running = true; score = 0; time = 60;
+      sLabel.textContent = '0점';
+      btnStart.style.display = 'none';
+      timer = setInterval(tick, 100);
+      makeProb();
+    }
+
+    function end() {
+      running = false; clearInterval(timer);
+      qEl.textContent = "Time Over!";
+      cBox.innerHTML = `<h3>최종 점수: ${score}</h3>`;
+      btnStart.style.display = 'inline-block';
+      btnStart.textContent = "다시 하기";
+
+      const nick = localStorage.getItem('nickname') || prompt("닉네임을 입력하세요:") || "익명";
+      localStorage.setItem('nickname', nick);
+      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+    }
+
+    btnStart.onclick = start;
+
+    document.addEventListener('keydown', e => {
+      if (e.key === ' ') start();
+    });
+  </script>
+</body>
+
+</html>

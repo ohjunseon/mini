@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>타자 연습 (mini16)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .word-display {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            min-height: 80px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .w {
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .w.correct {
+            color: var(--good);
+        }
+
+        .w.current {
+            background: rgba(255, 255, 255, 0.1);
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .w.wrong {
+            color: var(--bad);
+            text-decoration: line-through;
+        }
+
+        input.type-in {
+            width: 100%;
+            max-width: 400px;
+            font-size: 1.2rem;
+            padding: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>⌨️ 타자 속도 측정</h1>
+                    <p>1분 동안 최대한 많은 단어를 입력하세요!</p>
+                </header>
+
+                <div class="stats-bar">
+                    <div class="stat-item">남은 시간: <span id="time">60</span>s</div>
+                    <div class="stat-item">점수(WPM): <span id="wpm">0</span></div>
+                </div>
+
+                <div class="word-display" id="disp">시작 버튼을 누르세요</div>
+
+                <input type="text" class="type-in" id="inp" placeholder="여기에 입력하세요" disabled autocomplete="off">
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹 (WPM)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini16";
+        if (window.GameStats) {
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                const rl = document.getElementById('rankList');
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score} WPM)</li>`).join('');
+            });
+        }
+
+        const WORDS = [
+            "apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew", "kiwi", "lemon",
+            "mango", "nectarine", "orange", "papaya", "quince", "raspberry", "strawberry", "tangerine", "ugli", "vanilla",
+            "watermelon", "house", "mouse", "click", "code", "java", "html", "css", "script", "data",
+            "server", "client", "cloud", "storm", "rain", "snow", "wind", "fire", "earth", "water",
+            "game", "play", "score", "level", "hero", "enemy", "boss", "stage", "item", "shop",
+            "red", "blue", "green", "yellow", "black", "white", "purple", "pink", "gray", "brown",
+            "dog", "cat", "bird", "fish", "lion", "tiger", "bear", "wolf", "fox", "deer"
+        ]; // Simple English words for typing test
+
+        const disp = document.getElementById('disp');
+        const inp = document.getElementById('inp');
+        const timeEl = document.getElementById('time');
+        const wpmEl = document.getElementById('wpm');
+        const btn = document.getElementById('btnStart');
+
+        let time = 60;
+        let timer = null;
+        let running = false;
+        let words = [];
+        let curIdx = 0;
+        let correctChars = 0;
+
+        function genWords() {
+            words = [];
+            for (let i = 0; i < 100; i++) words.push(WORDS[Math.floor(Math.random() * WORDS.length)]);
+            render();
+        }
+
+        function render() {
+            disp.innerHTML = '';
+            words.slice(Math.max(0, curIdx - 2), curIdx + 10).forEach((w, i) => {
+                const span = document.createElement('span');
+                span.textContent = w;
+                span.className = 'w';
+                if (curIdx > Math.max(0, curIdx - 2) + i) span.classList.add('correct'); // Highlight finished (simplified)
+                // Precise logic needed:
+                // Let's render window around curIdx
+            });
+
+            // Simpler render: Clear and redraw all, scroll view
+            disp.innerHTML = '';
+            // Show window of 20 words
+            const start = Math.floor(curIdx / 20) * 20;
+            const end = start + 20;
+
+            for (let i = start; i < end && i < words.length; i++) {
+                const s = document.createElement('span');
+                s.textContent = words[i];
+                s.className = 'w';
+                if (i === curIdx) s.classList.add('current');
+                else if (i < curIdx) s.classList.add('correct'); // Assuming passed ones are correct (since we force correct to advance)
+                disp.appendChild(s);
+            }
+        }
+
+        inp.addEventListener('input', () => {
+            if (!running) return;
+            const val = inp.value.trim();
+            const target = words[curIdx];
+
+            if (val === target) {
+                // Correct word
+                correctChars += target.length + 1; // +1 for space
+                curIdx++;
+                inp.value = '';
+                render();
+                updateStats();
+            }
+        });
+
+        // Prevent space from staying in input
+        inp.addEventListener('keyup', (e) => {
+            if (e.key === ' ') {
+                inp.value = inp.value.trim();
+            }
+        });
+
+        function updateStats() {
+            const elapsed = 60 - time;
+            if (elapsed > 0) {
+                const wpm = Math.round((correctChars / 5) / (elapsed / 60));
+                wpmEl.textContent = wpm;
+            }
+        }
+
+        function start() {
+            running = true;
+            time = 60;
+            curIdx = 0;
+            correctChars = 0;
+            inp.disabled = false;
+            inp.value = '';
+            inp.focus();
+            btn.style.display = 'none';
+            genWords();
+
+            timer = setInterval(() => {
+                time--;
+                timeEl.textContent = time;
+                updateStats();
+                if (time <= 0) end();
+            }, 1000);
+        }
+
+        function end() {
+            clearInterval(timer);
+            running = false;
+            inp.disabled = true;
+
+            const wpm = parseInt(wpmEl.textContent);
+            alert(`종료! 당신의 속도: ${wpm} WPM`);
+
+            const nick = localStorage.getItem('nickname') || prompt('닉네임?') || '익명';
+            localStorage.setItem('nickname', nick);
+            if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, wpm);
+
+            btn.style.display = 'inline-block';
+            btn.textContent = '다시 하기';
+        }
+
+        btn.onclick = start;
+    </script>
+</body>
+
+</html>

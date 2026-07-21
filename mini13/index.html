@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>틱택토 (mini13)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 300px;
+            margin: 0 auto;
+        }
+
+        .cell {
+            aspect-ratio: 1/1;
+            background: var(--panel-border);
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .cell:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .cell.x {
+            color: var(--accent);
+        }
+
+        .cell.o {
+            color: var(--good);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>⭕ 틱택토 ❌</h1>
+                    <p>AI를 이겨보세요! (3목을 완성하세요)</p>
+                </header>
+
+                <div class="board" id="board">
+                    <div class="cell" data-i="0"></div>
+                    <div class="cell" data-i="1"></div>
+                    <div class="cell" data-i="2"></div>
+                    <div class="cell" data-i="3"></div>
+                    <div class="cell" data-i="4"></div>
+                    <div class="cell" data-i="5"></div>
+                    <div class="cell" data-i="6"></div>
+                    <div class="cell" data-i="7"></div>
+                    <div class="cell" data-i="8"></div>
+                </div>
+
+                <div id="msg" class="mt-4" style="font-weight:bold; height: 24px;">당신의 차례입니다 (⭕)</div>
+
+                <div class="controls mt-4">
+                    <button id="btnReset" class="btn">다시 하기</button>
+                </div>
+
+                <div class="stats-bar mt-4">
+                    <div class="stat-item">연승: <span id="streak">0</span></div>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹 (최대 연승)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini13";
+        if (window.GameStats) {
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                const rl = document.getElementById('rankList');
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}연승)</li>`).join('');
+            });
+        }
+
+        const cells = document.querySelectorAll('.cell');
+        const msg = document.getElementById('msg');
+        const streakEl = document.getElementById('streak');
+        let board = Array(9).fill(null);
+        let streak = 0;
+        let gameActive = true;
+        let player = 'O'; // Human
+        let ai = 'X'; // Computer
+
+        function checkWin(bd, p) {
+            const wins = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+            return wins.some(c => bd[c[0]] === p && bd[c[1]] === p && bd[c[2]] === p);
+        }
+
+        function checkDraw(bd) {
+            return bd.every(c => c !== null);
+        }
+
+        function aiMove() {
+            if (!gameActive) return;
+
+            // Simple AI: Random empty spot
+            const empty = board.map((v, i) => v === null ? i : null).filter(v => v !== null);
+            if (empty.length === 0) return;
+
+            // Try to win or block (Simple enhancement)
+            // Check win
+            for (let i of empty) {
+                let t = [...board]; t[i] = ai;
+                if (checkWin(t, ai)) { move(i, ai); return; }
+            }
+            // Check block
+            for (let i of empty) {
+                let t = [...board]; t[i] = player;
+                if (checkWin(t, player)) { move(i, ai); return; }
+            }
+
+            // Random
+            const idx = empty[Math.floor(Math.random() * empty.length)];
+            move(idx, ai);
+        }
+
+        function move(idx, p) {
+            board[idx] = p;
+            cells[idx].textContent = p === player ? '⭕' : '❌';
+            cells[idx].classList.add(p === player ? 'o' : 'x');
+
+            if (checkWin(board, p)) {
+                endGame(p === player ? 'win' : 'lose');
+            } else if (checkDraw(board)) {
+                endGame('draw');
+            } else {
+                if (p === player) {
+                    msg.textContent = "AI 생각 중...";
+                    setTimeout(aiMove, 500);
+                } else {
+                    msg.textContent = "당신의 차례입니다 (⭕)";
+                }
+            }
+        }
+
+        function endGame(res) {
+            gameActive = false;
+            if (res === 'win') {
+                streak++;
+                msg.textContent = "승리! 🎉";
+                msg.style.color = "var(--good)";
+            } else if (res === 'lose') {
+                if (streak > 0) save(streak);
+                streak = 0;
+                msg.textContent = "패배... 😢";
+                msg.style.color = "var(--bad)";
+            } else {
+                msg.textContent = "무승부";
+                msg.style.color = "var(--text)";
+            }
+            streakEl.textContent = streak;
+        }
+
+        function save(s) {
+            const nick = localStorage.getItem('nickname') || prompt("기록 저장을 위한 닉네임?") || "익명";
+            localStorage.setItem('nickname', nick);
+            if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, s);
+        }
+
+        function reset() {
+            board.fill(null);
+            cells.forEach(c => {
+                c.textContent = '';
+                c.className = 'cell';
+            });
+            gameActive = true;
+            msg.textContent = "당신의 차례입니다 (⭕)";
+            msg.style.color = "var(--text)";
+        }
+
+        cells.forEach(c => {
+            c.onclick = () => {
+                const i = +c.dataset.i;
+                if (gameActive && board[i] === null) {
+                    move(i, player);
+                }
+            }
+        });
+
+        document.getElementById('btnReset').onclick = () => {
+            if (gameActive) streak = 0; // forfeit
+            streakEl.textContent = streak;
+            reset();
+        };
+
+    </script>
+</body>
+
+</html>

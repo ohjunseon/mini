@@ -1,0 +1,78 @@
+{
+  "visits": {
+    "mini1": 0,
+    "mini2": 0,
+    "mini3": 0,
+    "mini4": 0,
+    "mini5": 0
+  },
+  "scores": {
+    "mini1": {
+      "sample1": {
+        "name": "system",
+        "score": 0,
+        "ts": 0
+      }
+    },
+    "mini2": {
+      "sample1": {
+        "name": "system",
+        "score": 0,
+        "ts": 0
+      }
+    },
+    "mini3": {
+      "sample1": {
+        "name": "system",
+        "score": 0,
+        "ts": 0
+      }
+    },
+    "mini4": {
+      "sample1": {
+        "name": "system",
+        "score": 0,
+        "ts": 0
+      }
+    },
+    "mini5": {
+      "sample1": {
+        "name": "system",
+        "score": 0,
+        "ts": 0
+      }
+    }
+  },
+  "stats": {
+    "mini1": {
+      "topScore": 0,
+      "avgScore": 0,
+      "playCount": 0,
+      "lastUpdate": 0
+    },
+    "mini2": {
+      "topScore": 0,
+      "avgScore": 0,
+      "playCount": 0,
+      "lastUpdate": 0
+    },
+    "mini3": {
+      "topScore": 0,
+      "avgScore": 0,
+      "playCount": 0,
+      "lastUpdate": 0
+    },
+    "mini4": {
+      "topScore": 0,
+      "avgScore": 0,
+      "playCount": 0,
+      "lastUpdate": 0
+    },
+    "mini5": {
+      "topScore": 0,
+      "avgScore": 0,
+      "playCount": 0,
+      "lastUpdate": 0
+    }
+  }
+}

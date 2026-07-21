@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>두더지 잡기 (mini12)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .holes {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .hole {
+            aspect-ratio: 1/1;
+            background: #3e2723;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            border: 4px solid #5d4037;
+        }
+
+        .mole {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #8d6e63;
+            border-radius: 50%;
+            transition: top 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            cursor: pointer;
+        }
+
+        .mole::after {
+            content: "🐹";
+            /* Simple mole face */
+        }
+
+        .hole.up .mole {
+            top: 10%;
+        }
+
+        .hole.bonked .mole::after {
+            content: "😵";
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🔨 두더지 잡기</h1>
+                    <p>튀어나오는 두더지를 클릭하세요!</p>
+                </header>
+
+                <div class="holes" id="grid">
+                    <div class="hole">
+                        <div class="mole"></div>
+                    </div>
+                    <div class="hole">
+                        <div class="mole"></div>
+                    </div>
+                    <div class="hole">
+                        <div class="mole"></div>
+                    </div>
+                    <div class="hole">
+                        <div class="mole"></div>
+                    </div>
+                    <div class="hole">
+                        <div class="mole"></div>
+                    </div>
+                    <div class="hole">
+                        <div class="mole"></div>
+                    </div>
+                    <div class="hole">
+                        <div class="mole"></div>
+                    </div>
+                    <div class="hole">
+                        <div class="mole"></div>
+                    </div>
+                    <div class="hole">
+                        <div class="mole"></div>
+                    </div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">시작</button>
+                </div>
+
+                <div class="stats-bar mt-4">
+                    <div class="stat-item">점수: <span id="score">0</span></div>
+                    <div class="stat-item">남은 시간: <span id="time">30</span></div>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini12";
+        if (window.GameStats) {
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                const rl = document.getElementById('rankList');
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
+        }
+
+        const holes = document.querySelectorAll('.hole');
+        const scoreEl = document.getElementById('score');
+        const timeEl = document.getElementById('time');
+        const btn = document.getElementById('btnStart');
+
+        let lastHole;
+        let timeUp = false;
+        let score = 0;
+        let limit = 30;
+
+        function randomTime(min, max) {
+            return Math.round(Math.random() * (max - min) + min);
+        }
+        function randomHole(holes) {
+            const idx = Math.floor(Math.random() * holes.length);
+            const hole = holes[idx];
+            if (hole === lastHole) return randomHole(holes);
+            lastHole = hole;
+            return hole;
+        }
+
+        function peep() {
+            const time = randomTime(400, 1000);
+            const hole = randomHole(holes);
+            hole.classList.add('up');
+            hole.classList.remove('bonked');
+
+            setTimeout(() => {
+                hole.classList.remove('up');
+                if (!timeUp) peep();
+            }, time);
+        }
+
+        function bonk(e) {
+            if (!e.isTrusted) return;
+            const hole = this.parentElement;
+            if (hole.classList.contains('bonked')) return;
+
+            score++;
+            hole.classList.remove('up');
+            hole.classList.add('bonked');
+            scoreEl.textContent = score;
+        }
+
+        document.querySelectorAll('.mole').forEach(mole => mole.addEventListener('click', bonk));
+
+        async function startGame() {
+            scoreEl.textContent = 0;
+            timeEl.textContent = limit;
+            timeUp = false;
+            score = 0;
+            btn.style.display = 'none';
+
+            peep();
+
+            let timeLeft = limit;
+            const timer = setInterval(() => {
+                timeLeft--;
+                timeEl.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    timeUp = true;
+                    gameOver();
+                }
+            }, 1000);
+        }
+
+        function gameOver() {
+            alert(`시간 종료! 점수: ${score}`);
+            if (score > 0) {
+                const nick = localStorage.getItem('nickname') || prompt('닉네임?') || '익명';
+                localStorage.setItem('nickname', nick);
+                if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+            }
+            btn.style.display = 'inline-block';
+            btn.textContent = '다시 하기';
+        }
+
+        btn.onclick = startGame;
+    </script>
+</body>
+
+</html>

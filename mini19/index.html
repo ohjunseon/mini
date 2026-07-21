@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>드라이브 닷지 (mini19)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            background: #333;
+            border-left: 5px solid #fff;
+            border-right: 5px solid #fff;
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🏎️ 드라이브 닷지</h1>
+                    <p>좌우로 움직여 장애물을 피하세요!</p>
+                </header>
+
+                <canvas id="game" width="300" height="500"></canvas>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">시동 걸기</button>
+                </div>
+
+                <div class="stats-bar mt-4">
+                    <div class="stat-item">점수: <span id="score">0</span></div>
+                </div>
+
+                <div class="controls mt-4" style="display: flex; gap: 20px; justify-content: center;">
+                    <button class="btn secondary" id="btnLeft" style="padding: 20px;">◀</button>
+                    <button class="btn secondary" id="btnRight" style="padding: 20px;">▶</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../shared/firebase.js"></script>
+
+    <script>
+        const PAGE_ID = "mini19";
+        if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
+            const rl = document.getElementById('rankList');
+            rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+        });
+
+        const cvs = document.getElementById('game');
+        const ctx = cvs.getContext('2d');
+        const btn = document.getElementById('btnStart');
+        const sEl = document.getElementById('score');
+
+        let player = { x: 130, y: 400, w: 40, h: 60, speed: 5 };
+        let obstacles = [];
+        let score = 0;
+        let frame = 0;
+        let running = false;
+        let loopId;
+
+        let leftPressed = false;
+        let rightPressed = false;
+
+        function drawCar(items, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(items.x, items.y, items.w, items.h);
+            // lights
+            ctx.fillStyle = "#ffeb3b";
+            ctx.fillRect(items.x + 5, items.y + 5, 10, 5);
+            ctx.fillRect(items.x + 25, items.y + 5, 10, 5);
+        }
+
+        function update() {
+            if (!running) return;
+            frame++;
+
+            if (leftPressed && player.x > 10) player.x -= player.speed;
+            if (rightPressed && player.x < 250) player.x += player.speed;
+
+            // Spawn obstacles
+            if (frame % 40 === 0) {
+                let rw = 40;
+                let rx = Math.random() * (260) + 10;
+                obstacles.push({ x: rx, y: -60, w: 40, h: 60, speed: 4 + Math.floor(score / 100) });
+            }
+
+            // Move Obs
+            for (let i = 0; i < obstacles.length; i++) {
+                obstacles[i].y += obstacles[i].speed;
+
+                // Collision
+                if (
+                    player.x < obstacles[i].x + obstacles[i].w &&
+                    player.x + player.w > obstacles[i].x &&
+                    player.y < obstacles[i].y + obstacles[i].h &&
+                    player.y + player.h > obstacles[i].y
+                ) {
+                    gameOver();
+                    return;
+                }
+
+                if (obstacles[i].y > 500) {
+                    obstacles.splice(i, 1);
+                    score += 10;
+                    sEl.textContent = score;
+                    i--;
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = "#333";
+            ctx.fillRect(0, 0, 300, 500);
+
+            // Road lanes
+            ctx.fillStyle = "#fff";
+            for (let i = 0; i < 10; i++) {
+                ctx.fillRect(145, (frame * 5 + i * 60) % 500 - 30, 10, 30);
+            }
+
+            drawCar(player, "#3b82f6");
+            for (let o of obstacles) drawCar(o, "#ef4444");
+        }
+
+        function loop() {
+            if (running) {
+                update();
+                draw();
+                loopId = requestAnimationFrame(loop);
+            }
+        }
+
+        function gameOver() {
+            running = false;
+            alert("충돌! 점수: " + score);
+            const nick = localStorage.getItem('nickname') || '익명';
+            if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+            btn.style.display = 'inline-block';
+        }
+
+        function start() {
+            player.x = 130;
+            obstacles = [];
+            score = 0; sEl.textContent = 0;
+            frame = 0;
+            running = true;
+            btn.style.display = 'none';
+            loop();
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowLeft') leftPressed = true;
+            if (e.key === 'ArrowRight') rightPressed = true;
+        });
+        document.addEventListener('keyup', e => {
+            if (e.key === 'ArrowLeft') leftPressed = false;
+            if (e.key === 'ArrowRight') rightPressed = false;
+        });
+
+        // Mobile Touch
+        const bL = document.getElementById('btnLeft');
+        const bR = document.getElementById('btnRight');
+        bL.addEventListener('touchstart', (e) => { e.preventDefault(); leftPressed = true; });
+        bL.addEventListener('touchend', (e) => { e.preventDefault(); leftPressed = false; });
+        bR.addEventListener('touchstart', (e) => { e.preventDefault(); rightPressed = true; });
+        bR.addEventListener('touchend', (e) => { e.preventDefault(); rightPressed = false; });
+        // Mouse fallback for testing
+        bL.addEventListener('mousedown', () => { leftPressed = true; });
+        bL.addEventListener('mouseup', () => { leftPressed = false; });
+        bR.addEventListener('mousedown', () => { rightPressed = true; });
+        bR.addEventListener('mouseup', () => { rightPressed = false; });
+
+        btn.onclick = start;
+    </script>
+</body>
+
+</html>
