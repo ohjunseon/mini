@@ -318,6 +318,7 @@
     });
 
     el.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
       gameState.dragEl = el;
       el.classList.add('dragging');
       const rect = el.getBoundingClientRect();
@@ -326,10 +327,12 @@
         y: e.clientY - rect.top
       };
       el.style.zIndex = '1000';
+      document.body.style.overflow = 'hidden';
     });
 
     el.addEventListener('pointermove', (e) => {
       if (gameState.dragEl === el) {
+        e.preventDefault();
         el.style.position = 'fixed';
         el.style.left = (e.clientX - gameState.touchOffset.x) + 'px';
         el.style.top = (e.clientY - gameState.touchOffset.y) + 'px';
@@ -343,6 +346,7 @@
         el.style.left = '0';
         el.style.top = '0';
         el.style.zIndex = 'auto';
+        document.body.style.overflow = 'auto';
       }
     });
 
