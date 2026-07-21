@@ -112,11 +112,12 @@
       border-radius: 12px;
       margin-bottom: 20px;
       align-content: flex-start;
+      transition: all 0.2s;
     }
-    #board[data-drag-over-zone="true"] {
+    #board.drag-over, #pool.drag-over {
       background: #e8f0ff;
       border-color: #667eea;
-      box-shadow: 0 0 12px rgba(102, 126, 234, 0.3);
+      box-shadow: 0 0 12px rgba(102, 126, 234, 0.4);
     }
     #board {
       background: #fff;
@@ -143,9 +144,10 @@
       background: #f0f2ff;
     }
     .chip.dragging {
-      opacity: 0.6;
-      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
-      background: #f0f2ff;
+      opacity: 0.5;
+      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.6);
+      background: #e8f0ff;
+      border-color: #764ba2;
     }
     .button-group {
       display: flex;
@@ -276,7 +278,8 @@
     answers: [],
     correctCount: 0,
     dragEl: null,
-    touchOffset: { x: 0, y: 0 }
+    dragStartPos: { x: 0, y: 0 },
+    currentDropZone: null
   };
 
   async function loadQuestions() {
@@ -305,74 +308,29 @@
     const el = document.createElement('div');
     el.textContent = word;
     el.className = 'chip';
-    el.draggable = true;
     el.style.touchAction = 'none';
-    el.style.position = 'relative';
-
-    el.addEventListener('dragstart', () => {
-      gameState.dragEl = el;
-      el.classList.add('dragging');
-    });
-    el.addEventListener('dragend', () => {
-      el.classList.remove('dragging');
-    });
 
     el.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       gameState.dragEl = el;
+      gameState.dragStartPos = { x: e.clientX, y: e.clientY };
       el.classList.add('dragging');
-      const rect = el.getBoundingClientRect();
-      gameState.touchOffset = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      };
-      el.style.zIndex = '1000';
-      document.body.style.overflow = 'hidden';
-    });
-
-    el.addEventListener('pointermove', (e) => {
-      if (gameState.dragEl === el) {
-        e.preventDefault();
-        el.style.position = 'fixed';
-        el.style.left = (e.clientX - gameState.touchOffset.x) + 'px';
-        el.style.top = (e.clientY - gameState.touchOffset.y) + 'px';
-      }
-    });
-
-    el.addEventListener('pointerup', () => {
-      if (gameState.dragEl === el) {
-        el.classList.remove('dragging');
-        el.style.position = 'relative';
-        el.style.left = '0';
-        el.style.top = '0';
-        el.style.zIndex = 'auto';
-        document.body.style.overflow = 'auto';
-      }
     });
 
     return el;
   }
 
   function setupDropzone(zone) {
-    zone.addEventListener('dragover', e => e.preventDefault());
-    zone.addEventListener('drop', e => {
-      e.preventDefault();
+    zone.addEventListener('pointerover', (e) => {
       if (gameState.dragEl) {
-        zone.appendChild(gameState.dragEl);
+        gameState.currentDropZone = zone;
+        zone.classList.add('drag-over');
       }
     });
 
-    zone.addEventListener('pointerover', () => {
-      zone.dataset.dragOverZone = 'true';
-    });
-    zone.addEventListener('pointerout', () => {
-      delete zone.dataset.dragOverZone;
-    });
-    zone.addEventListener('pointerup', () => {
-      if (gameState.dragEl && zone.dataset.dragOverZone === 'true') {
-        zone.appendChild(gameState.dragEl);
-        gameState.dragEl = null;
-      }
+    zone.addEventListener('pointerout', (e) => {
+      gameState.currentDropZone = null;
+      zone.classList.remove('drag-over');
     });
   }
 
@@ -403,6 +361,27 @@
     setupDropzone(board);
     setupDropzone(pool);
   }
+
+  // 전역 드래그 이벤트 처리
+  document.addEventListener('pointermove', (e) => {
+    if (gameState.dragEl) {
+      e.preventDefault();
+    }
+  });
+
+  document.addEventListener('pointerup', (e) => {
+    if (gameState.dragEl) {
+      gameState.dragEl.classList.remove('dragging');
+
+      if (gameState.currentDropZone) {
+        gameState.currentDropZone.classList.remove('drag-over');
+        gameState.currentDropZone.appendChild(gameState.dragEl);
+      }
+
+      gameState.dragEl = null;
+      gameState.currentDropZone = null;
+    }
+  });
 
   window.app = {
     startGame: async function() {
