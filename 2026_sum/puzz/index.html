@@ -353,7 +353,7 @@
     board.innerHTML = '';
     pool.innerHTML = '';
 
-    const words = question.text.split(/\s+/);
+    const words = question.text.split('/');
     const shuffled = [...words].sort(() => Math.random() - 0.5);
 
     shuffled.forEach(word => {
@@ -444,7 +444,7 @@
       const board = document.getElementById('board');
       const current = [...board.children].map(c => c.textContent);
       const question = gameState.questions[gameState.currentQuestionIndex];
-      const answer = question.text.split(/\s+/);
+      const answer = question.text.split('/');
 
       if (current.length !== answer.length) {
         alert('아직 단어가 남아있어요.');

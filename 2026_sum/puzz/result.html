@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>최종 순위표 - 말씀 퍼즐 게임</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>🧩</text></svg>">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 900px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 40px;
+      font-size: 32px;
+    }
+    .stats-header {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 40px;
+      gap: 20px;
+    }
+    .stat-box {
+      text-align: center;
+      padding: 20px;
+      background: #f8f9ff;
+      border-radius: 12px;
+      border-left: 4px solid #667eea;
+      flex: 1;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 5px;
+    }
+    .stat-label {
+      font-size: 14px;
+      color: #777;
+    }
+    .scoreboard-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .scoreboard-table thead {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .scoreboard-table th {
+      padding: 15px;
+      text-align: left;
+      font-weight: 600;
+    }
+    .scoreboard-table td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+    }
+    .scoreboard-table tbody tr:hover {
+      background: #f8f9ff;
+    }
+    .rank {
+      font-weight: bold;
+      color: #667eea;
+      min-width: 40px;
+      text-align: center;
+    }
+    .rank-medal {
+      font-size: 20px;
+    }
+    .name {
+      font-weight: 500;
+      color: #333;
+    }
+    .score {
+      text-align: right;
+      font-weight: 600;
+      color: #333;
+    }
+    .percentage {
+      text-align: center;
+      color: #667eea;
+      font-weight: 600;
+    }
+    .status {
+      text-align: center;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .status.completed {
+      background: #d4f4dd;
+      color: #2d5016;
+    }
+    .status.in-progress {
+      background: #fff3cd;
+      color: #856404;
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    button {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #667eea;
+      font-size: 18px;
+    }
+    .empty {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+      font-size: 16px;
+    }
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+      h1 {
+        font-size: 24px;
+        margin-bottom: 20px;
+      }
+      .stats-header {
+        flex-direction: column;
+        margin-bottom: 20px;
+      }
+      .scoreboard-table th,
+      .scoreboard-table td {
+        padding: 10px 8px;
+        font-size: 14px;
+      }
+      .rank {
+        min-width: 30px;
+      }
+      .button-group {
+        flex-direction: column;
+      }
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🏆 최종 순위표</h1>
+
+  <div class="stats-header" id="statsHeader">
+    <div class="stat-box">
+      <div class="stat-value" id="totalPlayers">0</div>
+      <div class="stat-label">총 참가자</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="completedPlayers">0</div>
+      <div class="stat-label">완료</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="avgScore">0%</div>
+      <div class="stat-label">평균 정답률</div>
+    </div>
+  </div>
+
+  <div id="content">
+    <div class="loading">데이터를 불러오는 중...</div>
+  </div>
+
+  <div class="button-group">
+    <button onclick="location.href='index.html'">게임하기</button>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBEACVa7Zy28gnue2oiKiNiGvP8sHej-d8",
+    authDomain: "sum-db225.firebaseapp.com",
+    databaseURL: "https://sum-db225-default-rtdb.firebaseio.com",
+    projectId: "sum-db225",
+    storageBucket: "sum-db225.firebasestorage.app",
+    messagingSenderId: "6014588464",
+    appId: "1:6014588464:web:a52ea3457a0393ec8abff5",
+    measurementId: "G-8SFZSPG0X5"
+  };
+
+  const firebase_app = initializeApp(firebaseConfig);
+  const db = getDatabase(firebase_app);
+
+  async function loadScoreboard() {
+    try {
+      const snapshot = await get(ref(db, 'players'));
+      let players = [];
+
+      snapshot.forEach((child) => {
+        const player = child.val();
+        players.push({
+          ...player,
+          percentage: player.total > 0 ? Math.round((player.score / player.total) * 100) : 0
+        });
+      });
+
+      // 점수 순으로 정렬 (완료된 것 먼저, 점수 높은 순)
+      players.sort((a, b) => {
+        if (b.completed !== a.completed) {
+          return b.completed - a.completed;
+        }
+        if (b.percentage !== a.percentage) {
+          return b.percentage - a.percentage;
+        }
+        return b.score - a.score;
+      });
+
+      displayStats(players);
+      displayScoreboard(players);
+    } catch (error) {
+      console.error('데이터 로드 실패:', error);
+      document.getElementById('content').innerHTML =
+        '<div class="empty">데이터를 불러올 수 없습니다.</div>';
+    }
+  }
+
+  function displayStats(players) {
+    const completed = players.filter(p => p.completed).length;
+    const avgPercentage = players.length > 0
+      ? Math.round(players.reduce((sum, p) => sum + p.percentage, 0) / players.length)
+      : 0;
+
+    document.getElementById('totalPlayers').textContent = players.length;
+    document.getElementById('completedPlayers').textContent = completed;
+    document.getElementById('avgScore').textContent = avgPercentage + '%';
+  }
+
+  function displayScoreboard(players) {
+    const content = document.getElementById('content');
+
+    if (players.length === 0) {
+      content.innerHTML = '<div class="empty">아직 참가한 학생이 없습니다.</div>';
+      return;
+    }
+
+    let html = `
+      <table class="scoreboard-table">
+        <thead>
+          <tr>
+            <th style="width: 60px;">순위</th>
+            <th>이름</th>
+            <th style="width: 100px;">점수</th>
+            <th style="width: 100px;">정답률</th>
+            <th style="width: 80px;">상태</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    const medals = ['🥇', '🥈', '🥉'];
+
+    players.forEach((player, index) => {
+      const medal = index < 3 ? medals[index] : '';
+      const statusText = player.completed ? '완료' : '진행중';
+      const statusClass = player.completed ? 'completed' : 'in-progress';
+
+      html += `
+        <tr>
+          <td class="rank">
+            ${medal ? `<span class="rank-medal">${medal}</span>` : `${index + 1}`}
+          </td>
+          <td class="name">${player.name}</td>
+          <td class="score">${player.score}/${player.total}</td>
+          <td class="percentage">${player.percentage}%</td>
+          <td><span class="status ${statusClass}">${statusText}</span></td>
+        </tr>
+      `;
+    });
+
+    html += `
+        </tbody>
+      </table>
+    `;
+
+    content.innerHTML = html;
+  }
+
+  loadScoreboard();
+</script>
+
+</body>
+</html>
