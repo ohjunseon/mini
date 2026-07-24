@@ -311,26 +311,28 @@
     el.style.touchAction = 'none';
 
     el.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
       gameState.dragEl = el;
       gameState.dragStartPos = { x: e.clientX, y: e.clientY };
       el.classList.add('dragging');
+      el.setPointerCapture(e.pointerId);
     });
 
     return el;
   }
 
   function setupDropzone(zone) {
-    zone.addEventListener('pointerover', (e) => {
+    zone.addEventListener('pointerenter', (e) => {
       if (gameState.dragEl) {
         gameState.currentDropZone = zone;
         zone.classList.add('drag-over');
       }
     });
 
-    zone.addEventListener('pointerout', (e) => {
-      gameState.currentDropZone = null;
-      zone.classList.remove('drag-over');
+    zone.addEventListener('pointerleave', (e) => {
+      if (gameState.currentDropZone === zone) {
+        gameState.currentDropZone = null;
+        zone.classList.remove('drag-over');
+      }
     });
   }
 
@@ -365,9 +367,37 @@
   // 전역 드래그 이벤트 처리
   document.addEventListener('pointermove', (e) => {
     if (gameState.dragEl) {
-      e.preventDefault();
+      if (gameState.dragEl.hasPointerCapture(e.pointerId)) {
+        e.preventDefault();
+
+        // 현재 마우스/터치 위치에서 드롭 존 감지
+        const board = document.getElementById('board');
+        const pool = document.getElementById('pool');
+        const boardRect = board.getBoundingClientRect();
+        const poolRect = pool.getBoundingClientRect();
+
+        let newDropZone = null;
+        if (e.clientX >= boardRect.left && e.clientX <= boardRect.right &&
+            e.clientY >= boardRect.top && e.clientY <= boardRect.bottom) {
+          newDropZone = board;
+        } else if (e.clientX >= poolRect.left && e.clientX <= poolRect.right &&
+                   e.clientY >= poolRect.top && e.clientY <= poolRect.bottom) {
+          newDropZone = pool;
+        }
+
+        // 드롭 존 변경 시 스타일 업데이트
+        if (newDropZone !== gameState.currentDropZone) {
+          if (gameState.currentDropZone) {
+            gameState.currentDropZone.classList.remove('drag-over');
+          }
+          gameState.currentDropZone = newDropZone;
+          if (newDropZone) {
+            newDropZone.classList.add('drag-over');
+          }
+        }
+      }
     }
-  });
+  }, { passive: false });
 
   document.addEventListener('pointerup', (e) => {
     if (gameState.dragEl) {
