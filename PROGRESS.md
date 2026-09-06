@@ -84,7 +84,9 @@
 - [ ] 디자인 토큰 일원화 (D2)
 - [ ] mini6 shared 연동 (style.css + ranking.js)
 - [ ] games.json 스키마 + 30개 데이터
-- [ ] 기존 29개: firebase 스크립트 3줄 → ranking.js 1줄 교체 (기계적, Haiku 위임)
+- [x] 기존 29개: firebase 3줄 → ranking.js 1줄 교체 ✅ 2026-09-06 (sed 일괄, 검증완료)
+- [ ] mini6 전체 연동(style.css+ranking.js+점수배선) — 자체로직 필요, 다음 유닛
+- [ ] ④ 실브라우저 검증: 배포본(D1 연결)에서 게임 로드·랭킹 저장/조회 확인
 
 #### 백엔드 기술 메모
 - **프로덕션(D7)**: Cloudflare Worker(`main` 엔트리) + **D1**(SQLite). `wrangler.jsonc`에 D1 바인딩 추가, Worker가 `/api/*` 처리하고 나머지는 `assets`로 정적서빙. 스키마는 server/index.js와 동일(scores/visits 테이블).
@@ -113,6 +115,7 @@
 
 | 일시 | 세션/에이전트 | 작업 | 결과 | 4점 점검 |
 |---|---|---|---|---|
+| 2026-09-06 | Main(Opus) | 29개 firebase→ranking.js 일괄 교체(sed) | ✅ 통과 | ①정적검증(잔존0·ranking29·CDN0) ②죽은firebase제거 ③GameStats계약유지=동작동일 ④실브라우저는 배포본에서 |
 | 2026-09-06 | Haiku+Opus | Cloudflare Worker+D1 백엔드 코드 작성 | ✅ 코드검토 통과(파라미터바인딩·검증·CORS·정적폴백). 동작검증은 D1 생성 후 wrangler | ①②③ 코드검토 ④ 배포후 |
 | 2026-09-06 | Main(Opus) | 커밋 000ef71 (인프라+문서) | 완료(push 보류=배포트리거) | N/A |
 | 2026-09-06 | Main(Opus) | Cloudflare 연결 점검 | ⚠️ Workers 정적배포 확인 → Express서버 프로덕션 부적합, D1+Worker로 결정(D7). ranking.js는 재사용 | 배포환경 |
