@@ -125,11 +125,11 @@
             ctx.fillRect(0, 195, 600, 2); // Ground line
 
             // Dino
-            ctx.fillStyle = "#22c55e";
+            ctx.fillStyle = "var(--good)";
             ctx.fillRect(dino.x, dino.y, dino.w, dino.h);
 
             // Obs
-            ctx.fillStyle = "#ef4444";
+            ctx.fillStyle = "var(--bad)";
             for (let o of obstacles) {
                 ctx.fillRect(o.x, o.y, o.w, o.h);
             }

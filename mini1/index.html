@@ -19,7 +19,7 @@
 
         <div id="gameArea" style="
           width: 100%; height: 300px; 
-          background: #1f2937; 
+          background: var(--panel); 
           border-radius: 12px; 
           display: flex; align-items: center; justify-content: center; 
           font-size: 1.5rem; font-weight: bold; 
@@ -95,7 +95,7 @@
 
     function startGame() {
       state = "ready";
-      gameArea.style.background = "#ef4444"; // Red
+      gameArea.style.background = "var(--bad)"; // Red
       gameArea.textContent = "초록색이 되면 클릭하세요!";
       statusText.textContent = "기다리세요...";
 
@@ -103,7 +103,7 @@
 
       timeoutId = setTimeout(() => {
         state = "now";
-        gameArea.style.background = "#22c55e"; // Green
+        gameArea.style.background = "var(--good)"; // Green
         gameArea.textContent = "지금 클릭!!!";
         statusText.textContent = "클릭하세요!";
         startTime = Date.now();
@@ -112,7 +112,7 @@
 
     function endGame(ms) {
       state = "waiting";
-      gameArea.style.background = "#1f2937"; // Reset
+      gameArea.style.background = "var(--panel)"; // Reset
       gameArea.textContent = `${ms}ms! 클릭하여 다시 시작`;
       statusText.textContent = `기록: ${ms}ms`;
 
@@ -128,7 +128,7 @@
       } else if (state === "ready") {
         clearTimeout(timeoutId);
         state = "waiting";
-        gameArea.style.background = "#1f2937";
+        gameArea.style.background = "var(--panel)";
         gameArea.textContent = "너무 빨랐습니다! 다시 클릭";
         statusText.textContent = "부정 출발!";
       } else if (state === "now") {
