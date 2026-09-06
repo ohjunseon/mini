@@ -224,6 +224,31 @@
       filter: brightness(1.1);
     }
 
+    .search-bar {
+      margin: 16px 0;
+      display: flex;
+      gap: 8px;
+    }
+
+    #searchInput {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    #searchInput::placeholder {
+      color: var(--muted);
+    }
+
+    #searchInput:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(91, 156, 255, .55), var(--shadow);
+    }
+
     footer {
       margin-top: 36px;
       color: var(--muted);
@@ -267,6 +292,10 @@
     <!-- 애드센스 삽입 위치 예시: 실제 운영 시 스니펫을 붙여넣으세요. -->
     <div class="ad" id="ad-slot">광고 영역(예시) • Google AdSense 스크립트를 이 영역 위/아래에 삽입</div>
 
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="🔍 게임 이름으로 검색..." aria-label="게임 검색">
+    </div>
+
     <section class="game-grid" id="grid" aria-label="게임 리스트">
       <!-- JS에서 카드 렌더링 -->
     </section>
@@ -283,38 +312,8 @@
      * - 썸네일은 각 폴더에 cover.png(또는 jpg/webp)로 두면 자동 경로가 사용됩니다.
      * - 아래 games 배열에서 이름/설명만 바꿔도 됩니다.
      */
-    const games = [
-      { id: 'mini1', title: '미니게임 1', path: 'mini1/', desc: '점프/회피 액션', thumb: 'mini1/cover.png' },
-      { id: 'mini2', title: '미니게임 2', path: 'mini2/', desc: '타이밍/리듬', thumb: 'mini2/cover.png' },
-      { id: 'mini3', title: '미니게임 3', path: 'mini3/', desc: '두뇌 퍼즐', thumb: 'mini3/cover.png' },
-      { id: 'mini4', title: '미니게임 4', path: 'mini4/', desc: '산수 퀴즈', thumb: 'mini4/cover.png' },
-      { id: 'mini5', title: '미니게임 5', path: 'mini5/', desc: '벽돌 깨기', thumb: 'mini5/cover.png' },
-      { id: 'mini6', title: '같은 색 찾기', path: 'mini6/', desc: '색각 능력 테스트', thumb: 'mini6/cover.png' },
-      { id: 'mini7', title: '스네이크', path: 'mini7/', desc: '꼬리 늘리기', thumb: 'mini7/cover.png' },
-      { id: 'mini8', title: '테트리스', path: 'mini8/', desc: '블록 쌓기', thumb: 'mini8/cover.png' },
-      { id: 'mini9', title: '2048', path: 'mini9/', desc: '숫자 합치기', thumb: 'mini9/cover.png' },
-      { id: 'mini10', title: '플래피 버드', path: 'mini10/', desc: '장애물 피하기', thumb: 'mini10/cover.png' },
-      { id: 'mini11', title: '카드 뒤집기', path: 'mini11/', desc: '기억력 테스트', thumb: 'mini11/cover.png' },
-      { id: 'mini12', title: '두더지 잡기', path: 'mini12/', desc: '순발력 테스트', thumb: 'mini12/cover.png' },
-      { id: 'mini13', title: '틱택토', path: 'mini13/', desc: '3목 두기 vs AI', thumb: 'mini13/cover.png' },
-      { id: 'mini14', title: '가위바위보', path: 'mini14/', desc: '연승 도전', thumb: 'mini14/cover.png' },
-      { id: 'mini15', title: '사이먼 게임', path: 'mini15/', desc: '기억력 패턴', thumb: 'mini15/cover.png' },
-      { id: 'mini16', title: '타자 연습', path: 'mini16/', desc: '영타 속도 측정', thumb: 'mini16/cover.png' },
-      { id: 'mini17', title: '핑퐁', path: 'mini17/', desc: 'AI 대전 탁구', thumb: 'mini17/cover.png' },
-      { id: 'mini18', title: '지뢰찾기', path: 'mini18/', desc: '두뇌 풀가동', thumb: 'mini18/cover.png' },
-      { id: 'mini19', title: '드라이브 닷지', path: 'mini19/', desc: '장애물 피하기', thumb: 'mini19/cover.png' },
-      { id: 'mini20', title: '에임 트레이너', path: 'mini20/', desc: '정확도 훈련', thumb: 'mini20/cover.png' },
-      { id: 'mini21', title: '탑 쌓기', path: 'mini21/', desc: '타이밍 아케이드', thumb: 'mini21/cover.png' },
-      { id: 'mini22', title: '사과 받기', path: 'mini22/', desc: '캐주얼 액션', thumb: 'mini22/cover.png' },
-      { id: 'mini23', title: '점프 런', path: 'mini23/', desc: '러닝 액션', thumb: 'mini23/cover.png' },
-      { id: 'mini24', title: '미로 탈출', path: 'mini24/', desc: '랜덤 미로 생성', thumb: 'mini24/cover.png' },
-      { id: 'mini25', title: '슬롯 머신', path: 'mini25/', desc: '행운 시험', thumb: 'mini25/cover.png' },
-      { id: 'mini26', title: '하이 앤 로우', path: 'mini26/', desc: '카드 예측', thumb: 'mini26/cover.png' },
-      { id: 'mini27', title: '암산 왕', path: 'mini27/', desc: '빠른 계산', thumb: 'mini27/cover.png' },
-      { id: 'mini28', title: '절대 시간', path: 'mini28/', desc: '10.00초 맞추기', thumb: 'mini28/cover.png' },
-      { id: 'mini29', title: '행운의 로또', path: 'mini29/', desc: '대박 기원', thumb: 'mini29/cover.png' },
-      { id: 'mini30', title: '탭 전쟁', path: 'mini30/', desc: '광클 대결', thumb: 'mini30/cover.png' },
-    ];
+    let games = [];
+    let allGames = [];
 
     const grid = document.getElementById('grid');
     const year = document.getElementById('year');
@@ -411,6 +410,23 @@
       return card;
     }
 
+    async function loadGames() {
+      try {
+        const res = await fetch('games.json');
+        allGames = await res.json();
+        games = allGames;
+        render();
+      } catch (e) {
+        console.error('Failed to load games.json:', e);
+      }
+    }
+
+    function filterGames(query) {
+      const q = query.toLowerCase();
+      games = allGames.filter(g => g.title.toLowerCase().includes(q) || g.desc.toLowerCase().includes(q) || g.category.includes(q));
+      render();
+    }
+
     function render() {
       grid.innerHTML = '';
       games.forEach((g, i) => grid.appendChild(createCard(g, i)));
@@ -466,8 +482,13 @@
       }
     });
 
-    // 초기 렌더링
-    render();
+    // 초기 렌더링 — games.json에서 데이터 로드
+    loadGames();
+
+    // 검색 입력 이벤트
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      filterGames(e.target.value);
+    });
   </script>
 </body>
 
