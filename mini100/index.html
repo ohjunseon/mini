@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>명예의전당</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    canvas {
+      display: block;
+      margin: 20px auto;
+      background: linear-gradient(180deg, #1a1a2e, #0f3460);
+      border: 2px solid var(--panel-border);
+      border-radius: 8px;
+      max-width: 100%;
+    }
+    .canvas-wrapper {
+      text-align: center;
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #gameStatus {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--accent);
+      margin: 15px 0;
+      padding: 12px;
+      background: rgba(91, 156, 255, 0.1);
+      border-radius: 8px;
+      border: 2px solid var(--accent);
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-item {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+    #hallOfFame {
+      display: none;
+      text-align: center;
+      padding: 40px;
+      background: radial-gradient(circle, rgba(91, 156, 255, 0.2), rgba(0, 0, 0, 0.4));
+      border-radius: 12px;
+      border: 2px solid var(--accent);
+      margin: 30px 0;
+    }
+    #hallOfFame.show {
+      display: block;
+    }
+    #hallOfFame h2 {
+      font-size: 3rem;
+      color: var(--accent);
+      margin: 20px 0;
+      text-shadow: 0 0 10px rgba(91, 156, 255, 0.5);
+    }
+    #playerName {
+      font-size: 2rem;
+      color: var(--good);
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    #finalScore {
+      font-size: 2.5rem;
+      color: var(--warn);
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    #congratulations {
+      font-size: 1.3rem;
+      color: var(--accent);
+      margin: 20px 0;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🏆 명예의전당</h1>
+          <p>최종 토너먼트: 9개 게임을 완주하고 최고 점수를 얻으세요!</p>
+        </header>
+
+        <div class="canvas-wrapper">
+          <canvas id="gameCanvas" width="320" height="480"></canvas>
+        </div>
+
+        <div id="gameStatus">준비 중...</div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">진행 게임</span>
+            <span class="stat-value" id="gameProgress">0/9</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">현재 게임</span>
+            <span class="stat-value" id="currentGame">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">현재 점수</span>
+            <span class="stat-value" id="currentScore">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">총 점수</span>
+            <span class="stat-value" id="totalScore">0</span>
+          </div>
+        </div>
+
+        <button class="btn" id="startBtn" style="width: 100%; margin: 10px 0;">토너먼트 시작</button>
+
+        <div id="hallOfFame">
+          <h2>🌟 축하합니다! 🌟</h2>
+          <div id="playerName">플레이어</div>
+          <div id="finalScore">0점</div>
+          <div id="congratulations">
+            명예의전당에 오신 것을 환영합니다!<br>
+            당신은 최고의 스포츠 게임 챔피언입니다!
+          </div>
+        </div>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini100";
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gameStatus = document.getElementById('gameStatus');
+    const startBtn = document.getElementById('startBtn');
+    const gameProgress = document.getElementById('gameProgress');
+    const currentGame = document.getElementById('currentGame');
+    const currentScore = document.getElementById('currentScore');
+    const totalScore = document.getElementById('totalScore');
+    const rankList = document.getElementById('rankList');
+    const hallOfFame = document.getElementById('hallOfFame');
+    const playerNameDisplay = document.getElementById('playerName');
+    const finalScoreDisplay = document.getElementById('finalScore');
+
+    // Tournament games (sample from 91-99)
+    const GAMES = [
+      { name: '농구 슛', emoji: '🏀', duration: 10 },
+      { name: '골프', emoji: '⛳', duration: 12 },
+      { name: '펀칭백', emoji: '👊', duration: 8 },
+      { name: '스키', emoji: '⛷️', duration: 10 },
+      { name: '서핑', emoji: '🏄', duration: 10 },
+      { name: '탁구', emoji: '🏓', duration: 10 },
+      { name: '스케이트', emoji: '⛸️', duration: 10 },
+      { name: '복싱', emoji: '🥊', duration: 8 },
+      { name: '마라톤', emoji: '🏃', duration: 12 }
+    ];
+
+    let gameActive = false;
+    let currentGameIndex = 0;
+    let allScores = [];
+    let totalTournamentScore = 0;
+    let animationId = null;
+    let gameTimeLeft = 0;
+    let timerInterval = null;
+
+    // Game states
+    let ballX = 160;
+    let ballY = 100;
+    let ballVX = 0;
+    let ballVY = 0;
+    let playerScore = 0;
+    let gamePhase = 'idle'; // idle, playing, finished
+
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      loadRanking();
+    }
+
+    function loadRanking() {
+      if (window.GameStats && window.GameStats.listenForTopScores) {
+        GameStats.listenForTopScores(PAGE_ID, 5, (rows) => {
+          rankList.innerHTML = rows.map((r, i) =>
+            `<li>${i+1}. ${r.name} - ${r.score} 점</li>`
+          ).join('') || '<li>기록이 없습니다</li>';
+        });
+      }
+    }
+
+    function startTournament() {
+      gameActive = true;
+      currentGameIndex = 0;
+      allScores = [];
+      totalTournamentScore = 0;
+      startBtn.disabled = true;
+      startNextGame();
+    }
+
+    function startNextGame() {
+      if (currentGameIndex >= GAMES.length) {
+        endTournament();
+        return;
+      }
+
+      const game = GAMES[currentGameIndex];
+      gameStatus.textContent = `${game.emoji} ${game.name} - ${game.duration}초`;
+      currentGame.textContent = game.emoji;
+      playerScore = 0;
+      gameTimeLeft = game.duration;
+      gamePhase = 'playing';
+
+      currentScore.textContent = '0';
+      gameProgress.textContent = `${currentGameIndex + 1}/${GAMES.length}`;
+
+      timerInterval = setInterval(() => {
+        gameTimeLeft--;
+        if (gameTimeLeft <= 0) {
+          finishCurrentGame();
+        }
+      }, 1000);
+
+      gameLoop();
+    }
+
+    function finishCurrentGame() {
+      clearInterval(timerInterval);
+      if (animationId) cancelAnimationFrame(animationId);
+
+      allScores.push(playerScore);
+      totalTournamentScore += playerScore;
+      totalScore.textContent = totalTournamentScore;
+
+      gamePhase = 'finished';
+      currentGameIndex++;
+
+      setTimeout(() => {
+        startNextGame();
+      }, 1000);
+    }
+
+    function endTournament() {
+      gameActive = false;
+      if (animationId) cancelAnimationFrame(animationId);
+      startBtn.disabled = false;
+
+      gameStatus.textContent = `토너먼트 완주! 총 점수: ${totalTournamentScore}`;
+
+      setTimeout(() => {
+        const playerName = prompt('이름을 입력하세요:') || '챔피언';
+        showHallOfFame(playerName, totalTournamentScore);
+
+        if (window.GameStats) {
+          GameStats.saveScore(PAGE_ID, playerName, totalTournamentScore);
+        }
+      }, 500);
+    }
+
+    function showHallOfFame(name, score) {
+      playerNameDisplay.textContent = name;
+      finalScoreDisplay.textContent = score + '점';
+      hallOfFame.classList.add('show');
+    }
+
+    function gameLoop() {
+      // Draw tournament background
+      const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      grd.addColorStop(0, '#1a1a2e');
+      grd.addColorStop(1, '#0f3460');
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw game title
+      const game = GAMES[currentGameIndex];
+      ctx.fillStyle = 'var(--accent)';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(game.emoji + ' ' + game.name, 160, 60);
+
+      // Simulate game activity with animated elements
+      ballX += ballVX;
+      ballY += ballVY;
+      ballVX += (Math.random() - 0.5) * 0.2;
+      ballVY += (Math.random() - 0.5) * 0.2;
+
+      // Boundary bounce
+      if (ballX < 20 || ballX > canvas.width - 20) ballVX *= -1;
+      if (ballY < 80 || ballY > canvas.height - 40) ballVY *= -1;
+
+      ballX = Math.max(20, Math.min(canvas.width - 20, ballX));
+      ballY = Math.max(80, Math.min(canvas.height - 40, ballY));
+
+      // Draw game elements
+      ctx.fillStyle = '#ff6b6b';
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Generate points randomly during game
+      if (Math.random() < 0.02) {
+        playerScore += Math.floor(Math.random() * 5) + 1;
+      }
+
+      // Draw time and score
+      ctx.fillStyle = 'var(--muted)';
+      ctx.font = '14px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`시간: ${gameTimeLeft}초`, 20, 450);
+      ctx.fillText(`점수: ${playerScore}`, 20, 470);
+
+      currentScore.textContent = playerScore;
+
+      animationId = requestAnimationFrame(gameLoop);
+    }
+
+    startBtn.addEventListener('click', startTournament);
+  </script>
+</body>
+</html>

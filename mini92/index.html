@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>골프</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    canvas {
+      display: block;
+      margin: 20px auto;
+      background: linear-gradient(180deg, #2d5a3d, #1a3a2a);
+      border: 2px solid var(--panel-border);
+      border-radius: 8px;
+      cursor: crosshair;
+      max-width: 100%;
+    }
+    .canvas-wrapper {
+      text-align: center;
+      min-height: 380px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #gameStatus {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--accent);
+      margin: 15px 0;
+      padding: 12px;
+      background: rgba(91, 156, 255, 0.1);
+      border-radius: 8px;
+      border: 2px solid var(--accent);
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-item {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+    .controls-hint {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin: 15px 0;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>⛳ 골프</h1>
+          <p>9개 홀을 최소 타수로 클리어하세요!</p>
+        </header>
+
+        <div class="canvas-wrapper">
+          <canvas id="gameCanvas" width="320" height="360"></canvas>
+        </div>
+
+        <div id="gameStatus">준비 중...</div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">현재 홀</span>
+            <span class="stat-value" id="holeValue">1</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">현재 타</span>
+            <span class="stat-value" id="strokeValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">총 점수</span>
+            <span class="stat-value" id="scoreValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">최고 점수</span>
+            <span class="stat-value" id="bestValue">-</span>
+          </div>
+        </div>
+
+        <div class="controls-hint">
+          💡 파워 게이지가 올라갔다가 내려올 때 클릭하세요! 각도는 화살표로 조절합니다.
+        </div>
+
+        <button class="btn" id="startBtn" style="width: 100%; margin: 10px 0;">게임 시작</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini92";
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gameStatus = document.getElementById('gameStatus');
+    const startBtn = document.getElementById('startBtn');
+    const holeValue = document.getElementById('holeValue');
+    const strokeValue = document.getElementById('strokeValue');
+    const scoreValue = document.getElementById('scoreValue');
+    const bestValue = document.getElementById('bestValue');
+    const rankList = document.getElementById('rankList');
+
+    let gameActive = false;
+    let totalScore = 0;
+    let currentHole = 1;
+    let currentStroke = 0;
+    let animationId = null;
+    let bestScore = null;
+
+    // Ball physics
+    let ballX = 160;
+    let ballY = 300;
+    let ballVX = 0;
+    let ballVY = 0;
+    let holeX = 160;
+    let holeY = 50;
+    let powerGauge = 0;
+    let powerDirection = 1;
+    let angle = 0;
+    let canShoot = false;
+
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      loadRanking();
+    }
+
+    function loadRanking() {
+      if (window.GameStats && window.GameStats.listenForTopScores) {
+        GameStats.listenForTopScores(PAGE_ID, 5, (rows) => {
+          rankList.innerHTML = rows.map((r, i) =>
+            `<li>${i+1}. ${r.name} - ${r.score} 점</li>`
+          ).join('') || '<li>기록이 없습니다</li>';
+        });
+      }
+    }
+
+    function startGame() {
+      gameActive = true;
+      currentHole = 1;
+      totalScore = 0;
+      bestScore = null;
+      startBtn.disabled = true;
+      setupHole();
+      gameLoop();
+    }
+
+    function setupHole() {
+      currentStroke = 0;
+      ballX = 160;
+      ballY = 300;
+      ballVX = 0;
+      ballVY = 0;
+      powerGauge = 0;
+      angle = 0;
+      canShoot = true;
+      updateDisplay();
+    }
+
+    function updateDisplay() {
+      holeValue.textContent = currentHole;
+      strokeValue.textContent = currentStroke;
+      scoreValue.textContent = totalScore;
+      if (bestScore !== null) bestValue.textContent = bestScore;
+    }
+
+    function endGame() {
+      gameActive = false;
+      if (animationId) cancelAnimationFrame(animationId);
+      startBtn.disabled = false;
+
+      gameStatus.textContent = `게임 종료! 총 타수: ${totalScore}`;
+
+      setTimeout(() => {
+        if (window.GameStats) {
+          const playerName = prompt('이름을 입력하세요:') || '익명';
+          GameStats.saveScore(PAGE_ID, playerName, totalScore);
+        }
+
+        setTimeout(() => {
+          totalScore = 0;
+          currentHole = 1;
+          currentStroke = 0;
+          updateDisplay();
+          gameStatus.textContent = '준비 중...';
+        }, 1000);
+      }, 1000);
+    }
+
+    function gameLoop() {
+      ctx.fillStyle = '#2d5a3d';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw grass pattern
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < canvas.height; i += 30) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(canvas.width, i);
+        ctx.stroke();
+      }
+
+      // Draw hole
+      ctx.fillStyle = '#1a1a1a';
+      ctx.beginPath();
+      ctx.arc(holeX, holeY, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#4a7c59';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(holeX, holeY, 12, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Draw ball
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#cccccc';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, 6, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Ball physics
+      if (ballVX !== 0 || ballVY !== 0) {
+        canShoot = false;
+        ballX += ballVX;
+        ballY += ballVY;
+        ballVX *= 0.98;
+        ballVY *= 0.98;
+
+        // Hole detection
+        const dist = Math.sqrt((ballX - holeX) ** 2 + (ballY - holeY) ** 2);
+        if (dist < 12) {
+          ballVX = 0;
+          ballVY = 0;
+          totalScore += currentStroke;
+
+          if (bestScore === null || currentStroke < bestScore) {
+            bestScore = currentStroke;
+          }
+
+          if (currentHole >= 9) {
+            endGame();
+            return;
+          }
+
+          currentHole++;
+          setupHole();
+        }
+
+        // Friction and boundary
+        if (Math.abs(ballVX) < 0.1 && Math.abs(ballVY) < 0.1) {
+          ballVX = 0;
+          ballVY = 0;
+          canShoot = true;
+        }
+
+        if (ballX < 10 || ballX > canvas.width - 10 || ballY < 10 || ballY > canvas.height - 10) {
+          ballX = Math.max(10, Math.min(canvas.width - 10, ballX));
+          ballY = Math.max(10, Math.min(canvas.height - 10, ballY));
+          ballVX *= -0.5;
+          ballVY *= -0.5;
+        }
+      }
+
+      // Draw power gauge
+      if (canShoot) {
+        powerGauge += powerDirection;
+        if (powerGauge >= 100) powerDirection = -1;
+        if (powerGauge <= 0) powerDirection = 1;
+
+        ctx.fillStyle = 'rgba(91, 156, 255, 0.3)';
+        ctx.fillRect(10, 10, 100, 15);
+        ctx.fillStyle = 'var(--accent)';
+        ctx.fillRect(10, 10, powerGauge, 15);
+        ctx.strokeStyle = 'var(--accent)';
+        ctx.strokeRect(10, 10, 100, 15);
+
+        // Draw angle
+        ctx.strokeStyle = 'var(--good)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const rad = (angle * Math.PI) / 180;
+        ctx.moveTo(ballX, ballY);
+        ctx.lineTo(ballX + Math.cos(rad) * 50, ballY - Math.sin(rad) * 50);
+        ctx.stroke();
+
+        ctx.fillStyle = 'var(--muted)';
+        ctx.font = '12px sans-serif';
+        ctx.fillText(`각도: ${angle}°`, 120, 22);
+        ctx.fillText(`파워: ${Math.round(powerGauge)}%`, 120, 38);
+      }
+
+      updateDisplay();
+      animationId = requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!gameActive || !canShoot) return;
+
+      if (e.code === 'ArrowLeft') {
+        angle = (angle - 5 + 360) % 360;
+      } else if (e.code === 'ArrowRight') {
+        angle = (angle + 5) % 360;
+      } else if (e.code === 'Space' || e.code === 'Enter') {
+        currentStroke++;
+        const rad = (angle * Math.PI) / 180;
+        ballVX = Math.cos(rad) * powerGauge * 0.5;
+        ballVY = -Math.sin(rad) * powerGauge * 0.5;
+      }
+    });
+
+    canvas.addEventListener('click', () => {
+      if (!gameActive || !canShoot) return;
+      currentStroke++;
+      const rad = (angle * Math.PI) / 180;
+      ballVX = Math.cos(rad) * powerGauge * 0.5;
+      ballVY = -Math.sin(rad) * powerGauge * 0.5;
+    });
+
+    startBtn.addEventListener('click', startGame);
+  </script>
+</body>
+</html>

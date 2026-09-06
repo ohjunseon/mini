@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>농구 슛</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    canvas {
+      display: block;
+      margin: 20px auto;
+      background: linear-gradient(180deg, #1a4d7a, #0d2a47);
+      border: 2px solid var(--panel-border);
+      border-radius: 8px;
+      cursor: crosshair;
+      max-width: 100%;
+    }
+    .canvas-wrapper {
+      text-align: center;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #gameStatus {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--accent);
+      margin: 15px 0;
+      padding: 12px;
+      background: rgba(91, 156, 255, 0.1);
+      border-radius: 8px;
+      border: 2px solid var(--accent);
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-item {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+    .controls-hint {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin: 15px 0;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🏀 농구 슛</h1>
+          <p>각도와 파워를 조절해서 골인시키세요!</p>
+        </header>
+
+        <div class="canvas-wrapper">
+          <canvas id="gameCanvas" width="320" height="480"></canvas>
+        </div>
+
+        <div id="gameStatus">준비 중...</div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">남은 시간</span>
+            <span class="stat-value" id="timerValue">20</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">남은 슛</span>
+            <span class="stat-value" id="shotsValue">3</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">골인</span>
+            <span class="stat-value" id="goalsValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">점수</span>
+            <span class="stat-value" id="scoreValue">0</span>
+          </div>
+        </div>
+
+        <div class="controls-hint">
+          💡 마우스를 드래그해서 각도와 파워를 조절한 후 클릭하여 슛을 시작하세요!
+        </div>
+
+        <button class="btn" id="startBtn" style="width: 100%; margin: 10px 0;">게임 시작</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini91";
+    const GAME_DURATION = 20;
+    const MAX_SHOTS = 3;
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gameStatus = document.getElementById('gameStatus');
+    const startBtn = document.getElementById('startBtn');
+    const timerValue = document.getElementById('timerValue');
+    const shotsValue = document.getElementById('shotsValue');
+    const goalsValue = document.getElementById('goalsValue');
+    const scoreValue = document.getElementById('scoreValue');
+    const rankList = document.getElementById('rankList');
+
+    let gameActive = false;
+    let timeLeft = GAME_DURATION;
+    let timerInterval = null;
+    let animationId = null;
+    let totalScore = 0;
+    let goals = 0;
+    let shotsLeft = MAX_SHOTS;
+
+    // Game state
+    let phase = 'idle'; // idle, aiming, throwing, falling
+    let playerX = 160;
+    let playerY = 350;
+    let basketX = 160;
+    let basketY = 100;
+    let ballX = playerX;
+    let ballY = playerY - 30;
+    let ballVX = 0;
+    let ballVY = 0;
+    let angle = 45;
+    let power = 50;
+    let isAiming = false;
+    let aimStartX = 0;
+    let aimStartY = 0;
+
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      loadRanking();
+    }
+
+    function loadRanking() {
+      if (window.GameStats && window.GameStats.listenForTopScores) {
+        GameStats.listenForTopScores(PAGE_ID, 5, (rows) => {
+          rankList.innerHTML = rows.map((r, i) =>
+            `<li>${i+1}. ${r.name} - ${r.score} 점</li>`
+          ).join('') || '<li>기록이 없습니다</li>';
+        });
+      }
+    }
+
+    function startGame() {
+      gameActive = true;
+      timeLeft = GAME_DURATION;
+      totalScore = 0;
+      goals = 0;
+      shotsLeft = MAX_SHOTS;
+      phase = 'idle';
+      startBtn.disabled = true;
+      updateDisplay();
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timerValue.textContent = timeLeft;
+        if (timeLeft <= 0) endGame();
+      }, 1000);
+
+      gameLoop();
+    }
+
+    function endGame() {
+      gameActive = false;
+      clearInterval(timerInterval);
+      if (animationId) cancelAnimationFrame(animationId);
+      startBtn.disabled = false;
+
+      gameStatus.textContent = `게임 종료! 최종 점수: ${totalScore}`;
+
+      setTimeout(() => {
+        if (window.GameStats) {
+          const playerName = prompt('이름을 입력하세요:') || '익명';
+          GameStats.saveScore(PAGE_ID, playerName, totalScore);
+        }
+
+        setTimeout(() => {
+          totalScore = 0;
+          goals = 0;
+          shotsLeft = MAX_SHOTS;
+          timeLeft = GAME_DURATION;
+          updateDisplay();
+          gameStatus.textContent = '준비 중...';
+        }, 1000);
+      }, 1000);
+    }
+
+    function updateDisplay() {
+      timerValue.textContent = timeLeft;
+      shotsValue.textContent = shotsLeft;
+      goalsValue.textContent = goals;
+      scoreValue.textContent = totalScore;
+    }
+
+    function gameLoop() {
+      ctx.fillStyle = '#1a4d7a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw court
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+      // Draw basket
+      ctx.strokeStyle = '#ff6b6b';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(basketX, basketY, 15, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#ff6b6b';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(basketX - 15, basketY);
+      ctx.lineTo(basketX + 15, basketY);
+      ctx.stroke();
+
+      // Draw player
+      ctx.fillStyle = '#5b9cff';
+      ctx.fillRect(playerX - 10, playerY, 20, 20);
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(playerX, playerY - 15, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw ball
+      if (phase === 'idle' || phase === 'aiming') {
+        ctx.fillStyle = '#ff9100';
+        ctx.beginPath();
+        ctx.arc(ballX, ballY, 8, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (phase === 'throwing' || phase === 'falling') {
+        // Physics
+        ballVY += 0.3; // gravity
+        ballX += ballVX;
+        ballY += ballVY;
+
+        ctx.fillStyle = '#ff9100';
+        ctx.beginPath();
+        ctx.arc(ballX, ballY, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Check basket
+        const distToBasket = Math.sqrt((ballX - basketX) ** 2 + (ballY - basketY) ** 2);
+        if (distToBasket < 20 && ballY < basketY + 10) {
+          goals++;
+          totalScore += 10 + Math.floor(power / 2);
+          phase = 'idle';
+          ballX = playerX;
+          ballY = playerY - 30;
+          ballVX = 0;
+          ballVY = 0;
+          shotsLeft--;
+          if (shotsLeft <= 0) {
+            gameActive = false;
+            endGame();
+            return;
+          }
+        }
+
+        // Out of bounds or too low
+        if (ballX < 20 || ballX > canvas.width - 20 || ballY > canvas.height) {
+          phase = 'idle';
+          ballX = playerX;
+          ballY = playerY - 30;
+          ballVX = 0;
+          ballVY = 0;
+          shotsLeft--;
+          if (shotsLeft <= 0) {
+            gameActive = false;
+            endGame();
+            return;
+          }
+        }
+      }
+
+      // Draw aim line
+      if (phase === 'aiming' && isAiming) {
+        ctx.strokeStyle = 'rgba(91, 156, 255, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(playerX, playerY - 30);
+        const rad = (angle * Math.PI) / 180;
+        const endX = playerX + Math.cos(rad) * power;
+        const endY = (playerY - 30) - Math.sin(rad) * power;
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(91, 156, 255, 0.3)';
+        ctx.font = '12px sans-serif';
+        ctx.fillText(`각도: ${angle}°`, 10, 30);
+        ctx.fillText(`파워: ${power}%`, 10, 50);
+      }
+
+      updateDisplay();
+      animationId = requestAnimationFrame(gameLoop);
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      if (!gameActive || phase !== 'idle') return;
+      phase = 'aiming';
+      isAiming = true;
+      const rect = canvas.getBoundingClientRect();
+      aimStartX = e.clientX - rect.left;
+      aimStartY = e.clientY - rect.top;
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!isAiming) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const dx = x - aimStartX;
+      const dy = aimStartY - y;
+      angle = Math.min(80, Math.max(30, Math.atan2(dy, dx) * 180 / Math.PI));
+      power = Math.min(100, Math.max(30, Math.sqrt(dx * dx + dy * dy)));
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      if (!isAiming) return;
+      isAiming = false;
+      phase = 'throwing';
+      const rad = (angle * Math.PI) / 180;
+      ballVX = Math.cos(rad) * power * 0.3;
+      ballVY = -Math.sin(rad) * power * 0.3;
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      if (!gameActive || phase !== 'idle') return;
+      e.preventDefault();
+      phase = 'aiming';
+      isAiming = true;
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      aimStartX = touch.clientX - rect.left;
+      aimStartY = touch.clientY - rect.top;
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if (!isAiming) return;
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      const dx = x - aimStartX;
+      const dy = aimStartY - y;
+      angle = Math.min(80, Math.max(30, Math.atan2(dy, dx) * 180 / Math.PI));
+      power = Math.min(100, Math.max(30, Math.sqrt(dx * dx + dy * dy)));
+    });
+
+    canvas.addEventListener('touchend', (e) => {
+      if (!isAiming) return;
+      e.preventDefault();
+      isAiming = false;
+      phase = 'throwing';
+      const rad = (angle * Math.PI) / 180;
+      ballVX = Math.cos(rad) * power * 0.3;
+      ballVY = -Math.sin(rad) * power * 0.3;
+    });
+
+    startBtn.addEventListener('click', startGame);
+  </script>
+</body>
+</html>

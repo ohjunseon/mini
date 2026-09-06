@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>마라톤</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    canvas {
+      display: block;
+      margin: 20px auto;
+      background: linear-gradient(180deg, #87ceeb, #e0f6ff);
+      border: 2px solid var(--panel-border);
+      border-radius: 8px;
+      max-width: 100%;
+    }
+    .canvas-wrapper {
+      text-align: center;
+      min-height: 340px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #gameStatus {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--accent);
+      margin: 15px 0;
+      padding: 12px;
+      background: rgba(91, 156, 255, 0.1);
+      border-radius: 8px;
+      border: 2px solid var(--accent);
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-item {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+    .stamina-bar-container {
+      width: 100%;
+      height: 20px;
+      background: rgba(91, 156, 255, 0.1);
+      border-radius: 10px;
+      border: 2px solid var(--panel-border);
+      overflow: hidden;
+      margin: 15px 0;
+    }
+    .stamina-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #2ecc71, #f1c40f);
+      width: 100%;
+      transition: width 0.1s;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🏃 마라톤</h1>
+          <p>스페이스바로 가속하며 최대한 멀리 달리세요!</p>
+        </header>
+
+        <div class="canvas-wrapper">
+          <canvas id="gameCanvas" width="320" height="320"></canvas>
+        </div>
+
+        <div id="gameStatus">준비 중...</div>
+
+        <div class="stamina-bar-container">
+          <div class="stamina-bar" id="staminaBar"></div>
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">상태</span>
+            <span class="stat-value" id="statusValue">대기</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">주행 거리</span>
+            <span class="stat-value" id="distanceValue">0km</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">속도</span>
+            <span class="stat-value" id="speedValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">점수</span>
+            <span class="stat-value" id="scoreValue">0</span>
+          </div>
+        </div>
+
+        <button class="btn" id="startBtn" style="width: 100%; margin: 10px 0;">게임 시작</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini99";
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gameStatus = document.getElementById('gameStatus');
+    const startBtn = document.getElementById('startBtn');
+    const statusValue = document.getElementById('statusValue');
+    const distanceValue = document.getElementById('distanceValue');
+    const speedValue = document.getElementById('speedValue');
+    const scoreValue = document.getElementById('scoreValue');
+    const staminaBar = document.getElementById('staminaBar');
+    const rankList = document.getElementById('rankList');
+
+    let gameActive = false;
+    let animationId = null;
+    let totalScore = 0;
+    let distance = 0;
+    let maxStamina = 100;
+    let stamina = maxStamina;
+    let speed = 0;
+    let sprinting = false;
+    let groundOffset = 0;
+
+    let runnerX = 160;
+    let runnerY = 260;
+    let legPhase = 0;
+
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      loadRanking();
+    }
+
+    function loadRanking() {
+      if (window.GameStats && window.GameStats.listenForTopScores) {
+        GameStats.listenForTopScores(PAGE_ID, 5, (rows) => {
+          rankList.innerHTML = rows.map((r, i) =>
+            `<li>${i+1}. ${r.name} - ${r.score} 점</li>`
+          ).join('') || '<li>기록이 없습니다</li>';
+        });
+      }
+    }
+
+    function startGame() {
+      gameActive = true;
+      distance = 0;
+      stamina = maxStamina;
+      speed = 2;
+      totalScore = 0;
+      groundOffset = 0;
+      startBtn.disabled = true;
+      statusValue.textContent = '달리는 중';
+
+      gameLoop();
+    }
+
+    function endGame() {
+      gameActive = false;
+      if (animationId) cancelAnimationFrame(animationId);
+      startBtn.disabled = false;
+
+      gameStatus.textContent = `게임 종료! 최종 거리: ${(distance / 1000).toFixed(2)}km`;
+      statusValue.textContent = '완주';
+
+      setTimeout(() => {
+        if (window.GameStats) {
+          const playerName = prompt('이름을 입력하세요:') || '익명';
+          GameStats.saveScore(PAGE_ID, playerName, totalScore);
+        }
+
+        setTimeout(() => {
+          totalScore = 0;
+          distance = 0;
+          distanceValue.textContent = '0km';
+          scoreValue.textContent = '0';
+          speedValue.textContent = '0';
+          statusValue.textContent = '대기';
+          gameStatus.textContent = '준비 중...';
+          staminaBar.style.width = '100%';
+        }, 1000);
+      }, 1000);
+    }
+
+    function gameLoop() {
+      // Draw sky and ground
+      const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      grd.addColorStop(0, '#87ceeb');
+      grd.addColorStop(1, '#e0f6ff');
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw sun
+      ctx.fillStyle = '#ffd700';
+      ctx.beginPath();
+      ctx.arc(280, 40, 20, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw ground
+      ctx.fillStyle = '#90ee90';
+      ctx.fillRect(0, 280, canvas.width, 40);
+
+      // Draw road markings
+      groundOffset -= speed;
+      if (groundOffset < -40) groundOffset += 40;
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.lineWidth = 3;
+      for (let i = groundOffset; i < canvas.width; i += 40) {
+        ctx.beginPath();
+        ctx.moveTo(i, 295);
+        ctx.lineTo(i + 20, 295);
+        ctx.stroke();
+      }
+
+      // Update stamina and speed
+      if (sprinting && stamina > 0) {
+        stamina -= 1.5;
+        speed = Math.min(5, speed + 0.05);
+      } else {
+        sprinting = false;
+        speed = Math.max(1, speed - 0.05);
+        stamina = Math.min(maxStamina, stamina + 0.5);
+      }
+
+      // Update distance and score
+      distance += speed;
+      totalScore = Math.floor(distance / 10);
+
+      // Draw runner
+      legPhase += speed / 2;
+
+      ctx.save();
+      ctx.translate(runnerX, runnerY);
+
+      // Body
+      ctx.fillStyle = '#ff6b6b';
+      ctx.fillRect(-6, -20, 12, 20);
+
+      // Head
+      ctx.fillStyle = '#ffd700';
+      ctx.beginPath();
+      ctx.arc(0, -25, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Legs
+      ctx.strokeStyle = '#333333';
+      ctx.lineWidth = 2;
+
+      const legSwing = Math.sin(legPhase) * 20;
+
+      // Left leg
+      ctx.beginPath();
+      ctx.moveTo(-3, 0);
+      ctx.lineTo(-8 + legSwing, 20);
+      ctx.stroke();
+
+      // Right leg
+      ctx.beginPath();
+      ctx.moveTo(3, 0);
+      ctx.lineTo(8 - legSwing, 20);
+      ctx.stroke();
+
+      // Arms
+      ctx.beginPath();
+      ctx.moveTo(-6, -10);
+      ctx.lineTo(-12 - legSwing / 2, -5);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(6, -10);
+      ctx.lineTo(12 + legSwing / 2, -5);
+      ctx.stroke();
+
+      ctx.restore();
+
+      // Update displays
+      statusValue.textContent = sprinting ? '가속 중!' : '달리는 중';
+      distanceValue.textContent = (distance / 1000).toFixed(2) + 'km';
+      speedValue.textContent = Math.floor(speed * 10);
+      scoreValue.textContent = totalScore;
+      staminaBar.style.width = (stamina / maxStamina * 100) + '%';
+
+      // Stop if too tired
+      if (stamina <= 0 && !sprinting) {
+        endGame();
+        return;
+      }
+
+      animationId = requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && gameActive) {
+        sprinting = true;
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (e.code === 'Space') {
+        sprinting = false;
+      }
+    });
+
+    canvas.addEventListener('mousedown', () => {
+      if (gameActive) sprinting = true;
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      sprinting = false;
+    });
+
+    canvas.addEventListener('touchstart', () => {
+      if (gameActive) sprinting = true;
+    });
+
+    canvas.addEventListener('touchend', () => {
+      sprinting = false;
+    });
+
+    startBtn.addEventListener('click', startGame);
+  </script>
+</body>
+</html>
