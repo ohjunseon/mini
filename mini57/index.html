@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>점프 콤보 (mini57)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #1a3a5c, #0f1f3c);
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            touch-action: none;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🏆 점프 콤보</h1>
+                    <p>코인을 캐치하세요! 연속 캐치 = 콤보 보너스! 20초</p>
+                </header>
+
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">시간</div>
+                        <div class="info-value" id="timeValue">20.0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">점수</div>
+                        <div class="info-value" id="scoreValue">0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">콤보</div>
+                        <div class="info-value" id="comboValue">1x</div>
+                    </div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+    <script>
+        const PAGE_ID = "mini57";
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const CANVAS_W = 320;
+        const CANVAS_H = 480;
+        const PLAYER_SIZE = 25;
+        const PLAYER_Y = CANVAS_H - 50;
+
+        let gameState = "idle";
+        let score = 0;
+        let timeLeft = 20;
+        let gameTime = 0;
+        let playerX = CANVAS_W / 2;
+        let combo = 1;
+        let maxCombo = 1;
+
+        let items = [];
+        let spawnRate = 0.025;
+        let fallSpeed = 4;
+        let lastItemTime = 0;
+
+        let keysPressed = {};
+
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
+        }
+
+        class Item {
+            constructor() {
+                this.x = Math.random() * (CANVAS_W - 30) + 15;
+                this.y = 0;
+                this.w = 20;
+                this.h = 20;
+                this.type = Math.random() < 0.7 ? 'coin' : 'obstacle';
+            }
+
+            update() {
+                this.y += fallSpeed;
+            }
+
+            draw() {
+                if (this.type === 'coin') {
+                    ctx.fillStyle = "#ffdd00";
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.w / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = "#ffaa00";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = "#ff6b6b";
+                    ctx.fillRect(this.x - this.w / 2, this.y - this.h / 2, this.w, this.h);
+                    ctx.strokeStyle = "#ff3333";
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(this.x - this.w / 2, this.y - this.h / 2, this.w, this.h);
+                }
+            }
+
+            isOutOfBounds() {
+                return this.y > CANVAS_H;
+            }
+
+            checkCollision(px, py, ps) {
+                return this.x > px - ps / 2 && this.x < px + ps / 2 &&
+                    this.y > py - ps / 2 && this.y < py + ps / 2;
+            }
+        }
+
+        function updateGame() {
+            if (gameState !== "running") return;
+
+            gameTime += 1 / 60;
+            timeLeft = Math.max(0, 20 - gameTime);
+            document.getElementById('timeValue').textContent = timeLeft.toFixed(1);
+
+            if (timeLeft <= 0) {
+                endGame();
+                return;
+            }
+
+            // 플레이어 이동
+            if (keysPressed['a'] || keysPressed['A'] || keysPressed['ArrowLeft']) {
+                playerX -= 4;
+            }
+            if (keysPressed['d'] || keysPressed['D'] || keysPressed['ArrowRight']) {
+                playerX += 4;
+            }
+
+            if (playerX < PLAYER_SIZE / 2) playerX = PLAYER_SIZE / 2;
+            if (playerX > CANVAS_W - PLAYER_SIZE / 2) playerX = CANVAS_W - PLAYER_SIZE / 2;
+
+            // 아이템 생성
+            if (Math.random() < spawnRate) {
+                items.push(new Item());
+            }
+
+            // 아이템 업데이트
+            for (let i = items.length - 1; i >= 0; i--) {
+                items[i].update();
+
+                if (items[i].checkCollision(playerX, PLAYER_Y, PLAYER_SIZE)) {
+                    if (items[i].type === 'coin') {
+                        score += combo;
+                        combo += 1;
+                        maxCombo = Math.max(maxCombo, combo);
+                        lastItemTime = gameTime;
+                    } else {
+                        combo = 1;
+                    }
+                    items.splice(i, 1);
+                    document.getElementById('scoreValue').textContent = score;
+                    document.getElementById('comboValue').textContent = combo + 'x';
+                } else if (items[i].isOutOfBounds()) {
+                    items.splice(i, 1);
+                    combo = 1;
+                    document.getElementById('comboValue').textContent = '1x';
+                }
+            }
+        }
+
+        function drawGame() {
+            // 배경
+            ctx.fillStyle = "#0a1a35";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // 플레이어
+            ctx.fillStyle = "#00ff88";
+            ctx.fillRect(playerX - PLAYER_SIZE / 2, PLAYER_Y - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
+            ctx.strokeStyle = "#00cc66";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(playerX - PLAYER_SIZE / 2, PLAYER_Y - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
+
+            // 아이템
+            items.forEach(item => item.draw());
+
+            // UI
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "11px Arial";
+            ctx.textAlign = "left";
+            ctx.fillText("A/D 또는 ← → 이동", 10, 20);
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            gameState = "running";
+            score = 0;
+            combo = 1;
+            maxCombo = 1;
+            timeLeft = 20;
+            gameTime = 0;
+            playerX = CANVAS_W / 2;
+            items = [];
+            lastItemTime = 0;
+            document.getElementById('scoreValue').textContent = "0";
+            document.getElementById('comboValue').textContent = "1x";
+            document.getElementById('timeValue').textContent = "20.0";
+            document.getElementById('btnStart').disabled = true;
+        }
+
+        function endGame() {
+            gameState = "idle";
+            document.getElementById('btnStart').disabled = false;
+
+            const name = prompt('이름을 입력하세요:', '익명') || '익명';
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, score);
+            }
+        }
+
+        document.getElementById('btnStart').addEventListener('click', startGame);
+
+        document.addEventListener('keydown', (e) => {
+            keysPressed[e.key] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keysPressed[e.key] = false;
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (gameState === "running") {
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                if (x < CANVAS_W / 2) {
+                    keysPressed['ArrowLeft'] = true;
+                } else {
+                    keysPressed['ArrowRight'] = true;
+                }
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('touchend', (e) => {
+            keysPressed['ArrowLeft'] = false;
+            keysPressed['ArrowRight'] = false;
+        }, { passive: true });
+
+        gameLoop();
+    </script>
+</body>
+
+</html>

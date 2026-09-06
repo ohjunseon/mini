@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>플랫폼 점프 (mini54)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #1a3a5c, #0f1f3c);
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            touch-action: none;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>⬆️ 플랫폼 점프</h1>
+                    <p>위로 올라가는 플랫폼을 밟으세요! 30초 동안 최대한 높이 올라가세요!</p>
+                </header>
+
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">시간</div>
+                        <div class="info-value" id="timeValue">30.0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">높이</div>
+                        <div class="info-value" id="scoreValue">0</div>
+                    </div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+    <script>
+        const PAGE_ID = "mini54";
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const CANVAS_W = 320;
+        const CANVAS_H = 480;
+        const PLAYER_SIZE = 20;
+
+        let gameState = "idle";
+        let score = 0;
+        let maxHeight = 0;
+        let timeLeft = 30;
+        let gameTime = 0;
+        let playerX = CANVAS_W / 2;
+        let playerY = CANVAS_H - 50;
+        let velocityX = 0;
+        let velocityY = 0;
+        const GRAVITY = 0.35;
+        const MOVE_SPEED = 3;
+
+        let platforms = [];
+        let scroll = 0;
+
+        let keysPressed = {};
+
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
+        }
+
+        class Platform {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.w = 60;
+                this.h = 12;
+            }
+
+            draw(offsetY) {
+                const screenY = this.y - offsetY;
+                if (screenY > -20 && screenY < CANVAS_H + 20) {
+                    ctx.fillStyle = "#4a9eff";
+                    ctx.fillRect(this.x - this.w / 2, screenY, this.w, this.h);
+                    ctx.strokeStyle = "#2b68ff";
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(this.x - this.w / 2, screenY, this.w, this.h);
+                }
+            }
+
+            checkCollision(px, py, ps, vy) {
+                return px > this.x - this.w / 2 && px < this.x + this.w / 2 &&
+                    py + ps / 2 >= this.y && py + ps / 2 < this.y + this.h &&
+                    vy > 0;
+            }
+        }
+
+        function updateGame() {
+            if (gameState !== "running") return;
+
+            gameTime += 1 / 60;
+            timeLeft = Math.max(0, 30 - gameTime);
+            document.getElementById('timeValue').textContent = timeLeft.toFixed(1);
+
+            if (timeLeft <= 0) {
+                endGame();
+                return;
+            }
+
+            // 플레이어 이동
+            velocityX = 0;
+            if (keysPressed['a'] || keysPressed['A'] || keysPressed['ArrowLeft']) {
+                velocityX = -MOVE_SPEED;
+            }
+            if (keysPressed['d'] || keysPressed['D'] || keysPressed['ArrowRight']) {
+                velocityX = MOVE_SPEED;
+            }
+
+            playerX += velocityX;
+            if (playerX < PLAYER_SIZE / 2) playerX = PLAYER_SIZE / 2;
+            if (playerX > CANVAS_W - PLAYER_SIZE / 2) playerX = CANVAS_W - PLAYER_SIZE / 2;
+
+            // 중력
+            velocityY += GRAVITY;
+            playerY += velocityY;
+
+            // 플랫폼 충돌
+            let onPlatform = false;
+            for (let platform of platforms) {
+                if (platform.checkCollision(playerX, playerY, PLAYER_SIZE, velocityY)) {
+                    velocityY = -12;
+                    playerY = platform.y - PLAYER_SIZE / 2;
+                    onPlatform = true;
+                    break;
+                }
+            }
+
+            // 스크롤
+            scroll = playerY - CANVAS_H / 3;
+            if (scroll < 0) scroll = 0;
+
+            // 높이 계산
+            maxHeight = Math.max(maxHeight, Math.floor((playerY - scroll) / 10));
+            document.getElementById('scoreValue').textContent = maxHeight;
+
+            // 게임 오버 (아래로 떨어짐)
+            if (playerY - scroll > CANVAS_H) {
+                endGame();
+                return;
+            }
+
+            // 플랫폼 생성
+            if (platforms.length === 0 || platforms[platforms.length - 1].y > playerY - scroll - 100) {
+                const x = Math.random() * (CANVAS_W - 80) + 40;
+                const y = (platforms.length === 0) ? CANVAS_H - 50 : platforms[platforms.length - 1].y - 70 - Math.random() * 30;
+                platforms.push(new Platform(x, y));
+            }
+
+            // 화면 밖의 플랫폼 제거
+            platforms = platforms.filter(p => p.y - scroll < CANVAS_H + 50);
+        }
+
+        function drawGame() {
+            // 배경
+            ctx.fillStyle = "#0a1a35";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // 플랫폼 그리기
+            platforms.forEach(p => p.draw(scroll));
+
+            // 플레이어
+            const screenY = playerY - scroll;
+            ctx.fillStyle = "#ffaa00";
+            ctx.fillRect(playerX - PLAYER_SIZE / 2, screenY - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
+            ctx.strokeStyle = "#ff8800";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(playerX - PLAYER_SIZE / 2, screenY - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
+
+            // UI
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "11px Arial";
+            ctx.textAlign = "left";
+            ctx.fillText("A/D 또는 ← → 이동", 10, 20);
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            gameState = "running";
+            score = 0;
+            maxHeight = 0;
+            timeLeft = 30;
+            gameTime = 0;
+            playerX = CANVAS_W / 2;
+            playerY = CANVAS_H - 50;
+            velocityX = 0;
+            velocityY = 0;
+            scroll = 0;
+            platforms = [new Platform(CANVAS_W / 2, CANVAS_H - 50)];
+            document.getElementById('scoreValue').textContent = "0";
+            document.getElementById('timeValue').textContent = "30.0";
+            document.getElementById('btnStart').disabled = true;
+        }
+
+        function endGame() {
+            gameState = "idle";
+            document.getElementById('btnStart').disabled = false;
+
+            const name = prompt('이름을 입력하세요:', '익명') || '익명';
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, maxHeight);
+            }
+        }
+
+        document.getElementById('btnStart').addEventListener('click', startGame);
+
+        document.addEventListener('keydown', (e) => {
+            keysPressed[e.key] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keysPressed[e.key] = false;
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (gameState === "running") {
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                if (x < CANVAS_W / 2) {
+                    keysPressed['ArrowLeft'] = true;
+                } else {
+                    keysPressed['ArrowRight'] = true;
+                }
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('touchend', (e) => {
+            keysPressed['ArrowLeft'] = false;
+            keysPressed['ArrowRight'] = false;
+        }, { passive: true });
+
+        gameLoop();
+    </script>
+</body>
+
+</html>

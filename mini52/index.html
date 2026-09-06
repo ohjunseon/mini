@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>스크롤 달리기 (mini52)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #1a3a5c, #0f1f3c);
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            touch-action: none;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🏃 스크롤 달리기</h1>
+                    <p>장애물을 피해 최대한 오래 생존하세요! 25초 동안 점점 빨라집니다!</p>
+                </header>
+
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">시간</div>
+                        <div class="info-value" id="timeValue">25.0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">거리</div>
+                        <div class="info-value" id="scoreValue">0</div>
+                    </div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+    <script>
+        const PAGE_ID = "mini52";
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const CANVAS_W = 320;
+        const CANVAS_H = 480;
+        const PLAYER_X = 30;
+        const PLAYER_SIZE = 25;
+        const PLAYER_Y = CANVAS_H - 50;
+
+        let gameState = "idle";
+        let score = 0;
+        let distance = 0;
+        let timeLeft = 25;
+        let gameTime = 0;
+        let playerY = PLAYER_Y;
+        let isJumping = false;
+        let jumpVelocity = 0;
+        const GRAVITY = 0.35;
+        const JUMP_STRENGTH = -14;
+
+        let obstacles = [];
+        let scrollSpeed = 4;
+        let spawnRate = 0.015;
+
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
+        }
+
+        class Obstacle {
+            constructor() {
+                this.x = CANVAS_W;
+                this.y = PLAYER_Y + 10;
+                this.w = 30;
+                this.h = 35;
+            }
+
+            update() {
+                this.x -= scrollSpeed;
+            }
+
+            draw() {
+                ctx.fillStyle = "#ff6b6b";
+                ctx.fillRect(this.x, this.y, this.w, this.h);
+                ctx.strokeStyle = "#ff3333";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x, this.y, this.w, this.h);
+            }
+
+            isOutOfBounds() {
+                return this.x < -50;
+            }
+
+            checkCollision(px, py, ps) {
+                return !(px + ps / 2 < this.x || px - ps / 2 > this.x + this.w ||
+                    py + ps / 2 < this.y || py - ps / 2 > this.y + this.h);
+            }
+        }
+
+        function updateGame() {
+            if (gameState !== "running") return;
+
+            gameTime += 1 / 60;
+            timeLeft = Math.max(0, 25 - gameTime);
+            distance = Math.floor(gameTime * 60);
+            document.getElementById('timeValue').textContent = timeLeft.toFixed(1);
+            document.getElementById('scoreValue').textContent = distance;
+
+            if (timeLeft <= 0) {
+                endGame();
+                return;
+            }
+
+            // 속도 증가 (시간에 따라)
+            scrollSpeed = 4 + (gameTime / 25) * 4;
+
+            // 점프 물리
+            if (isJumping) {
+                jumpVelocity += GRAVITY;
+                playerY += jumpVelocity;
+
+                if (playerY >= PLAYER_Y) {
+                    playerY = PLAYER_Y;
+                    isJumping = false;
+                    jumpVelocity = 0;
+                }
+            }
+
+            // 장애물 생성
+            if (Math.random() < spawnRate) {
+                obstacles.push(new Obstacle());
+            }
+
+            // 장애물 업데이트
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].update();
+
+                if (obstacles[i].checkCollision(PLAYER_X, playerY, PLAYER_SIZE)) {
+                    endGame();
+                    return;
+                }
+
+                if (obstacles[i].isOutOfBounds()) {
+                    obstacles.splice(i, 1);
+                }
+            }
+        }
+
+        function drawGame() {
+            // 배경
+            ctx.fillStyle = "#0a1a35";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // 속도 표시
+            ctx.fillStyle = "#88ffaa";
+            ctx.font = "11px Arial";
+            ctx.textAlign = "left";
+            ctx.fillText(`Speed: ${scrollSpeed.toFixed(1)}px/f`, 10, 20);
+
+            // 플레이어 (사각형)
+            ctx.fillStyle = "#00ff88";
+            ctx.fillRect(PLAYER_X - PLAYER_SIZE / 2, playerY - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
+            ctx.strokeStyle = "#00cc66";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(PLAYER_X - PLAYER_SIZE / 2, playerY - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
+
+            // 장애물
+            obstacles.forEach(obs => obs.draw());
+
+            // 지면
+            ctx.strokeStyle = "#555555";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, PLAYER_Y + 15);
+            ctx.lineTo(CANVAS_W, PLAYER_Y + 15);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            gameState = "running";
+            score = 0;
+            distance = 0;
+            timeLeft = 25;
+            gameTime = 0;
+            playerY = PLAYER_Y;
+            isJumping = false;
+            jumpVelocity = 0;
+            obstacles = [];
+            scrollSpeed = 4;
+            document.getElementById('scoreValue').textContent = "0";
+            document.getElementById('timeValue').textContent = "25.0";
+            document.getElementById('btnStart').disabled = true;
+        }
+
+        function endGame() {
+            gameState = "idle";
+            document.getElementById('btnStart').disabled = false;
+
+            const name = prompt('이름을 입력하세요:', '익명') || '익명';
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, distance);
+            }
+        }
+
+        document.getElementById('btnStart').addEventListener('click', startGame);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && gameState === "running" && !isJumping) {
+                isJumping = true;
+                jumpVelocity = JUMP_STRENGTH;
+                e.preventDefault();
+            }
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (gameState === "running" && !isJumping) {
+                isJumping = true;
+                jumpVelocity = JUMP_STRENGTH;
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        gameLoop();
+    </script>
+</body>
+
+</html>

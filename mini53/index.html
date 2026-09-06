@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>갈지자 피하기 (mini53)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #1a3a5c, #0f1f3c);
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            touch-action: none;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>➡️ 갈지자 피하기</h1>
+                    <p>좌우 이동으로 떨어지는 블록을 피하세요! A/D 또는 좌우 화살표로 조작!</p>
+                </header>
+
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">시간</div>
+                        <div class="info-value" id="timeValue">20.0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">점수</div>
+                        <div class="info-value" id="scoreValue">0.0</div>
+                    </div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+    <script>
+        const PAGE_ID = "mini53";
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const CANVAS_W = 320;
+        const CANVAS_H = 480;
+        const LANE_W = CANVAS_W / 3;
+        const PLAYER_SIZE = 30;
+        const PLAYER_Y = CANVAS_H - 50;
+
+        let gameState = "idle";
+        let score = 0;
+        let timeLeft = 20;
+        let gameTime = 0;
+        let playerLane = 1; // 0=left, 1=center, 2=right
+        let playerX = CANVAS_W / 2;
+
+        let blocks = [];
+        let spawnRate = 0.02;
+        let fallSpeed = 5;
+
+        let keysPressed = {};
+
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${Math.floor(d.score)})</li>`).join('');
+            });
+        }
+
+        class FallingBlock {
+            constructor(lane) {
+                this.lane = lane;
+                this.x = (lane + 0.5) * LANE_W;
+                this.y = 0;
+                this.w = LANE_W - 10;
+                this.h = 40;
+            }
+
+            update() {
+                this.y += fallSpeed;
+            }
+
+            draw() {
+                ctx.fillStyle = "#ff4444";
+                ctx.fillRect(this.x - this.w / 2, this.y, this.w, this.h);
+                ctx.strokeStyle = "#ff0000";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x - this.w / 2, this.y, this.w, this.h);
+            }
+
+            isOutOfBounds() {
+                return this.y > CANVAS_H;
+            }
+
+            checkCollision(lane, playerX, py, ps) {
+                return this.lane === lane &&
+                    playerX > this.x - this.w / 2 &&
+                    playerX < this.x + this.w / 2 &&
+                    py + ps / 2 > this.y &&
+                    py - ps / 2 < this.y + this.h;
+            }
+        }
+
+        function updateGame() {
+            if (gameState !== "running") return;
+
+            gameTime += 1 / 60;
+            timeLeft = Math.max(0, 20 - gameTime);
+            document.getElementById('timeValue').textContent = timeLeft.toFixed(1);
+            document.getElementById('scoreValue').textContent = gameTime.toFixed(1);
+
+            if (timeLeft <= 0) {
+                endGame();
+                return;
+            }
+
+            // 플레이어 이동
+            if (keysPressed['a'] || keysPressed['A'] || keysPressed['ArrowLeft']) {
+                playerLane = 0;
+            } else if (keysPressed['d'] || keysPressed['D'] || keysPressed['ArrowRight']) {
+                playerLane = 2;
+            } else {
+                playerLane = 1;
+            }
+            playerX = (playerLane + 0.5) * LANE_W;
+
+            // 블록 생성
+            if (Math.random() < spawnRate) {
+                blocks.push(new FallingBlock(Math.floor(Math.random() * 3)));
+            }
+
+            // 블록 업데이트
+            for (let i = blocks.length - 1; i >= 0; i--) {
+                blocks[i].update();
+
+                if (blocks[i].checkCollision(playerLane, playerX, PLAYER_Y, PLAYER_SIZE)) {
+                    endGame();
+                    return;
+                }
+
+                if (blocks[i].isOutOfBounds()) {
+                    blocks.splice(i, 1);
+                }
+            }
+        }
+
+        function drawGame() {
+            // 배경
+            ctx.fillStyle = "#0a1a35";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // 레인 구분선
+            ctx.strokeStyle = "#333366";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            for (let i = 1; i < 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * LANE_W, 0);
+                ctx.lineTo(i * LANE_W, CANVAS_H);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+
+            // 플레이어
+            ctx.fillStyle = "#00ff88";
+            ctx.fillRect(playerX - PLAYER_SIZE / 2, PLAYER_Y - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
+            ctx.strokeStyle = "#00cc66";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(playerX - PLAYER_SIZE / 2, PLAYER_Y - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
+
+            // 블록
+            blocks.forEach(block => block.draw());
+
+            // UI
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "11px Arial";
+            ctx.textAlign = "left";
+            ctx.fillText("A/D 또는 ← → 이동", 10, 20);
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            gameState = "running";
+            score = 0;
+            timeLeft = 20;
+            gameTime = 0;
+            playerLane = 1;
+            playerX = CANVAS_W / 2;
+            blocks = [];
+            document.getElementById('scoreValue').textContent = "0.0";
+            document.getElementById('timeValue').textContent = "20.0";
+            document.getElementById('btnStart').disabled = true;
+        }
+
+        function endGame() {
+            gameState = "idle";
+            document.getElementById('btnStart').disabled = false;
+
+            const finalScore = Math.floor(gameTime * 100);
+            const name = prompt('이름을 입력하세요:', '익명') || '익명';
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, finalScore);
+            }
+        }
+
+        document.getElementById('btnStart').addEventListener('click', startGame);
+
+        document.addEventListener('keydown', (e) => {
+            keysPressed[e.key] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keysPressed[e.key] = false;
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (gameState === "running") {
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                if (x < LANE_W) {
+                    playerLane = 0;
+                } else if (x > 2 * LANE_W) {
+                    playerLane = 2;
+                } else {
+                    playerLane = 1;
+                }
+            }
+        }, { passive: true });
+
+        gameLoop();
+    </script>
+</body>
+
+</html>

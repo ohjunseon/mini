@@ -48,5 +48,15 @@
   { "id": "mini47", "title": "☁️ 구름 위의 집", "path": "mini47/", "desc": "집의 높이 조절해 구름 받기", "thumb": "mini47/cover.png", "category": "캐치", "scoreType": "high" },
   { "id": "mini48", "title": "👹 보스 낙하", "path": "mini48/", "desc": "패턴 보스를 피하거나 캐치", "thumb": "mini48/cover.png", "category": "피하기", "scoreType": "high" },
   { "id": "mini49", "title": "🔥 극한 캐치", "path": "mini49/", "desc": "초고속 블록 10개 캐치 도전", "thumb": "mini49/cover.png", "category": "캐치", "scoreType": "high" },
-  { "id": "mini50", "title": "♾️ 무한 낙하", "path": "mini50/", "desc": "무한히 떨어지는 블록 생존", "thumb": "mini50/cover.png", "category": "생존", "scoreType": "high" }
+  { "id": "mini50", "title": "♾️ 무한 낙하", "path": "mini50/", "desc": "무한히 떨어지는 블록 생존", "thumb": "mini50/cover.png", "category": "생존", "scoreType": "high" },
+  { "id": "mini51", "title": "🚀 점프 왕국", "path": "mini51/", "desc": "떨어지는 장애물을 피하세요! 20초 동안 최대한 많이 회피", "thumb": "mini51/cover.png", "category": "러너", "scoreType": "high" },
+  { "id": "mini52", "title": "🏃 스크롤 달리기", "path": "mini52/", "desc": "점점 빨라지는 스크롤 속도에서 생존! 25초 도전", "thumb": "mini52/cover.png", "category": "러너", "scoreType": "high" },
+  { "id": "mini53", "title": "➡️ 갈지자 피하기", "path": "mini53/", "desc": "좌우 이동으로 3개 레인의 블록을 피하세요! 20초", "thumb": "mini53/cover.png", "category": "러너", "scoreType": "high" },
+  { "id": "mini54", "title": "⬆️ 플랫폼 점프", "path": "mini54/", "desc": "위로 올라가는 플랫폼을 밟으세요! 30초 동안 최대한 높이 올라가기", "thumb": "mini54/cover.png", "category": "러너", "scoreType": "high" },
+  { "id": "mini55", "title": "⚡ 속도 러너", "path": "mini55/", "desc": "좌우 이동으로 장애물 피하기! 시간이 지날수록 빨라짐 25초", "thumb": "mini55/cover.png", "category": "러너", "scoreType": "high" },
+  { "id": "mini56", "title": "🚦 멀티 레인", "path": "mini56/", "desc": "3개 레인을 이동하며 장애물 회피! 상/하로 레인 변경 20초", "thumb": "mini56/cover.png", "category": "러너", "scoreType": "high" },
+  { "id": "mini57", "title": "🏆 점프 콤보", "path": "mini57/", "desc": "코인을 캐치해 콤보 보너스 획득! 연속 캐치로 점수 배수 증가 20초", "thumb": "mini57/cover.png", "category": "러너", "scoreType": "high" },
+  { "id": "mini58", "title": "👹 보스 추격", "path": "mini58/", "desc": "우측의 보스를 피하며 장애물도 회피! 30초 생존 게임", "thumb": "mini58/cover.png", "category": "러너", "scoreType": "high" },
+  { "id": "mini59", "title": "🔥 극한 러너", "path": "mini59/", "desc": "초고속 장애물 고밀도! 극한의 난이도 15초 도전", "thumb": "mini59/cover.png", "category": "러너", "scoreType": "high" },
+  { "id": "mini60", "title": "♾️ 무한 달리기", "path": "mini60/", "desc": "최후의 게임! 무한히 떨어지는 장애물을 피하세요! 1회 충돌 즉시 게임오버", "thumb": "mini60/cover.png", "category": "러너", "scoreType": "high" }
 ]

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>빙수 받기 (mini41)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #1a3a5c, #0f1f3c);
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            touch-action: none;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>❄️ 빙수 받기</h1>
+                    <p>떨어지는 빙수를 바구니로 캐치하세요! 20초 동안 최대한 많이 받아요!</p>
+                </header>
+
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">시간</div>
+                        <div class="info-value" id="timeValue">20.0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">점수</div>
+                        <div class="info-value" id="scoreValue">0</div>
+                    </div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+    <script>
+        const PAGE_ID = "mini41";
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const CANVAS_W = 320;
+        const CANVAS_H = 480;
+        const BASKET_Y = CANVAS_H - 40;
+        const BASKET_W = 60;
+        const BASKET_H = 20;
+        const PLAYER_RADIUS = 30;
+
+        let gameState = "idle"; // idle, running, over
+        let score = 0;
+        let timeLeft = 20;
+        let gameTime = 0;
+        let basketX = CANVAS_W / 2 - BASKET_W / 2;
+        let mouseX = CANVAS_W / 2;
+
+        let fallingObjects = [];
+        let spawnRate = 0.02;
+        let fallSpeed = 3;
+
+        // Load ranking
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
+        }
+
+        class FallingShaved {
+            constructor() {
+                this.x = Math.random() * (CANVAS_W - 30) + 15;
+                this.y = 0;
+                this.w = 30;
+                this.h = 20;
+            }
+
+            update() {
+                this.y += fallSpeed;
+            }
+
+            draw() {
+                // Light blue shaved ice block
+                ctx.fillStyle = "#a8d8ff";
+                ctx.fillRect(this.x - this.w / 2, this.y, this.w, this.h);
+                ctx.strokeStyle = "#6bb3ff";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x - this.w / 2, this.y, this.w, this.h);
+            }
+
+            isOutOfBounds() {
+                return this.y > CANVAS_H;
+            }
+
+            checkCollision(basketX, basketW) {
+                const bx = basketX;
+                const by = BASKET_Y;
+                return this.x > bx && this.x < bx + basketW && this.y + this.h > by;
+            }
+        }
+
+        function updateGame() {
+            if (gameState !== "running") return;
+
+            gameTime += 0.016; // ~60fps
+            timeLeft = Math.max(0, 20 - gameTime);
+            document.getElementById("timeValue").textContent = timeLeft.toFixed(1);
+
+            // Spawn falling objects
+            if (Math.random() < spawnRate) {
+                fallingObjects.push(new FallingShaved());
+            }
+
+            // Update and check collisions
+            for (let i = fallingObjects.length - 1; i >= 0; i--) {
+                fallingObjects[i].update();
+
+                if (fallingObjects[i].checkCollision(basketX, BASKET_W)) {
+                    score++;
+                    document.getElementById("scoreValue").textContent = score;
+                    fallingObjects.splice(i, 1);
+                } else if (fallingObjects[i].isOutOfBounds()) {
+                    // Missed! Game over
+                    gameState = "over";
+                    gameEnd();
+                }
+            }
+
+            // Update basket position
+            basketX = Math.max(0, Math.min(CANVAS_W - BASKET_W, mouseX - BASKET_W / 2));
+
+            if (timeLeft <= 0) {
+                gameState = "over";
+                gameEnd();
+            }
+        }
+
+        function drawGame() {
+            // Clear canvas
+            ctx.fillStyle = "rgba(15, 31, 60, 0.8)";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // Draw falling objects
+            fallingObjects.forEach(obj => obj.draw());
+
+            // Draw basket
+            ctx.fillStyle = "#ffb84d";
+            ctx.fillRect(basketX, BASKET_Y, BASKET_W, BASKET_H);
+            ctx.strokeStyle = "#ff9a1f";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(basketX, BASKET_Y, BASKET_W, BASKET_H);
+
+            // Draw "handle" lines
+            ctx.strokeStyle = "#ff9a1f";
+            ctx.beginPath();
+            ctx.moveTo(basketX + 5, BASKET_Y);
+            ctx.lineTo(basketX + 5, BASKET_Y - 8);
+            ctx.moveTo(basketX + BASKET_W - 5, BASKET_Y);
+            ctx.lineTo(basketX + BASKET_W - 5, BASKET_Y - 8);
+            ctx.stroke();
+        }
+
+        function gameEnd() {
+            document.getElementById("btnStart").disabled = false;
+            document.getElementById("btnStart").textContent = "다시 시작";
+
+            const name = prompt("이름을 입력하세요:", "익명") || "익명";
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, score, () => {
+                    resetGame();
+                });
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            timeLeft = 20;
+            gameTime = 0;
+            fallingObjects = [];
+            basketX = CANVAS_W / 2 - BASKET_W / 2;
+            document.getElementById("scoreValue").textContent = "0";
+            document.getElementById("timeValue").textContent = "20.0";
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Event listeners
+        document.getElementById("btnStart").addEventListener("click", () => {
+            gameState = "running";
+            resetGame();
+            document.getElementById("btnStart").disabled = true;
+        });
+
+        document.addEventListener("mousemove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+        });
+
+        document.addEventListener("touchmove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches.length > 0) {
+                mouseX = e.touches[0].clientX - rect.left;
+            }
+        }, { passive: true });
+
+        gameLoop();
+    </script>
+</body>
+
+</html>
