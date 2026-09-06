@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>떨어지는 동전 (mini43)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #4a3f35, #2f2418);
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            touch-action: none;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>💰 떨어지는 동전</h1>
+                    <p>동시에 떨어지는 여러 동전을 양쪽 바구니로 캐치하세요!</p>
+                </header>
+
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">시간</div>
+                        <div class="info-value" id="timeValue">20.0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">점수</div>
+                        <div class="info-value" id="scoreValue">0</div>
+                    </div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+    <script>
+        const PAGE_ID = "mini43";
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const CANVAS_W = 320;
+        const CANVAS_H = 480;
+        const BASKET_Y = CANVAS_H - 40;
+        const BASKET_W = 50;
+        const BASKET_H = 20;
+        const LEFT_BASKET_X = 30;
+        const RIGHT_BASKET_X = CANVAS_W - 80;
+
+        let gameState = "idle";
+        let score = 0;
+        let timeLeft = 20;
+        let gameTime = 0;
+        let leftBasketActive = false;
+        let rightBasketActive = false;
+
+        let coins = [];
+        let fallSpeed = 2;
+        let coinsSpawned = 0;
+        let nextLevelThreshold = 10;
+        let speedMultiplier = 1;
+
+        // Load ranking
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
+        }
+
+        class Coin {
+            constructor(x) {
+                this.x = x;
+                this.y = -15;
+                this.r = 10;
+            }
+
+            update() {
+                this.y += fallSpeed * speedMultiplier;
+            }
+
+            draw() {
+                ctx.fillStyle = "#ffd700";
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = "#ffb000";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw coin pattern
+                ctx.strokeStyle = "#ffb000";
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r - 3, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            isOutOfBounds() {
+                return this.y > CANVAS_H;
+            }
+
+            checkCollision(bx, by, bw, bh) {
+                return this.x > bx && this.x < bx + bw &&
+                    this.y + this.r > by && this.y - this.r < by + bh;
+            }
+        }
+
+        function updateGame() {
+            if (gameState !== "running") return;
+
+            gameTime += 0.016;
+            timeLeft = Math.max(0, 20 - gameTime);
+            document.getElementById("timeValue").textContent = timeLeft.toFixed(1);
+
+            // Spawn coins in groups
+            if (gameTime % 1.5 < 0.016) {
+                const count = Math.floor(3 + Math.random() * 3);
+                for (let i = 0; i < count; i++) {
+                    const x = Math.random() * (CANVAS_W - 40) + 20;
+                    coins.push(new Coin(x));
+                    coinsSpawned++;
+                }
+            }
+
+            // Update and check collisions
+            for (let i = coins.length - 1; i >= 0; i--) {
+                coins[i].update();
+
+                let caught = false;
+                if (coins[i].checkCollision(LEFT_BASKET_X, BASKET_Y, BASKET_W, BASKET_H) && leftBasketActive) {
+                    score += 5;
+                    caught = true;
+                } else if (coins[i].checkCollision(RIGHT_BASKET_X, BASKET_Y, BASKET_W, BASKET_H) && rightBasketActive) {
+                    score += 5;
+                    caught = true;
+                }
+
+                if (caught) {
+                    document.getElementById("scoreValue").textContent = score;
+                    coins.splice(i, 1);
+                } else if (coins[i].isOutOfBounds()) {
+                    coins.splice(i, 1);
+                }
+            }
+
+            // Increase speed every 10 coins
+            if (coinsSpawned >= nextLevelThreshold) {
+                speedMultiplier = 1 + (coinsSpawned / 10) * 0.2;
+                nextLevelThreshold += 10;
+            }
+
+            if (timeLeft <= 0) {
+                gameState = "over";
+                gameEnd();
+            }
+        }
+
+        function drawGame() {
+            ctx.fillStyle = "rgba(74, 63, 53, 0.8)";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // Draw coins
+            coins.forEach(coin => coin.draw());
+
+            // Draw left basket
+            ctx.fillStyle = leftBasketActive ? "#ffb84d" : "#8b6914";
+            ctx.fillRect(LEFT_BASKET_X, BASKET_Y, BASKET_W, BASKET_H);
+            ctx.strokeStyle = leftBasketActive ? "#ff9a1f" : "#6b5110";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(LEFT_BASKET_X, BASKET_Y, BASKET_W, BASKET_H);
+
+            // Draw right basket
+            ctx.fillStyle = rightBasketActive ? "#ffb84d" : "#8b6914";
+            ctx.fillRect(RIGHT_BASKET_X, BASKET_Y, BASKET_W, BASKET_H);
+            ctx.strokeStyle = rightBasketActive ? "#ff9a1f" : "#6b5110";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(RIGHT_BASKET_X, BASKET_Y, BASKET_W, BASKET_H);
+        }
+
+        function gameEnd() {
+            document.getElementById("btnStart").disabled = false;
+            document.getElementById("btnStart").textContent = "다시 시작";
+
+            const name = prompt("이름을 입력하세요:", "익명") || "익명";
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, score, () => {
+                    resetGame();
+                });
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            timeLeft = 20;
+            gameTime = 0;
+            coins = [];
+            coinsSpawned = 0;
+            speedMultiplier = 1;
+            nextLevelThreshold = 10;
+            document.getElementById("scoreValue").textContent = "0";
+            document.getElementById("timeValue").textContent = "20.0";
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.getElementById("btnStart").addEventListener("click", () => {
+            gameState = "running";
+            resetGame();
+            document.getElementById("btnStart").disabled = true;
+        });
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "a" || e.key === "A") leftBasketActive = true;
+            if (e.key === "d" || e.key === "D") rightBasketActive = true;
+        });
+
+        document.addEventListener("keyup", (e) => {
+            if (e.key === "a" || e.key === "A") leftBasketActive = false;
+            if (e.key === "d" || e.key === "D") rightBasketActive = false;
+        });
+
+        document.addEventListener("mousedown", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            if (clickX < CANVAS_W / 2) {
+                leftBasketActive = true;
+            } else {
+                rightBasketActive = true;
+            }
+        });
+
+        document.addEventListener("mouseup", () => {
+            leftBasketActive = false;
+            rightBasketActive = false;
+        });
+
+        gameLoop();
+    </script>
+</body>
+
+</html>

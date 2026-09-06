@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>보스 낙하 (mini48)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #1a1a2e, #16213e);
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            touch-action: none;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>👹 보스 낙하</h1>
+                    <p>패턴으로 떨어지는 보스를 피하거나 캐치하세요!</p>
+                </header>
+
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">시간</div>
+                        <div class="info-value" id="timeValue">30.0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">점수</div>
+                        <div class="info-value" id="scoreValue">0</div>
+                    </div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+    <script>
+        const PAGE_ID = "mini48";
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const CANVAS_W = 320;
+        const CANVAS_H = 480;
+        const BASKET_Y = CANVAS_H - 40;
+        const BASKET_W = 60;
+        const BASKET_H = 20;
+        const BOSS_RADIUS = 25;
+
+        let gameState = "idle";
+        let score = 0;
+        let timeLeft = 30;
+        let gameTime = 0;
+        let basketX = CANVAS_W / 2 - BASKET_W / 2;
+        let mouseX = CANVAS_W / 2;
+
+        let bossX = CANVAS_W / 2;
+        let bossY = -50;
+        let bossPattern = 0; // 0: center, 1: left diagonal, 2: center, 3: right diagonal
+        let patternTime = 0;
+
+        // Load ranking
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
+        }
+
+        function updateGame() {
+            if (gameState !== "running") return;
+
+            gameTime += 0.016;
+            timeLeft = Math.max(0, 30 - gameTime);
+            document.getElementById("timeValue").textContent = timeLeft.toFixed(1);
+
+            // Boss pattern
+            patternTime += 0.016;
+            if (patternTime > 2) {
+                patternTime = 0;
+                bossPattern = (bossPattern + 1) % 4;
+                bossY = -50;
+            }
+
+            // Move boss according to pattern
+            bossY += 1.5;
+            switch (bossPattern) {
+                case 0: // Center
+                    bossX = CANVAS_W / 2;
+                    break;
+                case 1: // Left diagonal
+                    bossX = CANVAS_W / 2 - 80 * Math.min(1, patternTime / 2);
+                    break;
+                case 2: // Center
+                    bossX = CANVAS_W / 2;
+                    break;
+                case 3: // Right diagonal
+                    bossX = CANVAS_W / 2 + 80 * Math.min(1, patternTime / 2);
+                    break;
+            }
+
+            // Update basket
+            basketX = Math.max(0, Math.min(CANVAS_W - BASKET_W, mouseX - BASKET_W / 2));
+
+            // Check collision with basket (catch)
+            if (bossY + BOSS_RADIUS > BASKET_Y && bossY - BOSS_RADIUS < BASKET_Y + BASKET_H &&
+                bossX > basketX && bossX < basketX + BASKET_W) {
+                score += 10;
+                document.getElementById("scoreValue").textContent = score;
+                bossY = -50;
+                patternTime = 0;
+            }
+
+            // Safe distance = survive
+            if (bossY > BASKET_Y && bossY < BASKET_Y + 100) {
+                const safeDist = Math.abs(bossX - (basketX + BASKET_W / 2));
+                if (safeDist < 60) {
+                    // Dodged!
+                    score += Math.round(Math.max(0, 10 - safeDist / 6));
+                    document.getElementById("scoreValue").textContent = score;
+                }
+            }
+
+            // Boss out of bounds, new pattern
+            if (bossY > CANVAS_H) {
+                bossY = -50;
+                bossPattern = (bossPattern + 1) % 4;
+                patternTime = 0;
+            }
+
+            if (timeLeft <= 0) {
+                gameState = "over";
+                gameEnd();
+            }
+        }
+
+        function drawGame() {
+            ctx.fillStyle = "rgba(26, 26, 46, 0.8)";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // Draw boss
+            ctx.fillStyle = "#ff4444";
+            ctx.beginPath();
+            ctx.arc(bossX, bossY, BOSS_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#ff0000";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Draw boss eyes
+            ctx.fillStyle = "#ffff00";
+            ctx.fillRect(bossX - 10, bossY - 5, 6, 6);
+            ctx.fillRect(bossX + 4, bossY - 5, 6, 6);
+
+            // Draw basket
+            ctx.fillStyle = "#ffb84d";
+            ctx.fillRect(basketX, BASKET_Y, BASKET_W, BASKET_H);
+            ctx.strokeStyle = "#ff9a1f";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(basketX, BASKET_Y, BASKET_W, BASKET_H);
+        }
+
+        function gameEnd() {
+            document.getElementById("btnStart").disabled = false;
+            document.getElementById("btnStart").textContent = "다시 시작";
+
+            const name = prompt("이름을 입력하세요:", "익명") || "익명";
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, score, () => {
+                    resetGame();
+                });
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            timeLeft = 30;
+            gameTime = 0;
+            bossX = CANVAS_W / 2;
+            bossY = -50;
+            bossPattern = 0;
+            patternTime = 0;
+            basketX = CANVAS_W / 2 - BASKET_W / 2;
+            document.getElementById("scoreValue").textContent = "0";
+            document.getElementById("timeValue").textContent = "30.0";
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.getElementById("btnStart").addEventListener("click", () => {
+            gameState = "running";
+            resetGame();
+            document.getElementById("btnStart").disabled = true;
+        });
+
+        document.addEventListener("mousemove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+        });
+
+        document.addEventListener("touchmove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches.length > 0) {
+                mouseX = e.touches[0].clientX - rect.left;
+            }
+        }, { passive: true });
+
+        gameLoop();
+    </script>
+</body>
+
+</html>

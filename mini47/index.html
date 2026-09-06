@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>구름 위의 집 (mini47)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #87ceeb, #e0f6ff);
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            touch-action: none;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>☁️ 구름 위의 집</h1>
+                    <p>집의 높이를 조절해 구름을 받으세요! 정확도가 높을수록 많은 점수!</p>
+                </header>
+
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">시간</div>
+                        <div class="info-value" id="timeValue">25.0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">점수</div>
+                        <div class="info-value" id="scoreValue">0</div>
+                    </div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+    <script>
+        const PAGE_ID = "mini47";
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const CANVAS_W = 320;
+        const CANVAS_H = 480;
+        const HOUSE_W = 40;
+        const HOUSE_H = 35;
+
+        let gameState = "idle";
+        let score = 0;
+        let timeLeft = 25;
+        let gameTime = 0;
+        let houseY = 300;
+        let mouseY = 300;
+
+        let clouds = [];
+        let fallSpeed = 2;
+
+        // Load ranking
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
+        }
+
+        class Cloud {
+            constructor() {
+                this.x = Math.random() * (CANVAS_W - 50) + 25;
+                this.y = -30;
+                this.w = 60;
+                this.h = 25;
+            }
+
+            update() {
+                this.y += fallSpeed;
+            }
+
+            draw() {
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.arc(this.x - 15, this.y + 10, 15, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y + 12, 20, 0, Math.PI * 2);
+                ctx.arc(this.x + 20, this.y + 10, 15, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            isOutOfBounds() {
+                return this.y > CANVAS_H;
+            }
+
+            checkCollision(hy, hw, hh) {
+                const hx = CANVAS_W / 2 - hw / 2;
+                const cloudCenterX = this.x;
+                const cloudCenterY = this.y + 10;
+                return cloudCenterX > hx - 30 && cloudCenterX < hx + hw + 30 &&
+                    cloudCenterY > hy - 30 && cloudCenterY < hy + hh + 10;
+            }
+
+            getAccuracyScore(hy, hh) {
+                // Perfect hit if cloud center is near house center
+                const hx = CANVAS_W / 2 - HOUSE_W / 2;
+                const houseCenterY = hy + hh / 2;
+                const cloudCenterY = this.y + 10;
+                const distance = Math.abs(cloudCenterY - houseCenterY);
+
+                if (distance < 15) return 5;
+                if (distance < 30) return 3;
+                if (distance < 50) return 1;
+                return 0;
+            }
+        }
+
+        function drawHouse(hy) {
+            const hx = CANVAS_W / 2 - HOUSE_W / 2;
+
+            // House body
+            ctx.fillStyle = "#8B4513";
+            ctx.fillRect(hx, hy, HOUSE_W, HOUSE_H);
+
+            // House roof
+            ctx.fillStyle = "#D2691E";
+            ctx.beginPath();
+            ctx.moveTo(hx, hy);
+            ctx.lineTo(hx + HOUSE_W / 2, hy - 15);
+            ctx.lineTo(hx + HOUSE_W, hy);
+            ctx.fill();
+
+            // Door
+            ctx.fillStyle = "#654321";
+            ctx.fillRect(hx + 12, hy + 20, 16, 20);
+
+            // Window
+            ctx.fillStyle = "#FFD700";
+            ctx.fillRect(hx + 5, hy + 8, 10, 10);
+        }
+
+        function updateGame() {
+            if (gameState !== "running") return;
+
+            gameTime += 0.016;
+            timeLeft = Math.max(0, 25 - gameTime);
+            document.getElementById("timeValue").textContent = timeLeft.toFixed(1);
+
+            // Spawn clouds
+            if (Math.random() < 0.025) {
+                clouds.push(new Cloud());
+            }
+
+            // Update house position
+            houseY = Math.max(50, Math.min(CANVAS_H - 80, mouseY - HOUSE_H / 2));
+
+            // Update and check collisions
+            for (let i = clouds.length - 1; i >= 0; i--) {
+                clouds[i].update();
+
+                if (clouds[i].checkCollision(houseY, HOUSE_W, HOUSE_H)) {
+                    const points = clouds[i].getAccuracyScore(houseY, HOUSE_H);
+                    score += points;
+                    document.getElementById("scoreValue").textContent = score;
+                    clouds.splice(i, 1);
+                } else if (clouds[i].isOutOfBounds()) {
+                    clouds.splice(i, 1);
+                }
+            }
+
+            if (timeLeft <= 0) {
+                gameState = "over";
+                gameEnd();
+            }
+        }
+
+        function drawGame() {
+            ctx.fillStyle = "rgba(135, 206, 235, 0.6)";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // Draw clouds
+            clouds.forEach(cloud => cloud.draw());
+
+            // Draw house
+            drawHouse(houseY);
+        }
+
+        function gameEnd() {
+            document.getElementById("btnStart").disabled = false;
+            document.getElementById("btnStart").textContent = "다시 시작";
+
+            const name = prompt("이름을 입력하세요:", "익명") || "익명";
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, score, () => {
+                    resetGame();
+                });
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            timeLeft = 25;
+            gameTime = 0;
+            clouds = [];
+            houseY = 300;
+            document.getElementById("scoreValue").textContent = "0";
+            document.getElementById("timeValue").textContent = "25.0";
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.getElementById("btnStart").addEventListener("click", () => {
+            gameState = "running";
+            resetGame();
+            document.getElementById("btnStart").disabled = true;
+        });
+
+        document.addEventListener("mousemove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseY = e.clientY - rect.top;
+        });
+
+        document.addEventListener("touchmove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches.length > 0) {
+                mouseY = e.touches[0].clientY - rect.top;
+            }
+        }, { passive: true });
+
+        gameLoop();
+    </script>
+</body>
+
+</html>

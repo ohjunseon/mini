@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>극한 캐치 (mini49)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #3d0000, #1a0000);
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            touch-action: none;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🔥 극한 캐치</h1>
+                    <p>극도로 빠른 속도의 블록 10개를 피하고 캐치하세요! (15초 타임)</p>
+                </header>
+
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">시간</div>
+                        <div class="info-value" id="timeValue">15.0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">점수</div>
+                        <div class="info-value" id="scoreValue">0</div>
+                    </div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+    <script>
+        const PAGE_ID = "mini49";
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const CANVAS_W = 320;
+        const CANVAS_H = 480;
+        const BASKET_Y = CANVAS_H - 40;
+        const BASKET_W = 60;
+        const BASKET_H = 20;
+
+        let gameState = "idle";
+        let score = 0;
+        let timeLeft = 15;
+        let gameTime = 0;
+        let basketX = CANVAS_W / 2 - BASKET_W / 2;
+        let mouseX = CANVAS_W / 2;
+
+        let blocks = [];
+        let fallSpeed = 8; // Very fast!
+        let blocksSpawned = 0;
+        const MAX_BLOCKS = 10;
+
+        // Load ranking
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
+        }
+
+        class Block {
+            constructor() {
+                this.x = Math.random() * (CANVAS_W - 30) + 15;
+                this.y = 0;
+                this.w = 30;
+                this.h = 20;
+            }
+
+            update() {
+                this.y += fallSpeed;
+            }
+
+            draw() {
+                ctx.fillStyle = "#ff6b6b";
+                ctx.fillRect(this.x - this.w / 2, this.y, this.w, this.h);
+                ctx.strokeStyle = "#ff0000";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x - this.w / 2, this.y, this.w, this.h);
+            }
+
+            isOutOfBounds() {
+                return this.y > CANVAS_H;
+            }
+
+            checkCollision(bx, bw) {
+                return this.x > bx && this.x < bx + bw &&
+                    this.y + this.h > BASKET_Y && this.y - this.h < BASKET_Y + BASKET_H;
+            }
+        }
+
+        function updateGame() {
+            if (gameState !== "running") return;
+
+            gameTime += 0.016;
+            timeLeft = Math.max(0, 15 - gameTime);
+            document.getElementById("timeValue").textContent = timeLeft.toFixed(1);
+
+            // Spawn all blocks at start, then periodically
+            if (blocksSpawned < MAX_BLOCKS) {
+                if (gameTime % 1.2 < 0.016) {
+                    blocks.push(new Block());
+                    blocksSpawned++;
+                }
+            }
+
+            // Update basket
+            basketX = Math.max(0, Math.min(CANVAS_W - BASKET_W, mouseX - BASKET_W / 2));
+
+            // Update and check collisions
+            for (let i = blocks.length - 1; i >= 0; i--) {
+                blocks[i].update();
+
+                if (blocks[i].checkCollision(basketX, BASKET_W)) {
+                    score++;
+                    document.getElementById("scoreValue").textContent = score;
+                    blocks.splice(i, 1);
+                } else if (blocks[i].isOutOfBounds()) {
+                    blocks.splice(i, 1);
+                }
+            }
+
+            if (timeLeft <= 0) {
+                gameState = "over";
+                gameEnd();
+            }
+        }
+
+        function drawGame() {
+            ctx.fillStyle = "rgba(61, 0, 0, 0.8)";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // Draw intensity indicator
+            const intensity = (gameTime / 15) * 100;
+            ctx.fillStyle = "#ff0000";
+            ctx.fillRect(0, 0, (intensity / 100) * CANVAS_W, 3);
+
+            // Draw blocks
+            blocks.forEach(block => block.draw());
+
+            // Draw basket (faster movement)
+            ctx.fillStyle = "#ffff00";
+            ctx.fillRect(basketX, BASKET_Y, BASKET_W, BASKET_H);
+            ctx.strokeStyle = "#ffaa00";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(basketX, BASKET_Y, BASKET_W, BASKET_H);
+
+            // Draw block count
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "14px Arial";
+            ctx.textAlign = "left";
+            ctx.fillText(`블록: ${blocksSpawned}/${MAX_BLOCKS}`, 10, CANVAS_H - 50);
+        }
+
+        function gameEnd() {
+            document.getElementById("btnStart").disabled = false;
+            document.getElementById("btnStart").textContent = "다시 시작";
+
+            const name = prompt("이름을 입력하세요:", "익명") || "익명";
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, score, () => {
+                    resetGame();
+                });
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            timeLeft = 15;
+            gameTime = 0;
+            blocks = [];
+            blocksSpawned = 0;
+            basketX = CANVAS_W / 2 - BASKET_W / 2;
+            document.getElementById("scoreValue").textContent = "0";
+            document.getElementById("timeValue").textContent = "15.0";
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.getElementById("btnStart").addEventListener("click", () => {
+            gameState = "running";
+            resetGame();
+            document.getElementById("btnStart").disabled = true;
+        });
+
+        document.addEventListener("mousemove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+        });
+
+        document.addEventListener("touchmove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches.length > 0) {
+                mouseX = e.touches[0].clientX - rect.left;
+            }
+        }, { passive: true });
+
+        gameLoop();
+    </script>
+</body>
+
+</html>

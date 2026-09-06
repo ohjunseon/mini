@@ -38,5 +38,15 @@
   { "id": "mini37", "title": "펄스 클릭", "path": "mini37/", "desc": "박자에 맞춰 클릭", "thumb": "mini37/cover.png", "category": "반응", "scoreType": "high" },
   { "id": "mini38", "title": "빠른 계산 버튼", "path": "mini38/", "desc": "계산 문제의 정답 버튼 클릭", "thumb": "mini38/cover.png", "category": "반응", "scoreType": "high" },
   { "id": "mini39", "title": "쿨다운 클릭", "path": "mini39/", "desc": "쿨다운을 관리하며 클릭", "thumb": "mini39/cover.png", "category": "반응", "scoreType": "high" },
-  { "id": "mini40", "title": "무한 클릭 마라톤", "path": "mini40/", "desc": "시간이 지날수록 쿨다운 감소", "thumb": "mini40/cover.png", "category": "반응", "scoreType": "high" }
+  { "id": "mini40", "title": "무한 클릭 마라톤", "path": "mini40/", "desc": "시간이 지날수록 쿨다운 감소", "thumb": "mini40/cover.png", "category": "반응", "scoreType": "high" },
+  { "id": "mini41", "title": "❄️ 빙수 받기", "path": "mini41/", "desc": "떨어지는 빙수를 바구니로 캐치", "thumb": "mini41/cover.png", "category": "캐치", "scoreType": "high" },
+  { "id": "mini42", "title": "🌧️ 빗방울 피하기", "path": "mini42/", "desc": "빨간 빗방울을 피해 생존", "thumb": "mini42/cover.png", "category": "피하기", "scoreType": "high" },
+  { "id": "mini43", "title": "💰 떨어지는 동전", "path": "mini43/", "desc": "양쪽 바구니로 동전 캐치", "thumb": "mini43/cover.png", "category": "캐치", "scoreType": "high" },
+  { "id": "mini44", "title": "⭐ 별 모으기", "path": "mini44/", "desc": "떨어지는 별을 모아 레벨 업", "thumb": "mini44/cover.png", "category": "캐치", "scoreType": "high" },
+  { "id": "mini45", "title": "⚡ 속도 조절 캐치", "path": "mini45/", "desc": "시간이 지날수록 공이 빨라짐", "thumb": "mini45/cover.png", "category": "캐치", "scoreType": "high" },
+  { "id": "mini46", "title": "🧺 멀티 바구니", "path": "mini46/", "desc": "3개 바구니로 과일 캐치", "thumb": "mini46/cover.png", "category": "캐치", "scoreType": "high" },
+  { "id": "mini47", "title": "☁️ 구름 위의 집", "path": "mini47/", "desc": "집의 높이 조절해 구름 받기", "thumb": "mini47/cover.png", "category": "캐치", "scoreType": "high" },
+  { "id": "mini48", "title": "👹 보스 낙하", "path": "mini48/", "desc": "패턴 보스를 피하거나 캐치", "thumb": "mini48/cover.png", "category": "피하기", "scoreType": "high" },
+  { "id": "mini49", "title": "🔥 극한 캐치", "path": "mini49/", "desc": "초고속 블록 10개 캐치 도전", "thumb": "mini49/cover.png", "category": "캐치", "scoreType": "high" },
+  { "id": "mini50", "title": "♾️ 무한 낙하", "path": "mini50/", "desc": "무한히 떨어지는 블록 생존", "thumb": "mini50/cover.png", "category": "생존", "scoreType": "high" }
 ]

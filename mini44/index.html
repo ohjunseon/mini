@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>별 모으기 (mini44)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #1a0033, #0d001a);
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            touch-action: none;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>⭐ 별 모으기</h1>
+                    <p>떨어지는 별을 모아 레벨을 올려보세요!</p>
+                </header>
+
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">시간</div>
+                        <div class="info-value" id="timeValue">20.0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">레벨</div>
+                        <div class="info-value" id="scoreValue">1</div>
+                    </div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+    <script>
+        const PAGE_ID = "mini44";
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const CANVAS_W = 320;
+        const CANVAS_H = 480;
+        const PLAYER_SIZE = 20;
+
+        let gameState = "idle";
+        let level = 1;
+        let starsCaught = 0;
+        let timeLeft = 20;
+        let gameTime = 0;
+        let playerX = CANVAS_W / 2;
+        let playerY = CANVAS_H - 50;
+
+        let stars = [];
+        let fallSpeed = 2;
+
+        // Load ranking
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (레벨 ${d.score})</li>`).join('');
+            });
+        }
+
+        class Star {
+            constructor() {
+                this.x = Math.random() * (CANVAS_W - 30) + 15;
+                this.y = -20;
+                this.size = 12;
+            }
+
+            update() {
+                this.y += fallSpeed * (1 + (level - 1) * 0.15);
+            }
+
+            draw() {
+                drawStar(this.x, this.y, this.size, "#ffff00");
+            }
+
+            isOutOfBounds() {
+                return this.y > CANVAS_H;
+            }
+
+            checkCollision(px, py, ps) {
+                const dx = this.x - px;
+                const dy = this.y - py;
+                return Math.sqrt(dx * dx + dy * dy) < ps + this.size;
+            }
+        }
+
+        function drawStar(x, y, size, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+                const px = x + size * Math.cos(angle);
+                const py = y + size * Math.sin(angle);
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function updateGame() {
+            if (gameState !== "running") return;
+
+            gameTime += 0.016;
+            timeLeft = Math.max(0, 20 - gameTime);
+            document.getElementById("timeValue").textContent = timeLeft.toFixed(1);
+
+            // Spawn stars
+            if (Math.random() < (0.02 + level * 0.01)) {
+                stars.push(new Star());
+            }
+
+            // Update and check collisions
+            for (let i = stars.length - 1; i >= 0; i--) {
+                stars[i].update();
+
+                if (stars[i].checkCollision(playerX, playerY, PLAYER_SIZE)) {
+                    starsCaught++;
+                    if (starsCaught % 3 === 0) {
+                        level++;
+                        document.getElementById("scoreValue").textContent = level;
+                    }
+                    stars.splice(i, 1);
+                } else if (stars[i].isOutOfBounds()) {
+                    stars.splice(i, 1);
+                }
+            }
+
+            if (timeLeft <= 0) {
+                gameState = "over";
+                gameEnd();
+            }
+        }
+
+        function drawGame() {
+            ctx.fillStyle = "rgba(26, 0, 51, 0.8)";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // Draw stars
+            stars.forEach(star => star.draw());
+
+            // Draw player (star)
+            drawStar(playerX, playerY, PLAYER_SIZE, "#00ffff");
+        }
+
+        function gameEnd() {
+            document.getElementById("btnStart").disabled = false;
+            document.getElementById("btnStart").textContent = "다시 시작";
+
+            const name = prompt("이름을 입력하세요:", "익명") || "익명";
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, level, () => {
+                    resetGame();
+                });
+            }
+        }
+
+        function resetGame() {
+            level = 1;
+            starsCaught = 0;
+            timeLeft = 20;
+            gameTime = 0;
+            stars = [];
+            playerX = CANVAS_W / 2;
+            playerY = CANVAS_H - 50;
+            document.getElementById("scoreValue").textContent = "1";
+            document.getElementById("timeValue").textContent = "20.0";
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.getElementById("btnStart").addEventListener("click", () => {
+            gameState = "running";
+            resetGame();
+            document.getElementById("btnStart").disabled = true;
+        });
+
+        document.addEventListener("mousemove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            playerX = Math.max(PLAYER_SIZE, Math.min(CANVAS_W - PLAYER_SIZE, e.clientX - rect.left));
+            playerY = Math.max(PLAYER_SIZE, Math.min(CANVAS_H - PLAYER_SIZE, e.clientY - rect.top));
+        });
+
+        document.addEventListener("touchmove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches.length > 0) {
+                playerX = Math.max(PLAYER_SIZE, Math.min(CANVAS_W - PLAYER_SIZE, e.touches[0].clientX - rect.left));
+                playerY = Math.max(PLAYER_SIZE, Math.min(CANVAS_H - PLAYER_SIZE, e.touches[0].clientY - rect.top));
+            }
+        }, { passive: true });
+
+        gameLoop();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>무한 낙하 (mini50)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        canvas {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #000000, #1a1a2e);
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            touch-action: none;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>♾️ 무한 낙하</h1>
+                    <p>계속 떨어지는 블록을 받아내세요! 한 번 미스하면 게임 오버!</p>
+                </header>
+
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">생존 시간</div>
+                        <div class="info-value" id="timeValue">0.0</div>
+                    </div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+    <script>
+        const PAGE_ID = "mini50";
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const CANVAS_W = 320;
+        const CANVAS_H = 480;
+        const BASKET_Y = CANVAS_H - 40;
+        const BASKET_W = 60;
+        const BASKET_H = 20;
+
+        let gameState = "idle";
+        let score = 0; // Time survived in seconds
+        let gameTime = 0;
+        let basketX = CANVAS_W / 2 - BASKET_W / 2;
+        let mouseX = CANVAS_W / 2;
+
+        let blocks = [];
+        let baseFallSpeed = 2;
+        let speedMultiplier = 1;
+        let blocksCaught = 0;
+
+        // Load ranking
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score.toFixed(1)}초)</li>`).join('');
+            });
+        }
+
+        class Block {
+            constructor() {
+                this.x = Math.random() * (CANVAS_W - 30) + 15;
+                this.y = -20;
+                this.w = 30;
+                this.h = 20;
+                this.speed = baseFallSpeed * speedMultiplier;
+            }
+
+            update() {
+                this.y += this.speed;
+            }
+
+            draw() {
+                ctx.fillStyle = "#00ff00";
+                ctx.fillRect(this.x - this.w / 2, this.y, this.w, this.h);
+                ctx.strokeStyle = "#00aa00";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x - this.w / 2, this.y, this.w, this.h);
+            }
+
+            isOutOfBounds() {
+                return this.y > CANVAS_H;
+            }
+
+            checkCollision(bx, bw) {
+                return this.x > bx && this.x < bx + bw &&
+                    this.y + this.h > BASKET_Y && this.y - this.h < BASKET_Y + BASKET_H;
+            }
+        }
+
+        function updateGame() {
+            if (gameState !== "running") return;
+
+            gameTime += 0.016;
+            score = gameTime;
+            document.getElementById("timeValue").textContent = gameTime.toFixed(1);
+
+            // Increase difficulty every 10 seconds
+            if (Math.floor(gameTime) % 10 === 0 && gameTime > 0) {
+                speedMultiplier = 1 + Math.floor(gameTime / 10) * 0.3;
+            }
+
+            // Spawn blocks continuously (faster as time goes on)
+            const spawnRate = 0.025 + (gameTime * 0.002);
+            if (Math.random() < spawnRate) {
+                blocks.push(new Block());
+            }
+
+            // Update basket position
+            basketX = Math.max(0, Math.min(CANVAS_W - BASKET_W, mouseX - BASKET_W / 2));
+
+            // Update and check collisions
+            let missed = false;
+            for (let i = blocks.length - 1; i >= 0; i--) {
+                blocks[i].update();
+
+                if (blocks[i].checkCollision(basketX, BASKET_W)) {
+                    blocksCaught++;
+                    blocks.splice(i, 1);
+                } else if (blocks[i].isOutOfBounds()) {
+                    // ONE MISS = GAME OVER!
+                    missed = true;
+                    gameState = "over";
+                    gameEnd();
+                }
+            }
+        }
+
+        function drawGame() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // Draw difficulty indicator
+            const level = Math.floor(gameTime / 10) + 1;
+            ctx.fillStyle = "#00ff00";
+            ctx.font = "14px Arial";
+            ctx.textAlign = "right";
+            ctx.fillText(`Lv ${level}`, CANVAS_W - 10, 20);
+
+            // Draw blocks caught
+            ctx.fillStyle = "#00ff00";
+            ctx.textAlign = "left";
+            ctx.fillText(`받은 블록: ${blocksCaught}`, 10, 20);
+
+            // Draw blocks
+            blocks.forEach(block => block.draw());
+
+            // Draw basket
+            ctx.fillStyle = "#ffff00";
+            ctx.fillRect(basketX, BASKET_Y, BASKET_W, BASKET_H);
+            ctx.strokeStyle = "#ffaa00";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(basketX, BASKET_Y, BASKET_W, BASKET_H);
+
+            // Draw warning if blocks are too many
+            if (blocks.length > 20) {
+                ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
+                ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+                ctx.fillStyle = "#ff0000";
+                ctx.font = "bold 20px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText("위험!", CANVAS_W / 2, CANVAS_H / 2);
+            }
+        }
+
+        function gameEnd() {
+            document.getElementById("btnStart").disabled = false;
+            document.getElementById("btnStart").textContent = "다시 시작";
+
+            const name = prompt("이름을 입력하세요:", "익명") || "익명";
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, score, () => {
+                    resetGame();
+                });
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            gameTime = 0;
+            blocks = [];
+            blocksCaught = 0;
+            speedMultiplier = 1;
+            basketX = CANVAS_W / 2 - BASKET_W / 2;
+            document.getElementById("timeValue").textContent = "0.0";
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.getElementById("btnStart").addEventListener("click", () => {
+            gameState = "running";
+            resetGame();
+            document.getElementById("btnStart").disabled = true;
+        });
+
+        document.addEventListener("mousemove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+        });
+
+        document.addEventListener("touchmove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches.length > 0) {
+                mouseX = e.touches[0].clientX - rect.left;
+            }
+        }, { passive: true });
+
+        gameLoop();
+    </script>
+</body>
+
+</html>
