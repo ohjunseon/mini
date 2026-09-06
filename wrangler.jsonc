@@ -1,16 +1,19 @@
 {
-  "name": "mini",
-  "compatibility_date": "2026-07-24",
-  "main": "worker/index.js",
-  "assets": {
-    "directory": "."
-  },
-  "compatibility_flags": ["nodejs_compat"],
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "mini-ranking",
-      "database_id": "REPLACE_WITH_YOUR_D1_ID"
-    }
-  ]
+	"name": "mini",
+	"compatibility_date": "2026-07-24",
+	"main": "worker/index.js",
+	"assets": {
+		"directory": "."
+	},
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"d1_databases": [
+		{
+			"binding": "mini_ranking",
+			"database_name": "mini-ranking",
+			"database_id": "b6f68cd8-2118-48e5-9e04-d2b6edb8db37",
+			"remote": true
+		}
+	]
 }
