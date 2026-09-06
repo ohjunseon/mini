@@ -58,5 +58,15 @@
   { "id": "mini57", "title": "🏆 점프 콤보", "path": "mini57/", "desc": "코인을 캐치해 콤보 보너스 획득! 연속 캐치로 점수 배수 증가 20초", "thumb": "mini57/cover.png", "category": "러너", "scoreType": "high" },
   { "id": "mini58", "title": "👹 보스 추격", "path": "mini58/", "desc": "우측의 보스를 피하며 장애물도 회피! 30초 생존 게임", "thumb": "mini58/cover.png", "category": "러너", "scoreType": "high" },
   { "id": "mini59", "title": "🔥 극한 러너", "path": "mini59/", "desc": "초고속 장애물 고밀도! 극한의 난이도 15초 도전", "thumb": "mini59/cover.png", "category": "러너", "scoreType": "high" },
-  { "id": "mini60", "title": "♾️ 무한 달리기", "path": "mini60/", "desc": "최후의 게임! 무한히 떨어지는 장애물을 피하세요! 1회 충돌 즉시 게임오버", "thumb": "mini60/cover.png", "category": "러너", "scoreType": "high" }
+  { "id": "mini60", "title": "♾️ 무한 달리기", "path": "mini60/", "desc": "최후의 게임! 무한히 떨어지는 장애물을 피하세요! 1회 충돌 즉시 게임오버", "thumb": "mini60/cover.png", "category": "러너", "scoreType": "high" },
+  { "id": "mini61", "title": "🎮 2048 게임", "path": "mini61/", "desc": "2048을 만들어 최고의 숫자를 노려보세요!", "thumb": "mini61/cover.png", "category": "두뇌", "scoreType": "high" },
+  { "id": "mini62", "title": "🎨 색상 배치", "path": "mini62/", "desc": "색상을 회전하여 목표 패턴을 만드세요! (20초)", "thumb": "mini62/cover.png", "category": "두뇌", "scoreType": "high" },
+  { "id": "mini63", "title": "🔤 단어 찾기", "path": "mini63/", "desc": "목표 단어를 찾아 입력하세요! (30초)", "thumb": "mini63/cover.png", "category": "두뇌", "scoreType": "high" },
+  { "id": "mini64", "title": "🧠 숫자 맞추기", "path": "mini64/", "desc": "표시되는 숫자 순서를 기억하고 따라하세요!", "thumb": "mini64/cover.png", "category": "두뇌", "scoreType": "high" },
+  { "id": "mini65", "title": "🧩 퍼즐 조각", "path": "mini65/", "desc": "떨어지는 블록을 배치하여 줄을 완성하세요! (25초)", "thumb": "mini65/cover.png", "category": "두뇌", "scoreType": "high" },
+  { "id": "mini66", "title": "🎯 맞춰 없애기", "path": "mini66/", "desc": "같은 색상 3개 이상을 클릭하여 제거하세요! (20초)", "thumb": "mini66/cover.png", "category": "두뇌", "scoreType": "high" },
+  { "id": "mini67", "title": "🧮 논리 퍼즐", "path": "mini67/", "desc": "빠르게 정답을 선택하세요! (20초)", "thumb": "mini67/cover.png", "category": "두뇌", "scoreType": "high" },
+  { "id": "mini68", "title": "🔢 그리드 슬라이드", "path": "mini68/", "desc": "숫자를 올바른 순서로 정렬하세요!", "thumb": "mini68/cover.png", "category": "두뇌", "scoreType": "high" },
+  { "id": "mini69", "title": "🎴 타일 매치", "path": "mini69/", "desc": "같은 쌍을 찾아보세요! (메모리 게임)", "thumb": "mini69/cover.png", "category": "두뇌", "scoreType": "high" },
+  { "id": "mini70", "title": "🧠 최고의 두뇌 게임", "path": "mini70/", "desc": "4가지 게임을 번갈아 진행하세요! (60초)", "thumb": "mini70/cover.png", "category": "두뇌", "scoreType": "high" }
 ]

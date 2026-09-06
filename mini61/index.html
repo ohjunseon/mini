@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2048 게임</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      padding: 10px;
+      background: var(--panel);
+      border-radius: 12px;
+      margin: 20px auto;
+      max-width: 300px;
+    }
+
+    .tile {
+      width: 100%;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.5rem;
+      border-radius: 8px;
+      background: #3a3f4a;
+      color: var(--text);
+      user-select: none;
+      transition: all 0.1s ease;
+    }
+
+    .tile[data-value="0"] {
+      background: #2a2f3a;
+      color: transparent;
+    }
+
+    .tile[data-value="2"],
+    .tile[data-value="4"] {
+      background: #5b9cff;
+    }
+
+    .tile[data-value="8"],
+    .tile[data-value="16"] {
+      background: #4a8be8;
+      font-size: 1.2rem;
+    }
+
+    .tile[data-value="32"],
+    .tile[data-value="64"] {
+      background: #ff9a5b;
+    }
+
+    .tile[data-value="128"],
+    .tile[data-value="256"] {
+      background: #ffd166;
+      color: #0b1020;
+    }
+
+    .tile[data-value="512"],
+    .tile[data-value="1024"] {
+      background: #2ecc71;
+    }
+
+    .tile[data-value="2048"] {
+      background: #ff5b5b;
+      font-size: 1.3rem;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🎮 2048 게임</h1>
+          <p>화살표 또는 WASD로 타일을 움직여 2048을 만들어보세요!</p>
+        </header>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">최대 숫자</span>
+            <span class="stat-value" id="scoreValue">2</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">점수</span>
+            <span class="stat-value" id="gameScore">0</span>
+          </div>
+        </div>
+
+        <div class="game-grid" id="gameGrid"></div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">상태</span>
+            <span class="stat-value" id="statusText">게임 중</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="restartBtn">🔄 새로운 게임</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5 (높은 점수)</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini61";
+    const gameGrid = document.getElementById('gameGrid');
+    const scoreValueEl = document.getElementById('scoreValue');
+    const gameScoreEl = document.getElementById('gameScore');
+    const statusTextEl = document.getElementById('statusText');
+    const restartBtn = document.getElementById('restartBtn');
+    const rankList = document.getElementById('rankList');
+
+    let grid = [];
+    let maxValue = 2;
+    let score = 0;
+    let gameOver = false;
+
+    function initializeGrid() {
+      grid = Array(16).fill(0);
+      addNewTile();
+      addNewTile();
+      maxValue = 2;
+      score = 0;
+      gameOver = false;
+      updateUI();
+    }
+
+    function addNewTile() {
+      const emptyIndices = grid.map((v, i) => v === 0 ? i : -1).filter(v => v !== -1);
+      if (emptyIndices.length === 0) return;
+      const idx = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+      grid[idx] = Math.random() < 0.9 ? 2 : 4;
+    }
+
+    function move(direction) {
+      if (gameOver) return;
+
+      const oldGrid = [...grid];
+      const size = 4;
+
+      if (direction === 'left' || direction === 'right') {
+        for (let row = 0; row < size; row++) {
+          const line = grid.slice(row * size, (row + 1) * size);
+          const moved = moveLine(line, direction === 'left');
+          grid.splice(row * size, size, ...moved);
+        }
+      } else {
+        for (let col = 0; col < size; col++) {
+          const line = [];
+          for (let row = 0; row < size; row++) {
+            line.push(grid[row * size + col]);
+          }
+          const moved = moveLine(line, direction === 'up');
+          for (let row = 0; row < size; row++) {
+            grid[row * size + col] = moved[row];
+          }
+        }
+      }
+
+      if (JSON.stringify(oldGrid) !== JSON.stringify(grid)) {
+        addNewTile();
+      }
+
+      updateUI();
+      checkGameOver();
+    }
+
+    function moveLine(line, toStart) {
+      let arr = line.filter(v => v !== 0);
+
+      // Merge
+      for (let i = 0; i < arr.length - 1; i++) {
+        if (arr[i] === arr[i + 1]) {
+          arr[i] *= 2;
+          arr.splice(i + 1, 1);
+          maxValue = Math.max(maxValue, arr[i]);
+          score += arr[i];
+        }
+      }
+
+      // Fill zeros
+      while (arr.length < 4) {
+        toStart ? arr.unshift(0) : arr.push(0);
+      }
+
+      return arr;
+    }
+
+    function checkGameOver() {
+      let canMove = false;
+
+      // Check horizontal
+      for (let i = 0; i < 16; i++) {
+        if (i % 4 < 3 && grid[i] > 0 && grid[i] === grid[i + 1]) canMove = true;
+        if (i % 4 < 3 && grid[i] === 0) canMove = true;
+      }
+
+      // Check vertical
+      for (let i = 0; i < 12; i++) {
+        if (grid[i] > 0 && grid[i] === grid[i + 4]) canMove = true;
+        if (grid[i] === 0) canMove = true;
+      }
+
+      if (!canMove) {
+        gameOver = true;
+        statusTextEl.textContent = '게임 오버!';
+        saveScore(maxValue);
+      }
+    }
+
+    function updateUI() {
+      scoreValueEl.textContent = maxValue;
+      gameScoreEl.textContent = score;
+
+      gameGrid.innerHTML = '';
+      grid.forEach(value => {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.setAttribute('data-value', value);
+        tile.textContent = value > 0 ? value : '';
+        gameGrid.appendChild(tile);
+      });
+    }
+
+    function saveScore(maxNum) {
+      if (window.GameStats) {
+        window.GameStats.saveScore(PAGE_ID, maxNum, () => {
+          loadTopScores();
+        });
+      }
+    }
+
+    function loadTopScores() {
+      if (window.GameStats) {
+        window.GameStats.listenTopScores(PAGE_ID, 5, (scores) => {
+          rankList.innerHTML = scores.map((s, i) =>
+            `<li>${i + 1}. ${s.score}점</li>`
+          ).join('') || '<li>기록 없음</li>';
+        });
+      }
+    }
+
+    // Event listeners
+    restartBtn.addEventListener('click', () => {
+      initializeGrid();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        move(e.key === 'ArrowUp' ? 'up' : e.key === 'ArrowDown' ? 'down' :
+             e.key === 'ArrowLeft' ? 'left' : 'right');
+      } else if (['w', 'W', 'a', 'A', 's', 'S', 'd', 'D'].includes(e.key)) {
+        move(e.key.toLowerCase() === 'w' ? 'up' : e.key.toLowerCase() === 's' ? 'down' :
+             e.key.toLowerCase() === 'a' ? 'left' : 'right');
+      }
+    });
+
+    // Initialize
+    initializeGrid();
+    loadTopScores();
+  </script>
+</body>
+
+</html>

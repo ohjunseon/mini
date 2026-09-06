@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>단어 찾기</title>
+  <link rel="stylesheet" href="../shared/style.css">
+</head>
+
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🔤 단어 찾기</h1>
+          <p>보이는 단어 중 목표 단어를 입력하세요! (30초)</p>
+        </header>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">시간</span>
+            <span class="stat-value" id="timeLeft">30</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">점수</span>
+            <span class="stat-value" id="scoreValue">0</span>
+          </div>
+        </div>
+
+        <div style="padding: 20px; background: var(--panel); border-radius: 12px; margin: 20px 0;">
+          <p style="color: var(--warn); font-weight: bold; margin: 0 0 10px;">목표 단어:</p>
+          <div id="targetWord" style="
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent);
+            text-align: center;
+            min-height: 50px;
+          ">단어</div>
+        </div>
+
+        <div style="padding: 20px; background: var(--panel); border-radius: 12px; margin: 20px 0;">
+          <p style="color: var(--muted); margin: 0 0 10px;">보이는 단어들:</p>
+          <div id="wordList" style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+          ">
+            <!-- Words will be inserted here -->
+          </div>
+        </div>
+
+        <div style="margin: 20px 0;">
+          <input type="text" id="answerInput" placeholder="단어를 입력하고 Enter 누르기" style="
+            width: 100%;
+            padding: 12px;
+            background: var(--panel);
+            color: var(--text);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            font-size: 1rem;
+          ">
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">상태</span>
+            <span class="stat-value" id="statusText">게임 중...</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="restartBtn">🔄 새로운 게임</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5 (많은 점수)</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini63";
+    const targetWordEl = document.getElementById('targetWord');
+    const wordListEl = document.getElementById('wordList');
+    const answerInputEl = document.getElementById('answerInput');
+    const timeLeftEl = document.getElementById('timeLeft');
+    const scoreValueEl = document.getElementById('scoreValue');
+    const statusTextEl = document.getElementById('statusText');
+    const restartBtn = document.getElementById('restartBtn');
+    const rankList = document.getElementById('rankList');
+
+    const WORDS = [
+      '사과', '바나나', '포도', '딸기', '오렌지',
+      '고양이', '개', '새', '물고기', '토끼',
+      '책', '펜', '연필', '종이', '책상',
+      '달리기', '수영', '점프', '춤추기', '노래하기'
+    ];
+
+    let currentWords = [];
+    let targetWord = '';
+    let timeLeft = 30;
+    let score = 0;
+    let gameActive = true;
+    let timer = null;
+
+    function initializeGame() {
+      currentWords = [];
+      while (currentWords.length < 5) {
+        const word = WORDS[Math.floor(Math.random() * WORDS.length)];
+        if (!currentWords.includes(word)) {
+          currentWords.push(word);
+        }
+      }
+      targetWord = currentWords[Math.floor(Math.random() * currentWords.length)];
+      timeLeft = 30;
+      score = 0;
+      gameActive = true;
+      answerInputEl.value = '';
+      answerInputEl.focus();
+      statusTextEl.textContent = '게임 중...';
+
+      targetWordEl.textContent = targetWord;
+      drawWordList();
+
+      clearInterval(timer);
+      timer = setInterval(() => {
+        timeLeft--;
+        timeLeftEl.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function drawWordList() {
+      wordListEl.innerHTML = currentWords.map(word => `
+        <div style="
+          padding: 15px;
+          background: var(--panel-border);
+          border-radius: 8px;
+          text-align: center;
+          font-weight: bold;
+          color: var(--text);
+        ">${word}</div>
+      `).join('');
+    }
+
+    function checkAnswer() {
+      if (!gameActive) return;
+
+      const answer = answerInputEl.value.trim();
+      if (answer === targetWord) {
+        score += 10;
+        scoreValueEl.textContent = score;
+        answerInputEl.value = '';
+
+        // Get new target word
+        targetWord = currentWords[Math.floor(Math.random() * currentWords.length)];
+        targetWordEl.textContent = targetWord;
+      } else if (answer.length > 0) {
+        statusTextEl.textContent = '틀렸습니다!';
+        setTimeout(() => {
+          if (gameActive) statusTextEl.textContent = '게임 중...';
+        }, 1000);
+        answerInputEl.value = '';
+      }
+    }
+
+    function endGame() {
+      gameActive = false;
+      clearInterval(timer);
+      statusTextEl.textContent = '게임 종료!';
+      answerInputEl.disabled = true;
+      saveScore(score);
+    }
+
+    function saveScore(finalScore) {
+      if (window.GameStats) {
+        window.GameStats.saveScore(PAGE_ID, finalScore, () => {
+          loadTopScores();
+        });
+      }
+    }
+
+    function loadTopScores() {
+      if (window.GameStats) {
+        window.GameStats.listenTopScores(PAGE_ID, 5, (scores) => {
+          rankList.innerHTML = scores.map((s, i) =>
+            `<li>${i + 1}. ${s.score}점</li>`
+          ).join('') || '<li>기록 없음</li>';
+        });
+      }
+    }
+
+    answerInputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        checkAnswer();
+      }
+    });
+
+    restartBtn.addEventListener('click', () => {
+      answerInputEl.disabled = false;
+      initializeGame();
+    });
+
+    // Initialize
+    initializeGame();
+    loadTopScores();
+  </script>
+</body>
+
+</html>

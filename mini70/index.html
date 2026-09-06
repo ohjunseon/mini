@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>최고의 두뇌 게임</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .mini-game-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin: 20px 0;
+    }
+
+    .mini-game-panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .mini-game-panel h3 {
+      margin: 0 0 10px;
+      font-size: 0.9rem;
+    }
+
+    .mini-game-content {
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🧠 최고의 두뇌 게임</h1>
+          <p>4가지 게임을 번갈아 진행하세요!</p>
+        </header>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">시간</span>
+            <span class="stat-value" id="timeLeft">60</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">총 점수</span>
+            <span class="stat-value" id="totalScore">0</span>
+          </div>
+        </div>
+
+        <div class="mini-game-container">
+          <div class="mini-game-panel">
+            <h3>🎮 게임 1: 색상</h3>
+            <div class="mini-game-content" id="game1">
+              <div id="game1-display" style="font-size: 2rem;">파랑</div>
+            </div>
+            <p id="game1-score" style="margin: 5px 0 0; font-size: 0.8rem;">0점</p>
+          </div>
+
+          <div class="mini-game-panel">
+            <h3>🧮 게임 2: 계산</h3>
+            <div class="mini-game-content" id="game2">
+              <div id="game2-display" style="font-size: 1.2rem;">5 + 3 = ?</div>
+            </div>
+            <p id="game2-score" style="margin: 5px 0 0; font-size: 0.8rem;">0점</p>
+          </div>
+
+          <div class="mini-game-panel">
+            <h3>🎯 게임 3: 반응</h3>
+            <div class="mini-game-content" id="game3" style="cursor: pointer; background: var(--panel-border); border-radius: 8px;">
+              <div id="game3-display" style="font-size: 1.5rem;">클릭!</div>
+            </div>
+            <p id="game3-score" style="margin: 5px 0 0; font-size: 0.8rem;">0점</p>
+          </div>
+
+          <div class="mini-game-panel">
+            <h3>🔤 게임 4: 기억</h3>
+            <div class="mini-game-content" id="game4">
+              <div id="game4-display" style="font-size: 1.2rem;">1, 2, 3</div>
+            </div>
+            <p id="game4-score" style="margin: 5px 0 0; font-size: 0.8rem;">0점</p>
+          </div>
+        </div>
+
+        <div style="margin: 20px 0; padding: 15px; background: var(--panel); border-radius: 8px;">
+          <p style="margin: 0; font-size: 0.9rem; color: var(--muted);">
+            현재 활성 게임: <span id="activeGame" style="color: var(--accent); font-weight: bold;">게임 1</span>
+          </p>
+          <div id="inputArea" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">상태</span>
+            <span class="stat-value" id="statusText">게임 중...</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="restartBtn">🔄 새로운 게임</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5 (높은 점수)</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini70";
+    const timeLeftEl = document.getElementById('timeLeft');
+    const totalScoreEl = document.getElementById('totalScore');
+    const statusTextEl = document.getElementById('statusText');
+    const restartBtn = document.getElementById('restartBtn');
+    const rankList = document.getElementById('rankList');
+    const activeGameEl = document.getElementById('activeGame');
+    const inputAreaEl = document.getElementById('inputArea');
+
+    const COLORS = ['빨강', '파랑', '초록', '노랑'];
+    const PROBLEMS = [
+      { text: "2 + 3 = ?", ans: 5 },
+      { text: "8 - 2 = ?", ans: 6 },
+      { text: "4 × 2 = ?", ans: 8 },
+    ];
+
+    let scores = [0, 0, 0, 0];
+    let timeLeft = 60;
+    let gameActive = true;
+    let currentGame = 0;
+    let timer = null;
+
+    // Game 1: Color
+    let game1CurrentColor = 0;
+
+    // Game 2: Math
+    let game2CurrentProblem = 0;
+
+    // Game 3: Reaction
+    let game3Ready = false;
+
+    // Game 4: Memory
+    let game4Sequence = [1, 2, 3];
+
+    function initializeGame() {
+      scores = [0, 0, 0, 0];
+      timeLeft = 60;
+      gameActive = true;
+      currentGame = 0;
+      statusTextEl.textContent = '게임 중...';
+      updateUI();
+
+      clearInterval(timer);
+      timer = setInterval(() => {
+        timeLeft--;
+        timeLeftEl.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          endGame();
+        }
+        // Rotate games
+        currentGame = (currentGame + 1) % 4;
+        updateUI();
+      }, 15000);
+    }
+
+    function updateUI() {
+      totalScoreEl.textContent = scores.reduce((a, b) => a + b, 0);
+      document.getElementById('game1-score').textContent = scores[0] + '점';
+      document.getElementById('game2-score').textContent = scores[1] + '점';
+      document.getElementById('game3-score').textContent = scores[2] + '점';
+      document.getElementById('game4-score').textContent = scores[3] + '점';
+
+      activeGameEl.textContent = `게임 ${currentGame + 1}`;
+      inputAreaEl.innerHTML = '';
+
+      if (currentGame === 0) {
+        // Color game
+        game1CurrentColor = Math.floor(Math.random() * COLORS.length);
+        document.getElementById('game1-display').textContent = COLORS[game1CurrentColor];
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = '색상 입력 (빨강/파랑/초록/노랑)';
+        input.style.cssText = 'width: 100%; padding: 10px; margin-top: 10px;';
+        inputAreaEl.appendChild(input);
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            if (input.value === COLORS[game1CurrentColor]) {
+              scores[0]++;
+            }
+            input.value = '';
+          }
+        });
+        input.focus();
+      } else if (currentGame === 1) {
+        // Math game
+        game2CurrentProblem = Math.floor(Math.random() * PROBLEMS.length);
+        const prob = PROBLEMS[game2CurrentProblem];
+        document.getElementById('game2-display').textContent = prob.text;
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.placeholder = '정답을 입력하세요';
+        input.style.cssText = 'width: 100%; padding: 10px; margin-top: 10px;';
+        inputAreaEl.appendChild(input);
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            if (parseInt(input.value) === prob.ans) {
+              scores[1]++;
+            }
+            input.value = '';
+          }
+        });
+        input.focus();
+      } else if (currentGame === 2) {
+        // Reaction game
+        game3Ready = false;
+        const btn = document.createElement('button');
+        btn.textContent = '준비 완료';
+        btn.className = 'btn btn-primary';
+        btn.style.marginTop = '10px';
+        btn.addEventListener('click', () => {
+          if (!game3Ready) {
+            game3Ready = true;
+            btn.textContent = '클릭하세요!';
+            const start = Date.now();
+            btn.disabled = true;
+            const clickBtn = document.createElement('button');
+            clickBtn.textContent = '클릭!';
+            clickBtn.className = 'btn btn-primary';
+            clickBtn.addEventListener('click', () => {
+              const elapsed = Date.now() - start;
+              if (elapsed > 1000) {
+                scores[2] += Math.max(10 - Math.floor(elapsed / 100), 0);
+              }
+              currentGame = (currentGame + 1) % 4;
+              updateUI();
+            });
+            inputAreaEl.appendChild(clickBtn);
+          }
+        });
+        inputAreaEl.appendChild(btn);
+      } else if (currentGame === 3) {
+        // Memory game
+        game4Sequence = Array(3).fill(0).map(() => Math.floor(Math.random() * 9) + 1);
+        document.getElementById('game4-display').textContent = game4Sequence.join(', ');
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = '숫자를 쉼표로 입력 (예: 1, 2, 3)';
+        input.style.cssText = 'width: 100%; padding: 10px; margin-top: 10px;';
+        inputAreaEl.appendChild(input);
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            const answer = input.value.split(',').map(s => parseInt(s.trim()));
+            if (JSON.stringify(answer) === JSON.stringify(game4Sequence)) {
+              scores[3]++;
+            }
+            input.value = '';
+          }
+        });
+        input.focus();
+      }
+    }
+
+    function endGame() {
+      gameActive = false;
+      clearInterval(timer);
+      statusTextEl.textContent = '게임 종료!';
+      const total = scores.reduce((a, b) => a + b, 0);
+      saveScore(total);
+    }
+
+    function saveScore(finalScore) {
+      if (window.GameStats) {
+        window.GameStats.saveScore(PAGE_ID, finalScore, () => {
+          loadTopScores();
+        });
+      }
+    }
+
+    function loadTopScores() {
+      if (window.GameStats) {
+        window.GameStats.listenTopScores(PAGE_ID, 5, (scores) => {
+          rankList.innerHTML = scores.map((s, i) =>
+            `<li>${i + 1}. ${s.score}점</li>`
+          ).join('') || '<li>기록 없음</li>';
+        });
+      }
+    }
+
+    restartBtn.addEventListener('click', initializeGame);
+
+    initializeGame();
+    loadTopScores();
+  </script>
+</body>
+
+</html>
