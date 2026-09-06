@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>보드 게임</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .board {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 8px;
+      margin: 20px auto;
+      max-width: 500px;
+      padding: 0 10px;
+    }
+    .square {
+      aspect-ratio: 1;
+      background: linear-gradient(135deg, #1a2555, #2a3f8a);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: var(--muted);
+      position: relative;
+      min-height: 50px;
+    }
+    .square.special {
+      background: linear-gradient(135deg, #ff9a56, #ff7a3d);
+      color: white;
+    }
+    .square.special.negative {
+      background: linear-gradient(135deg, #5b9cff, #3d7ae8);
+      color: white;
+    }
+    .player-marker {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      font-size: 0.8rem;
+      background: var(--good);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .dice-display {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .dice-num {
+      font-size: 3rem;
+      font-weight: bold;
+      color: var(--accent);
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🎲 보드 게임</h1>
+          <p>주사위를 굴려 100번 칸까지 도달하세요!</p>
+        </header>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">현재 위치</span>
+            <span class="stat-value" id="position">1</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">이동 횟수</span>
+            <span class="stat-value" id="moves">0</span>
+          </div>
+        </div>
+
+        <div class="board" id="board"></div>
+
+        <div class="dice-display">
+          <p style="color: var(--muted); margin: 5px 0;">주사위 결과</p>
+          <div class="dice-num" id="diceNum">-</div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="margin: 0; font-size: 1rem; color: var(--muted);" id="message">게임을 시작하세요!</p>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+          <button class="btn" id="rollBtn" onclick="roll()">🎲 주사위 굴리기</button>
+        </div>
+
+        <div style="background: rgba(91, 156, 255, 0.1); padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left;">
+          <h4 style="margin-top: 0;">특수 칸:</h4>
+          <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9rem;">
+            <li><span style="color: #ff9a56;">🔺 +10칸</span>: 해당 칸에서 10칸 추가 진행</li>
+            <li><span style="color: #5b9cff;">🔻 -5칸</span>: 해당 칸에서 5칸 후퇴</li>
+          </ul>
+        </div>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5 (가장 먼 거리)</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini76";
+    let position = 1;
+    let moves = 0;
+    let gameActive = true;
+    let bestDistance = 1;
+
+    // Board setup: 1-100
+    const SPECIAL_SQUARES = {
+      15: { bonus: 10, type: 'positive' },
+      25: { bonus: 10, type: 'positive' },
+      35: { bonus: 10, type: 'positive' },
+      45: { bonus: 10, type: 'positive' },
+      60: { bonus: 10, type: 'positive' },
+      20: { bonus: -5, type: 'negative' },
+      40: { bonus: -5, type: 'negative' },
+      75: { bonus: -5, type: 'negative' }
+    };
+
+    function initBoard() {
+      const board = document.getElementById('board');
+      board.innerHTML = "";
+      for (let i = 1; i <= 100; i++) {
+        const square = document.createElement('div');
+        square.className = 'square';
+        square.id = `square${i}`;
+
+        if (SPECIAL_SQUARES[i]) {
+          const special = SPECIAL_SQUARES[i];
+          square.classList.add('special');
+          if (special.type === 'negative') square.classList.add('negative');
+          const symbol = special.type === 'positive' ? `+${special.bonus}` : `${special.bonus}`;
+          square.textContent = `${i}\\n${symbol}`;
+        } else {
+          square.textContent = i;
+        }
+
+        board.appendChild(square);
+      }
+    }
+
+    function updatePosition() {
+      // Remove old marker
+      document.querySelectorAll('.player-marker').forEach(m => m.remove());
+
+      // Add new marker
+      const targetSquare = document.getElementById(`square${Math.min(position, 100)}`);
+      if (targetSquare) {
+        const marker = document.createElement('div');
+        marker.className = 'player-marker';
+        marker.textContent = '🎯';
+        targetSquare.appendChild(marker);
+      }
+
+      document.getElementById('position').textContent = position;
+      bestDistance = Math.max(bestDistance, position);
+    }
+
+    function roll() {
+      if (!gameActive) return;
+
+      const dice = Math.floor(Math.random() * 6) + 1;
+      document.getElementById('diceNum').textContent = dice;
+      moves++;
+      document.getElementById('moves').textContent = moves;
+
+      position += dice;
+
+      if (SPECIAL_SQUARES[position]) {
+        const special = SPECIAL_SQUARES[position];
+        position += special.bonus;
+        position = Math.max(1, Math.min(position, 100));
+        document.getElementById('message').textContent = `${dice}칸 이동! 특수칸 발동 ${special.type === 'positive' ? '+' : ''}${special.bonus}칸`;
+      } else {
+        document.getElementById('message').textContent = `${dice}칸 이동!`;
+      }
+
+      position = Math.min(position, 100);
+      updatePosition();
+
+      if (position === 100) {
+        gameActive = false;
+        document.getElementById('rollBtn').disabled = true;
+        document.getElementById('message').textContent = `🎉 완료! ${moves}회 만에 도달!`;
+        endGame();
+      }
+    }
+
+    function endGame() {
+      const nick = localStorage.getItem('nickname') || prompt("닉네임을 입력하세요:") || "익명";
+      localStorage.setItem('nickname', nick);
+      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, position);
+    }
+
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      GameStats.listenTopScores(PAGE_ID, 5, (arr) => {
+        const rankList = document.getElementById('rankList');
+        rankList.innerHTML = "";
+        if (!arr || arr.length === 0) {
+          rankList.innerHTML = "<li>기록이 없습니다.</li>";
+          return;
+        }
+        arr.forEach((item, idx) => {
+          const li = document.createElement('li');
+          li.textContent = `${idx + 1}위: ${item.name} - ${item.score}칸`;
+          rankList.appendChild(li);
+        });
+      });
+    }
+
+    initBoard();
+    updatePosition();
+  </script>
+</body>
+</html>

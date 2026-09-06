@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>주식 게임</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .stock-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      background: rgba(0,0,0,0.2);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .stock-table th {
+      background: rgba(91, 156, 255, 0.1);
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--panel-border);
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .stock-table td {
+      padding: 10px;
+      border-bottom: 1px solid rgba(91, 156, 255, 0.1);
+      font-size: 0.9rem;
+    }
+    .stock-table tr:hover {
+      background: rgba(91, 156, 255, 0.05);
+    }
+    .stock-price {
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .stock-change {
+      font-weight: 600;
+    }
+    .stock-change.up {
+      color: var(--good);
+    }
+    .stock-change.down {
+      color: var(--bad);
+    }
+    .portfolio {
+      background: rgba(0,0,0,0.2);
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .portfolio-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(91, 156, 255, 0.1);
+    }
+    .portfolio-item:last-child {
+      border-bottom: none;
+    }
+    .timer-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 3px;
+      margin: 20px 0;
+      overflow: hidden;
+    }
+    .timer-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--good), var(--warn), var(--bad));
+      width: 100%;
+      transition: width 0.1s linear;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>📈 주식 게임</h1>
+          <p>5개 종목을 사고팔아 최고 수익을 만들어보세요! (30초 / 10 틱)</p>
+        </header>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">현금</span>
+            <span class="stat-value" id="cash">1000</span>원
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">순자산</span>
+            <span class="stat-value" id="netWorth">1000</span>원
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">틱</span>
+            <span class="stat-value" id="tick">1/10</span>
+          </div>
+        </div>
+
+        <div class="timer-bar">
+          <div class="timer-fill" id="timerFill"></div>
+        </div>
+
+        <h3 style="margin-top: 20px; margin-bottom: 10px;">📊 주식 시세</h3>
+        <table class="stock-table">
+          <thead>
+            <tr>
+              <th>종목</th>
+              <th>현재가</th>
+              <th>변화</th>
+              <th>작업</th>
+            </tr>
+          </thead>
+          <tbody id="stockTable">
+          </tbody>
+        </table>
+
+        <div class="portfolio">
+          <h4 style="margin: 0 0 15px;">💼 포트폴리오</h4>
+          <div id="portfolio">
+            <p style="color: var(--muted); margin: 0;">보유 주식 없음</p>
+          </div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="margin: 0; font-size: 0.9rem; color: var(--muted); margin-bottom: 5px;">상태</p>
+          <p style="margin: 0; font-size: 1.1rem; color: var(--text);" id="status">게임 시작!</p>
+        </div>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5 (순자산 높은 순)</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini79";
+    const STOCKS = ['TECH', 'GOLD', 'FOOD', 'ENERGY', 'HEALTH'];
+    const INITIAL_PRICES = { 'TECH': 100, 'GOLD': 80, 'FOOD': 60, 'ENERGY': 90, 'HEALTH': 75 };
+
+    let prices = { ...INITIAL_PRICES };
+    let portfolio = {};
+    let cash = 1000;
+    let tick = 0;
+    let maxTicks = 10;
+    let gameActive = true;
+    let timeLeft = 30;
+    let timerId = null;
+
+    function initGame() {
+      prices = { ...INITIAL_PRICES };
+      portfolio = {};
+      cash = 1000;
+      tick = 0;
+      gameActive = true;
+      timeLeft = 30;
+      updateDisplay();
+      renderStocks();
+      renderPortfolio();
+      updateTimerBar();
+
+      if (timerId) clearInterval(timerId);
+      timerId = setInterval(() => {
+        timeLeft--;
+        updateTimerBar();
+
+        if (timeLeft <= 0) {
+          gameActive = false;
+          clearInterval(timerId);
+          endGame();
+        }
+      }, 3000); // 30s / 10 ticks ≈ 3s per tick
+    }
+
+    function nextTick() {
+      if (!gameActive) return;
+
+      tick++;
+      document.getElementById('tick').textContent = `${tick}/${maxTicks}`;
+
+      // Simulate price changes
+      STOCKS.forEach(stock => {
+        const change = (Math.random() - 0.5) * 20;
+        prices[stock] = Math.max(10, prices[stock] + change);
+      });
+
+      renderStocks();
+      renderPortfolio();
+
+      if (tick >= maxTicks) {
+        gameActive = false;
+        if (timerId) clearInterval(timerId);
+        endGame();
+      }
+    }
+
+    function buy(stock) {
+      if (!gameActive || cash < prices[stock]) {
+        alert('현금이 부족합니다!');
+        return;
+      }
+
+      portfolio[stock] = (portfolio[stock] || 0) + 1;
+      cash -= prices[stock];
+      updateDisplay();
+      renderPortfolio();
+      nextTick();
+    }
+
+    function sell(stock) {
+      if (!gameActive || !portfolio[stock] || portfolio[stock] === 0) {
+        alert('보유 중인 주식이 없습니다!');
+        return;
+      }
+
+      portfolio[stock]--;
+      cash += prices[stock];
+      if (portfolio[stock] === 0) delete portfolio[stock];
+      updateDisplay();
+      renderPortfolio();
+      nextTick();
+    }
+
+    function calculateNetWorth() {
+      let worth = cash;
+      STOCKS.forEach(stock => {
+        if (portfolio[stock]) {
+          worth += portfolio[stock] * prices[stock];
+        }
+      });
+      return Math.round(worth);
+    }
+
+    function updateDisplay() {
+      document.getElementById('cash').textContent = Math.round(cash);
+      document.getElementById('netWorth').textContent = calculateNetWorth();
+    }
+
+    function renderStocks() {
+      const table = document.getElementById('stockTable');
+      table.innerHTML = '';
+      STOCKS.forEach(stock => {
+        const price = prices[stock];
+        const oldPrice = INITIAL_PRICES[stock];
+        const change = price - oldPrice;
+        const changePercent = ((change / oldPrice) * 100).toFixed(1);
+        const changeClass = change > 0 ? 'up' : change < 0 ? 'down' : '';
+        const changeSymbol = change > 0 ? '↑' : change < 0 ? '↓' : '→';
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td style="font-weight: 600;">${stock}</td>
+          <td class="stock-price">${Math.round(price)}원</td>
+          <td class="stock-change ${changeClass}">${changeSymbol} ${changePercent}%</td>
+          <td>
+            <button class="btn" onclick="buy('${stock}')" style="padding: 6px 10px; font-size: 0.8rem;">사기</button>
+            <button class="btn secondary" onclick="sell('${stock}')" style="padding: 6px 10px; font-size: 0.8rem; margin-left: 5px;">팔기</button>
+          </td>
+        `;
+        table.appendChild(row);
+      });
+    }
+
+    function renderPortfolio() {
+      const container = document.getElementById('portfolio');
+      if (Object.keys(portfolio).length === 0) {
+        container.innerHTML = '<p style="color: var(--muted); margin: 0;">보유 주식 없음</p>';
+        return;
+      }
+
+      container.innerHTML = STOCKS.filter(s => portfolio[s])
+        .map(s => `
+          <div class="portfolio-item">
+            <span>${s}: ${portfolio[s]}주 @ ${Math.round(prices[s])}원</span>
+            <span style="color: var(--accent);">${Math.round(portfolio[s] * prices[s])}원</span>
+          </div>
+        `).join('');
+    }
+
+    function updateTimerBar() {
+      const percent = Math.max(0, (timeLeft / 30) * 100);
+      document.getElementById('timerFill').style.width = percent + '%';
+    }
+
+    function endGame() {
+      const finalNetWorth = calculateNetWorth();
+      document.getElementById('status').textContent = `게임 끝! 최종 순자산: ${finalNetWorth}원 (수익: ${finalNetWorth - 1000}원)`;
+      const nick = localStorage.getItem('nickname') || prompt("닉네임을 입력하세요:") || "익명";
+      localStorage.setItem('nickname', nick);
+      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, finalNetWorth);
+    }
+
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      GameStats.listenTopScores(PAGE_ID, 5, (arr) => {
+        const rankList = document.getElementById('rankList');
+        rankList.innerHTML = "";
+        if (!arr || arr.length === 0) {
+          rankList.innerHTML = "<li>기록이 없습니다.</li>";
+          return;
+        }
+        arr.forEach((item, idx) => {
+          const li = document.createElement('li');
+          li.textContent = `${idx + 1}위: ${item.name} - ${item.score}원`;
+          rankList.appendChild(li);
+        });
+      });
+    }
+
+    initGame();
+  </script>
+</body>
+</html>

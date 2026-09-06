@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>카드 뒤집기</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 20px 0;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .memory-card {
+      aspect-ratio: 1;
+      background: linear-gradient(135deg, var(--accent), #4a8be8);
+      border: 2px solid rgba(91, 156, 255, 0.5);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 2rem;
+      transition: all 0.3s ease;
+      user-select: none;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .memory-card:hover:not(.matched) {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(91, 156, 255, 0.4);
+    }
+    .memory-card.flipped {
+      background: linear-gradient(135deg, #2a3f8a, #1a2555);
+      border-color: var(--good);
+    }
+    .memory-card.matched {
+      background: linear-gradient(135deg, var(--good), #2ecc71);
+      border-color: var(--good);
+      color: white;
+      cursor: default;
+    }
+    .memory-card.empty {
+      color: transparent;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🎴 카드 뒤집기</h1>
+          <p>같은 숫자의 쌍을 찾아보세요! 메모리 게임</p>
+        </header>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">맞춘 쌍</span>
+            <span class="stat-value" id="pairsFound">0/6</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">클릭</span>
+            <span class="stat-value" id="clicks">0</span>
+          </div>
+        </div>
+
+        <div class="card-grid" id="cardGrid"></div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="margin: 0; font-size: 1.1rem; color: var(--text);" id="result">게임을 시작하세요!</p>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <button class="btn" id="resetBtn" onclick="resetGame()">새 게임</button>
+        </div>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5 (최소 클릭 순)</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini74";
+    const PAIRS = [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6];
+    let cards = [];
+    let flipped = [];
+    let matched = [];
+    let clicks = 0;
+    let gameActive = true;
+
+    function shuffle(arr) {
+      return arr.sort(() => Math.random() - 0.5);
+    }
+
+    function initGame() {
+      cards = shuffle([...PAIRS]);
+      flipped = [];
+      matched = [];
+      clicks = 0;
+      gameActive = true;
+      document.getElementById('clicks').textContent = "0";
+      document.getElementById('pairsFound').textContent = "0/6";
+      document.getElementById('result').textContent = "게임 중...";
+      renderCards();
+    }
+
+    function renderCards() {
+      const grid = document.getElementById('cardGrid');
+      grid.innerHTML = "";
+      cards.forEach((num, idx) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'memory-card';
+        if (flipped.includes(idx)) {
+          cardEl.classList.add('flipped');
+          cardEl.textContent = num;
+        } else if (matched.includes(idx)) {
+          cardEl.classList.add('matched');
+          cardEl.textContent = num;
+        } else {
+          cardEl.classList.add('empty');
+          cardEl.textContent = '?';
+        }
+        cardEl.onclick = () => clickCard(idx);
+        grid.appendChild(cardEl);
+      });
+    }
+
+    function clickCard(idx) {
+      if (!gameActive || matched.includes(idx) || flipped.includes(idx)) return;
+
+      flipped.push(idx);
+      clicks++;
+      document.getElementById('clicks').textContent = clicks;
+      renderCards();
+
+      if (flipped.length === 2) {
+        const [idx1, idx2] = flipped;
+        if (cards[idx1] === cards[idx2]) {
+          matched.push(idx1, idx2);
+          flipped = [];
+          document.getElementById('pairsFound').textContent = `${matched.length / 2}/6`;
+
+          if (matched.length === 12) {
+            gameActive = false;
+            endGame();
+          } else {
+            renderCards();
+          }
+        } else {
+          setTimeout(() => {
+            flipped = [];
+            renderCards();
+          }, 800);
+        }
+      }
+    }
+
+    function resetGame() {
+      initGame();
+    }
+
+    function endGame() {
+      document.getElementById('result').textContent = `완료! ${clicks}번 클릭`;
+      const nick = localStorage.getItem('nickname') || prompt("닉네임을 입력하세요:") || "익명";
+      localStorage.setItem('nickname', nick);
+      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, clicks);
+    }
+
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      GameStats.listenTopScores(PAGE_ID, 5, (arr) => {
+        const rankList = document.getElementById('rankList');
+        rankList.innerHTML = "";
+        if (!arr || arr.length === 0) {
+          rankList.innerHTML = "<li>기록이 없습니다.</li>";
+          return;
+        }
+        arr.forEach((item, idx) => {
+          const li = document.createElement('li');
+          li.textContent = `${idx + 1}위: ${item.name} - ${item.score}회`;
+          rankList.appendChild(li);
+        });
+      });
+    }
+
+    initGame();
+  </script>
+</body>
+</html>

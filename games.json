@@ -68,5 +68,15 @@
   { "id": "mini67", "title": "🧮 논리 퍼즐", "path": "mini67/", "desc": "빠르게 정답을 선택하세요! (20초)", "thumb": "mini67/cover.png", "category": "두뇌", "scoreType": "high" },
   { "id": "mini68", "title": "🔢 그리드 슬라이드", "path": "mini68/", "desc": "숫자를 올바른 순서로 정렬하세요!", "thumb": "mini68/cover.png", "category": "두뇌", "scoreType": "high" },
   { "id": "mini69", "title": "🎴 타일 매치", "path": "mini69/", "desc": "같은 쌍을 찾아보세요! (메모리 게임)", "thumb": "mini69/cover.png", "category": "두뇌", "scoreType": "high" },
-  { "id": "mini70", "title": "🧠 최고의 두뇌 게임", "path": "mini70/", "desc": "4가지 게임을 번갈아 진행하세요! (60초)", "thumb": "mini70/cover.png", "category": "두뇌", "scoreType": "high" }
+  { "id": "mini70", "title": "🧠 최고의 두뇌 게임", "path": "mini70/", "desc": "4가지 게임을 번갈아 진행하세요! (60초)", "thumb": "mini70/cover.png", "category": "두뇌", "scoreType": "high" },
+  { "id": "mini71", "title": "5장 포커", "path": "mini71/", "desc": "최고 수준의 포커 핸드 판정", "thumb": "mini71/cover.png", "category": "카드", "scoreType": "high" },
+  { "id": "mini72", "title": "블랙잭", "path": "mini72/", "desc": "21을 목표로 한 카드 게임", "thumb": "mini72/cover.png", "category": "카드", "scoreType": "high" },
+  { "id": "mini73", "title": "주사위 게임", "path": "mini73/", "desc": "주사위를 굴려 점수 얻기", "thumb": "mini73/cover.png", "category": "카드", "scoreType": "high" },
+  { "id": "mini74", "title": "카드 뒤집기", "path": "mini74/", "desc": "뒤집힌 카드를 찾기", "thumb": "mini74/cover.png", "category": "카드", "scoreType": "high" },
+  { "id": "mini75", "title": "룰렛 게임", "path": "mini75/", "desc": "룰렛 게임 도전", "thumb": "mini75/cover.png", "category": "카드", "scoreType": "high" },
+  { "id": "mini76", "title": "보드 게임", "path": "mini76/", "desc": "전략 보드 게임", "thumb": "mini76/cover.png", "category": "카드", "scoreType": "high" },
+  { "id": "mini77", "title": "대전 카드 게임", "path": "mini77/", "desc": "카드로 대전하기", "thumb": "mini77/cover.png", "category": "카드", "scoreType": "high" },
+  { "id": "mini78", "title": "칩 쌓기 게임", "path": "mini78/", "desc": "칩을 쌓아 점수 획득", "thumb": "mini78/cover.png", "category": "카드", "scoreType": "high" },
+  { "id": "mini79", "title": "주식 게임", "path": "mini79/", "desc": "주식으로 자산 늘리기", "thumb": "mini79/cover.png", "category": "카드", "scoreType": "high" },
+  { "id": "mini80", "title": "카드 피라미드", "path": "mini80/", "desc": "피라미드 쌍 찾기", "thumb": "mini80/cover.png", "category": "카드", "scoreType": "high" }
 ]

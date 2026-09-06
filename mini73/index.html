@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>주사위 게임</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .dice-container {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin: 30px 0;
+      flex-wrap: wrap;
+    }
+    .dice {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--accent), #4a8be8);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: white;
+      box-shadow: 0 4px 12px rgba(91, 156, 255, 0.3);
+      transition: transform 0.3s;
+    }
+    .dice.rolling {
+      animation: roll 0.5s ease-in-out;
+    }
+    @keyframes roll {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(180deg) scale(1.1); }
+    }
+    .timer-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 3px;
+      margin: 20px 0;
+      overflow: hidden;
+    }
+    .timer-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--good), var(--warn), var(--bad));
+      width: 100%;
+      transition: width 0.1s linear;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🎲 주사위 게임</h1>
+          <p>주사위 2개를 굴려 7 또는 11을 맞추세요! (20초)</p>
+        </header>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">맞춘 개수</span>
+            <span class="stat-value" id="matches">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">시간</span>
+            <span class="stat-value" id="timeLeft">20</span>s
+          </div>
+        </div>
+
+        <div class="timer-bar">
+          <div class="timer-fill" id="timerFill"></div>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 10px;">목표: 7 또는 11</p>
+          <div class="dice-container">
+            <div class="dice" id="dice1">?</div>
+            <div class="dice" id="dice2">?</div>
+          </div>
+          <p style="font-size: 1.3rem; font-weight: bold; color: var(--accent); margin: 20px 0;">
+            합: <span id="sum" style="color: var(--good);">-</span>
+          </p>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="margin: 0; font-size: 1.1rem; color: var(--text);" id="result">게임을 시작하세요!</p>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+          <button class="btn" id="rollBtn" onclick="rollDice()">🎲 주사위 굴리기</button>
+        </div>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5 (맞춘 개수 많은 순)</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini73";
+    let matches = 0;
+    let timeLeft = 20;
+    let gameActive = true;
+    let timerId = null;
+
+    function rollDice() {
+      if (!gameActive) return;
+
+      const dice1Num = Math.floor(Math.random() * 6) + 1;
+      const dice2Num = Math.floor(Math.random() * 6) + 1;
+      const sum = dice1Num + dice2Num;
+
+      const dice1 = document.getElementById('dice1');
+      const dice2 = document.getElementById('dice2');
+      const sumDisplay = document.getElementById('sum');
+      const result = document.getElementById('result');
+
+      dice1.classList.add('rolling');
+      dice2.classList.add('rolling');
+
+      setTimeout(() => {
+        dice1.classList.remove('rolling');
+        dice2.classList.remove('rolling');
+        dice1.textContent = dice1Num;
+        dice2.textContent = dice2Num;
+        sumDisplay.textContent = sum;
+
+        if (sum === 7 || sum === 11) {
+          matches++;
+          document.getElementById('matches').textContent = matches;
+          result.textContent = `맞았습니다! (${sum}) 총 ${matches}개`;
+          result.style.color = 'var(--good)';
+        } else {
+          result.textContent = `빗나갔습니다. (${sum}) 목표: 7 또는 11`;
+          result.style.color = 'var(--bad)';
+        }
+      }, 500);
+    }
+
+    function startGame() {
+      timeLeft = 20;
+      matches = 0;
+      gameActive = true;
+      document.getElementById('timeLeft').textContent = "20";
+      document.getElementById('matches').textContent = "0";
+      document.getElementById('result').textContent = "게임 중...";
+      document.getElementById('sum').textContent = "-";
+      document.getElementById('dice1').textContent = "?";
+      document.getElementById('dice2').textContent = "?";
+      document.getElementById('rollBtn').disabled = false;
+      updateTimerBar();
+
+      if (timerId) clearInterval(timerId);
+      timerId = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timeLeft').textContent = timeLeft;
+        updateTimerBar();
+
+        if (timeLeft <= 0) {
+          gameActive = false;
+          clearInterval(timerId);
+          document.getElementById('rollBtn').disabled = true;
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function updateTimerBar() {
+      const percent = Math.max(0, (timeLeft / 20) * 100);
+      document.getElementById('timerFill').style.width = percent + '%';
+    }
+
+    function endGame() {
+      const nick = localStorage.getItem('nickname') || prompt("닉네임을 입력하세요:") || "익명";
+      localStorage.setItem('nickname', nick);
+      document.getElementById('result').textContent = `게임 끝! 맞춘 개수: ${matches}`;
+      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, matches);
+    }
+
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      GameStats.listenTopScores(PAGE_ID, 5, (arr) => {
+        const rankList = document.getElementById('rankList');
+        rankList.innerHTML = "";
+        if (!arr || arr.length === 0) {
+          rankList.innerHTML = "<li>기록이 없습니다.</li>";
+          return;
+        }
+        arr.forEach((item, idx) => {
+          const li = document.createElement('li');
+          li.textContent = `${idx + 1}위: ${item.name} - ${item.score}개`;
+          rankList.appendChild(li);
+        });
+      });
+    }
+
+    startGame();
+  </script>
+</body>
+</html>

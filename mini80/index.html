@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>카드 피라미드</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .pyramid {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      margin: 20px 0;
+      padding: 20px;
+    }
+    .pyramid-row {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+    }
+    .pyramid-card {
+      width: 70px;
+      height: 100px;
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      background: linear-gradient(135deg, #1a2555, #2a3f8a);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: bold;
+      color: var(--text);
+      user-select: none;
+      position: relative;
+    }
+    .pyramid-card:hover:not(.matched) {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(91, 156, 255, 0.3);
+    }
+    .pyramid-card.matched {
+      background: linear-gradient(135deg, var(--good), #2ecc71);
+      border-color: var(--good);
+      color: white;
+      opacity: 0.5;
+      cursor: default;
+    }
+    .pyramid-card.hidden {
+      opacity: 0.5;
+      pointer-events: none;
+      background: linear-gradient(135deg, #0f1735, #1a2444);
+      border-color: rgba(91, 156, 255, 0.3);
+    }
+    .pyramid-card .rank { font-size: 1.5rem; }
+    .pyramid-card .suit { font-size: 1rem; margin-top: 5px; }
+    .selection-area {
+      background: rgba(0,0,0,0.2);
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .selected-cards {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 15px;
+    }
+    .selected-card {
+      width: 60px;
+      height: 85px;
+      border: 2px solid var(--good);
+      border-radius: 6px;
+      background: rgba(46, 204, 113, 0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🎴 카드 피라미드</h1>
+          <p>합이 13인 카드 쌍을 찾아 제거하세요! (노출된 카드만 선택 가능)</p>
+        </header>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">제거한 쌍</span>
+            <span class="stat-value" id="pairsFound">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">남은 카드</span>
+            <span class="stat-value" id="cardsLeft">28</span>
+          </div>
+        </div>
+
+        <div class="pyramid" id="pyramid"></div>
+
+        <div class="selection-area">
+          <p style="margin: 0 0 10px; color: var(--muted); font-size: 0.9rem;">선택한 카드 (합: <span id="selectedSum" style="color: var(--accent); font-weight: 600;">0</span>)</p>
+          <div class="selected-cards" id="selectedCards"></div>
+          <div style="margin-top: 15px;">
+            <button class="btn" id="matchBtn" onclick="matchCards()" disabled>제거 (합 = 13)</button>
+            <button class="btn secondary" onclick="clearSelection()" style="margin-left: 10px;">선택 취소</button>
+          </div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+          <p style="margin: 0; font-size: 1rem; color: var(--muted); margin-bottom: 5px;">상태</p>
+          <p style="margin: 0; font-size: 1.1rem; font-weight: 600; color: var(--text);" id="status">카드를 선택하세요!</p>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <button class="btn secondary" onclick="resetGame()">새 게임</button>
+        </div>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5 (제거한 쌍 많은 순)</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini80";
+    const SUITS = ['♠', '♥', '♦', '♣'];
+    const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    const RANK_VALUES = { 'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13 };
+
+    let pyramid = [];
+    let selected = [];
+    let matched = [];
+    let pairsFound = 0;
+    let gameActive = true;
+
+    function generatePyramid() {
+      pyramid = [];
+      const allCards = [];
+      for (let i = 0; i < 2; i++) {
+        for (let suit of SUITS) {
+          for (let rank of RANKS) {
+            allCards.push({ rank, suit });
+          }
+        }
+      }
+
+      // Shuffle
+      allCards.sort(() => Math.random() - 0.5);
+
+      // Create pyramid structure (7 rows: 1, 2, 3, 4, 5, 6, 7)
+      let idx = 0;
+      for (let row = 0; row < 7; row++) {
+        pyramid[row] = [];
+        for (let col = 0; col <= row && idx < allCards.length; col++) {
+          pyramid[row].push(allCards[idx++]);
+        }
+      }
+    }
+
+    function isExposed(row, col) {
+      // A card is exposed if no card is directly below-left or below-right
+      const belowLeft = row + 1 < pyramid.length && pyramid[row + 1][col];
+      const belowRight = row + 1 < pyramid.length && pyramid[row + 1][col + 1];
+
+      const hasBlocker = (belowLeft && !matched.includes(`${row + 1},${col}`)) ||
+                         (belowRight && !matched.includes(`${row + 1},${col + 1}`));
+
+      return !hasBlocker;
+    }
+
+    function renderPyramid() {
+      const pyramidEl = document.getElementById('pyramid');
+      pyramidEl.innerHTML = '';
+
+      for (let row = 0; row < pyramid.length; row++) {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'pyramid-row';
+
+        for (let col = 0; col < pyramid[row].length; col++) {
+          const card = pyramid[row][col];
+          const cardId = `${row},${col}`;
+          const isMatched = matched.includes(cardId);
+
+          const cardEl = document.createElement('div');
+          cardEl.className = 'pyramid-card';
+          cardEl.id = `card${cardId}`;
+
+          if (isMatched) {
+            cardEl.classList.add('matched');
+            cardEl.innerHTML = `<div class="rank">${card.rank}</div><div class="suit">${card.suit}</div>`;
+          } else {
+            const exposed = isExposed(row, col);
+            if (!exposed) {
+              cardEl.classList.add('hidden');
+            } else {
+              cardEl.onclick = () => selectCard(row, col, card);
+              cardEl.style.cursor = 'pointer';
+            }
+            cardEl.innerHTML = `<div class="rank">${card.rank}</div><div class="suit">${card.suit}</div>`;
+          }
+
+          rowEl.appendChild(cardEl);
+        }
+
+        pyramidEl.appendChild(rowEl);
+      }
+    }
+
+    function selectCard(row, col, card) {
+      const cardId = `${row},${col}`;
+      if (selected.some(s => s.id === cardId)) {
+        selected = selected.filter(s => s.id !== cardId);
+      } else {
+        if (selected.length >= 2) {
+          selected = [];
+        }
+        selected.push({ id: cardId, card });
+      }
+      updateSelection();
+      renderPyramid();
+    }
+
+    function updateSelection() {
+      const sum = selected.reduce((s, item) => s + RANK_VALUES[item.card.rank], 0);
+      document.getElementById('selectedSum').textContent = sum;
+
+      const selectedEl = document.getElementById('selectedCards');
+      selectedEl.innerHTML = selected.map(item =>
+        `<div class="selected-card">${item.card.rank}${item.card.suit}</div>`
+      ).join('');
+
+      document.getElementById('matchBtn').disabled = selected.length !== 2 || sum !== 13;
+    }
+
+    function matchCards() {
+      if (selected.length !== 2) return;
+
+      const sum = selected.reduce((s, item) => s + RANK_VALUES[item.card.rank], 0);
+      if (sum !== 13) return;
+
+      selected.forEach(item => {
+        matched.push(item.id);
+      });
+
+      pairsFound++;
+      document.getElementById('pairsFound').textContent = pairsFound;
+      document.getElementById('cardsLeft').textContent = 28 - pairsFound * 2;
+      document.getElementById('status').textContent = `쌍을 찾았습니다! +1`;
+
+      selected = [];
+      updateSelection();
+      renderPyramid();
+
+      if (pairsFound === 14) {
+        gameActive = false;
+        endGame();
+      }
+    }
+
+    function clearSelection() {
+      selected = [];
+      updateSelection();
+      renderPyramid();
+    }
+
+    function resetGame() {
+      generatePyramid();
+      selected = [];
+      matched = [];
+      pairsFound = 0;
+      gameActive = true;
+      document.getElementById('pairsFound').textContent = "0";
+      document.getElementById('cardsLeft').textContent = "28";
+      document.getElementById('status').textContent = "카드를 선택하세요!";
+      updateSelection();
+      renderPyramid();
+    }
+
+    function endGame() {
+      document.getElementById('status').textContent = `🎉 완료! ${pairsFound}개 쌍 제거!`;
+      const nick = localStorage.getItem('nickname') || prompt("닉네임을 입력하세요:") || "익명";
+      localStorage.setItem('nickname', nick);
+      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, pairsFound);
+    }
+
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      GameStats.listenTopScores(PAGE_ID, 5, (arr) => {
+        const rankList = document.getElementById('rankList');
+        rankList.innerHTML = "";
+        if (!arr || arr.length === 0) {
+          rankList.innerHTML = "<li>기록이 없습니다.</li>";
+          return;
+        }
+        arr.forEach((item, idx) => {
+          const li = document.createElement('li');
+          li.textContent = `${idx + 1}위: ${item.name} - ${item.score}개`;
+          rankList.appendChild(li);
+        });
+      });
+    }
+
+    resetGame();
+  </script>
+</body>
+</html>

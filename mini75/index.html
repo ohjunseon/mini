@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>룰렛 게임</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    canvas {
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      display: block;
+      margin: 20px auto;
+      background: #0f1735;
+      touch-action: manipulation;
+    }
+    .bet-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .bet-btn {
+      padding: 12px;
+      border-radius: 8px;
+      border: 2px solid var(--panel-border);
+      background: rgba(0,0,0,0.2);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .bet-btn:hover {
+      border-color: var(--accent);
+      background: rgba(91, 156, 255, 0.1);
+    }
+    .bet-btn.selected {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .timer-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 4px;
+      margin: 20px 0;
+      overflow: hidden;
+    }
+    .timer-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--good), var(--warn), var(--bad));
+      width: 100%;
+      transition: width 0.1s linear;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🎰 룰렛 게임</h1>
+          <p>구간을 선택하고 스핀! (20초 / 5라운드)</p>
+        </header>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">라운드</span>
+            <span class="stat-value" id="round">1/5</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">수익</span>
+            <span class="stat-value" id="winnings">0원</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">시간</span>
+            <span class="stat-value" id="timeLeft">20</span>s
+          </div>
+        </div>
+
+        <div class="timer-bar">
+          <div class="timer-fill" id="timerFill"></div>
+        </div>
+
+        <canvas id="roulette" width="320" height="320"></canvas>
+
+        <div class="bet-section">
+          <button class="bet-btn" onclick="selectBet('red')">🔴 Red</button>
+          <button class="bet-btn" onclick="selectBet('black')">⚫ Black</button>
+          <button class="bet-btn" onclick="selectBet('odd')">홀수</button>
+          <button class="bet-btn" onclick="selectBet('even')">짝수</button>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: center; margin: 20px 0;">
+          <button class="btn" id="spinBtn" onclick="spin()" disabled>🎡 스핀!</button>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; text-align: center;">
+          <p style="margin: 0; font-size: 1rem; color: var(--muted); margin-bottom: 5px;">결과</p>
+          <p style="margin: 0; font-size: 1.2rem; font-weight: 600; color: var(--text);" id="result">-</p>
+        </div>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5 (수익 높은 순)</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini75";
+    const canvas = document.getElementById('roulette');
+    const ctx = canvas.getContext('2d');
+    let selectedBet = null;
+    let round = 1;
+    let winnings = 0;
+    let timeLeft = 20;
+    let timerId = null;
+    let gameActive = true;
+    let spinning = false;
+
+    function drawRoulette(angle = 0) {
+      ctx.fillStyle = '#0f1735';
+      ctx.fillRect(0, 0, 320, 320);
+
+      const centerX = 160, centerY = 160, radius = 140;
+      const slices = 37;
+
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(angle);
+
+      for (let i = 0; i < slices; i++) {
+        const startAngle = (i / slices) * Math.PI * 2;
+        const endAngle = ((i + 1) / slices) * Math.PI * 2;
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, startAngle, endAngle);
+        ctx.closePath();
+
+        if (i === 0) {
+          ctx.fillStyle = 'green';
+        } else if ((i + 1) % 2 === 0) {
+          ctx.fillStyle = 'red';
+        } else {
+          ctx.fillStyle = 'black';
+        }
+        ctx.fill();
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.rotate(startAngle + (endAngle - startAngle) / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 12px Arial';
+        ctx.fillText(i.toString(), radius - 15, 5);
+        ctx.restore();
+      }
+
+      ctx.restore();
+
+      // Pointer at top
+      ctx.beginPath();
+      ctx.moveTo(centerX - 10, 10);
+      ctx.lineTo(centerX + 10, 10);
+      ctx.lineTo(centerX, 25);
+      ctx.closePath();
+      ctx.fillStyle = var(--good);
+      ctx.fill();
+    }
+
+    function selectBet(type) {
+      selectedBet = type;
+      document.querySelectorAll('.bet-btn').forEach(btn => btn.classList.remove('selected'));
+      event.target.classList.add('selected');
+      document.getElementById('spinBtn').disabled = false;
+    }
+
+    function spin() {
+      if (spinning || !gameActive || !selectedBet) return;
+
+      spinning = true;
+      document.getElementById('spinBtn').disabled = true;
+      document.querySelectorAll('.bet-btn').forEach(btn => btn.disabled = true);
+
+      const winningNumber = Math.floor(Math.random() * 37);
+      const spins = 8 + Math.random() * 4;
+      let currentSpin = 0;
+      const spinSpeed = 20;
+
+      const spinInterval = setInterval(() => {
+        currentSpin += spinSpeed;
+        const angle = (currentSpin / 360) * Math.PI * 2;
+        drawRoulette(angle);
+
+        if (currentSpin >= spins * 360) {
+          clearInterval(spinInterval);
+          spinning = false;
+
+          const finalAngle = (winningNumber / 37) * Math.PI * 2;
+          drawRoulette(finalAngle);
+
+          checkResult(winningNumber);
+          document.querySelectorAll('.bet-btn').forEach(btn => btn.disabled = false);
+
+          if (round < 5) {
+            setTimeout(() => {
+              round++;
+              document.getElementById('round').textContent = `${round}/5`;
+              document.getElementById('spinBtn').disabled = true;
+              selectedBet = null;
+              document.querySelectorAll('.bet-btn').forEach(btn => btn.classList.remove('selected'));
+              document.getElementById('result').textContent = "-";
+            }, 1500);
+          } else {
+            document.getElementById('spinBtn').disabled = true;
+            endGame();
+          }
+        }
+      }, 50);
+    }
+
+    function checkResult(num) {
+      let won = false;
+      let winAmount = 100;
+
+      if (selectedBet === 'red' && num > 0 && num % 2 !== 0) {
+        won = true;
+        winAmount = 100;
+      } else if (selectedBet === 'black' && num > 0 && num % 2 === 0) {
+        won = true;
+        winAmount = 100;
+      } else if (selectedBet === 'odd' && num % 2 !== 0) {
+        won = true;
+        winAmount = 100;
+      } else if (selectedBet === 'even' && num % 2 === 0) {
+        won = true;
+        winAmount = 100;
+      }
+
+      if (won) {
+        winnings += winAmount;
+        document.getElementById('result').textContent = `🎉 당첨! +${winAmount}원`;
+        document.getElementById('result').style.color = 'var(--good)';
+      } else {
+        document.getElementById('result').textContent = `${num}번 - 꽝`;
+        document.getElementById('result').style.color = 'var(--bad)';
+      }
+
+      document.getElementById('winnings').textContent = winnings + '원';
+    }
+
+    function startGame() {
+      round = 1;
+      winnings = 0;
+      timeLeft = 20;
+      gameActive = true;
+      document.getElementById('round').textContent = "1/5";
+      document.getElementById('winnings').textContent = "0원";
+      document.getElementById('timeLeft').textContent = "20";
+      updateTimerBar();
+      drawRoulette();
+
+      if (timerId) clearInterval(timerId);
+      timerId = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timeLeft').textContent = timeLeft;
+        updateTimerBar();
+
+        if (timeLeft <= 0) {
+          gameActive = false;
+          clearInterval(timerId);
+          document.getElementById('spinBtn').disabled = true;
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function updateTimerBar() {
+      const percent = Math.max(0, (timeLeft / 20) * 100);
+      document.getElementById('timerFill').style.width = percent + '%';
+    }
+
+    function endGame() {
+      const nick = localStorage.getItem('nickname') || prompt("닉네임을 입력하세요:") || "익명";
+      localStorage.setItem('nickname', nick);
+      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, winnings);
+    }
+
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      GameStats.listenTopScores(PAGE_ID, 5, (arr) => {
+        const rankList = document.getElementById('rankList');
+        rankList.innerHTML = "";
+        if (!arr || arr.length === 0) {
+          rankList.innerHTML = "<li>기록이 없습니다.</li>";
+          return;
+        }
+        arr.forEach((item, idx) => {
+          const li = document.createElement('li');
+          li.textContent = `${idx + 1}위: ${item.name} - ${item.score}원`;
+          rankList.appendChild(li);
+        });
+      });
+    }
+
+    startGame();
+  </script>
+</body>
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>칩 쌓기 게임</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    canvas {
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      display: block;
+      margin: 20px auto;
+      background: #0f1735;
+      touch-action: manipulation;
+    }
+    .timer-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 4px;
+      margin: 20px 0;
+      overflow: hidden;
+    }
+    .timer-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--good), var(--warn), var(--bad));
+      width: 100%;
+      transition: width 0.1s linear;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🎰 칩 쌓기 게임</h1>
+          <p>같은 색 4개를 연결하여 제거하세요! (25초)</p>
+        </header>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">점수</span>
+            <span class="stat-value" id="score">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">시간</span>
+            <span class="stat-value" id="timeLeft">25</span>s
+          </div>
+        </div>
+
+        <div class="timer-bar">
+          <div class="timer-fill" id="timerFill"></div>
+        </div>
+
+        <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+        <div style="display: flex; gap: 10px; justify-content: center; margin: 20px 0; flex-wrap: wrap;">
+          <button class="btn secondary" onclick="dropLeft()">← 왼쪽에 떨어뜨리기</button>
+          <button class="btn secondary" onclick="dropRight()">오른쪽에 떨어뜨리기 →</button>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; text-align: center;">
+          <p style="margin: 0; font-size: 1rem; color: var(--muted); margin-bottom: 5px;">상태</p>
+          <p style="margin: 0; font-size: 1.1rem; font-weight: 600; color: var(--text);" id="status">게임 시작!</p>
+        </div>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5 (점수 높은 순)</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini78";
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const COLS = 6;
+    const ROWS = 8;
+    const CELL_SIZE = 50;
+    const COLORS = ['#ff6b6b', '#4ecdc4', '#ffd93d', '#6bcf7f', '#ff8c42'];
+
+    let grid = Array(COLS).fill(null).map(() => []);
+    let score = 0;
+    let timeLeft = 25;
+    let gameActive = true;
+    let timerId = null;
+    let currentChip = null;
+
+    function getRandomColor() {
+      return COLORS[Math.floor(Math.random() * COLORS.length)];
+    }
+
+    function dropChip(col) {
+      if (!gameActive || col < 0 || col >= COLS) return;
+
+      if (grid[col].length >= ROWS) {
+        document.getElementById('status').textContent = "그 열은 가득 찼습니다!";
+        return;
+      }
+
+      const newChip = getRandomColor();
+      grid[col].push(newChip);
+
+      // Check for matches
+      checkMatches();
+      draw();
+    }
+
+    function dropLeft() {
+      dropChip(Math.floor(COLS / 2) - 1);
+    }
+
+    function dropRight() {
+      dropChip(Math.floor(COLS / 2));
+    }
+
+    function checkMatches() {
+      let removed = false;
+
+      // Check horizontally
+      for (let col = 0; col < COLS; col++) {
+        for (let row = 0; row < grid[col].length - 3; row++) {
+          if (
+            grid[col][row] === grid[col][row + 1] &&
+            grid[col][row] === grid[col][row + 2] &&
+            grid[col][row] === grid[col][row + 3]
+          ) {
+            grid[col].splice(row, 4);
+            score += 40;
+            removed = true;
+            document.getElementById('score').textContent = score;
+            document.getElementById('status').textContent = "4개 연결! +40점";
+            row = Math.max(-1, row - 3);
+          }
+        }
+      }
+
+      // Check vertically (between columns)
+      for (let col = 0; col < COLS - 3; col++) {
+        const minHeight = Math.min(grid[col].length, grid[col + 1].length, grid[col + 2].length, grid[col + 3].length);
+        for (let row = minHeight - 1; row >= 0; row--) {
+          if (
+            grid[col][row] === grid[col + 1][row] &&
+            grid[col][row] === grid[col + 2][row] &&
+            grid[col][row] === grid[col + 3][row]
+          ) {
+            grid[col].splice(row, 1);
+            grid[col + 1].splice(row, 1);
+            grid[col + 2].splice(row, 1);
+            grid[col + 3].splice(row, 1);
+            score += 40;
+            removed = true;
+            document.getElementById('score').textContent = score;
+            document.getElementById('status').textContent = "4개 연결! +40점";
+          }
+        }
+      }
+    }
+
+    function draw() {
+      ctx.fillStyle = '#0f1735';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw grid
+      ctx.strokeStyle = 'rgba(91, 156, 255, 0.2)';
+      ctx.lineWidth = 1;
+      for (let col = 0; col <= COLS; col++) {
+        ctx.beginPath();
+        ctx.moveTo(col * CELL_SIZE, 0);
+        ctx.lineTo(col * CELL_SIZE, canvas.height);
+        ctx.stroke();
+      }
+
+      // Draw chips
+      for (let col = 0; col < COLS; col++) {
+        for (let row = 0; row < grid[col].length; row++) {
+          const x = col * CELL_SIZE + CELL_SIZE / 2;
+          const y = canvas.height - (row + 1) * CELL_SIZE + CELL_SIZE / 2;
+          const color = grid[col][row];
+
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(x, y, CELL_SIZE / 2 - 5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      }
+    }
+
+    function startGame() {
+      grid = Array(COLS).fill(null).map(() => []);
+      score = 0;
+      timeLeft = 25;
+      gameActive = true;
+      document.getElementById('score').textContent = "0";
+      document.getElementById('timeLeft').textContent = "25";
+      document.getElementById('status').textContent = "게임 시작!";
+      updateTimerBar();
+      draw();
+
+      if (timerId) clearInterval(timerId);
+      timerId = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timeLeft').textContent = timeLeft;
+        updateTimerBar();
+
+        if (timeLeft <= 0) {
+          gameActive = false;
+          clearInterval(timerId);
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function updateTimerBar() {
+      const percent = Math.max(0, (timeLeft / 25) * 100);
+      document.getElementById('timerFill').style.width = percent + '%';
+    }
+
+    function endGame() {
+      document.getElementById('status').textContent = `게임 끝! 최종 점수: ${score}`;
+      const nick = localStorage.getItem('nickname') || prompt("닉네임을 입력하세요:") || "익명";
+      localStorage.setItem('nickname', nick);
+      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+    }
+
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      GameStats.listenTopScores(PAGE_ID, 5, (arr) => {
+        const rankList = document.getElementById('rankList');
+        rankList.innerHTML = "";
+        if (!arr || arr.length === 0) {
+          rankList.innerHTML = "<li>기록이 없습니다.</li>";
+          return;
+        }
+        arr.forEach((item, idx) => {
+          const li = document.createElement('li');
+          li.textContent = `${idx + 1}위: ${item.name} - ${item.score}점`;
+          rankList.appendChild(li);
+        });
+      });
+    }
+
+    startGame();
+  </script>
+</body>
+</html>
