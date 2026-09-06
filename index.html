@@ -5,18 +5,25 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MiniGames — 메인</title>
-  <meta name="theme-color" content="#111827" />
+  <meta name="theme-color" content="#0b1020" />
   <style>
+    /* 디자인 토큰 정본 = shared/style.css (D2). 값은 반드시 그쪽과 일치시킬 것. */
     :root {
-      --bg: #0b1220;
-      --panel: #111827;
-      --panel-2: #0f172a;
-      --text: #e5e7eb;
-      --muted: #9ca3af;
-      --accent: #60a5fa;
+      --bg: #0b1020;
+      --panel: #121931;
+      --panel-border: #1a2244;
+      --panel-2: #0d1530;
+      --text: #e9eef9;
+      --muted: #9fb3d9;
+      --accent: #5b9cff;
+      --accent-hover: #4a8be8;
       --accent-2: #34d399;
+      --good: #2ecc71;
+      --bad: #ff5b5b;
+      --warn: #ffd166;
       --radius: 16px;
       --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+      --font-main: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
 
     * {
@@ -34,7 +41,7 @@
       color: var(--text);
       background: radial-gradient(1200px 800px at 10% -10%, #1f2937 0%, transparent 50%),
         radial-gradient(800px 600px at 100% 0%, #0e7490 0%, transparent 55%),
-        linear-gradient(180deg, #0b1220 0%, #030712 100%);
+        linear-gradient(180deg, var(--bg) 0%, #030712 100%);
     }
 
     .container {
@@ -66,8 +73,8 @@
       width: 40px;
       height: 40px;
       border-radius: 12px;
-      background: conic-gradient(from 220deg, #60a5fa, #34d399, #a78bfa, #60a5fa);
-      box-shadow: 0 6px 16px rgba(96, 165, 250, .4);
+      background: conic-gradient(from 220deg, var(--accent), var(--accent-2), #a78bfa, var(--accent));
+      box-shadow: 0 6px 16px rgba(91, 156, 255, .4);
     }
 
     h1 {
@@ -135,7 +142,7 @@
     }
 
     .card:focus-visible {
-      box-shadow: 0 0 0 3px rgba(96, 165, 250, .55), var(--shadow);
+      box-shadow: 0 0 0 3px rgba(91, 156, 255, .55), var(--shadow);
     }
 
     .card:hover {
@@ -147,7 +154,7 @@
       width: 100%;
       display: block;
       object-fit: cover;
-      background: #0b1020;
+      background: var(--bg);
     }
 
     .badge {
@@ -159,7 +166,7 @@
       background: rgba(17, 24, 39, .8);
       border: 1px solid rgba(255, 255, 255, .12);
       font-size: 12px;
-      color: #e5e7eb;
+      color: var(--text);
       backdrop-filter: blur(6px);
     }
 
