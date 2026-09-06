@@ -85,7 +85,7 @@
 - [ ] mini6 shared 연동 (style.css + ranking.js)
 - [ ] games.json 스키마 + 30개 데이터
 - [x] 기존 29개: firebase 3줄 → ranking.js 1줄 교체 ✅ 2026-09-06 (sed 일괄, 검증완료)
-- [ ] mini6 전체 연동(style.css+ranking.js+점수배선) — 자체로직 필요, 다음 유닛
+- [x] mini6 전체 연동(style.css+ranking.js+방문수+Top5+gameOver저장) ✅ 2026-09-06 (Haiku/Opus검증) → **30개 전부 연동 완료**
 - [ ] ④ 실브라우저 검증: 배포본(D1 연결)에서 게임 로드·랭킹 저장/조회 확인
 
 #### 백엔드 기술 메모

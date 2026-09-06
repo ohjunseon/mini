@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>같은 색 찾기 게임</title>
+  <link rel="stylesheet" href="../shared/style.css">
   <style>
     :root{
       --bg:#0b1020; --panel:#121931; --accent:#5b9cff; --text:#e9eef9; --muted:#9fb3d9;
@@ -132,10 +133,28 @@
         팁: 같은 색을 모두 찾으면 즉시 다음 라운드로 넘어갑니다. 잘못 누르면 시간이 <b>-1초</b> 감소합니다.
         <span class="kbd">R</span> 키로 재시작, <span class="kbd">N</span> 키로 다음 라운드.
       </div>
+
+      <div class="panel mt-4" style="text-align: left; border-top: 1px solid var(--panel-border); padding-top: 16px;">
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; color: var(--muted); font-size: 12px; margin-bottom: 6px;">닉네임 (점수 등록용)</label>
+          <input id="nicknameInput" type="text" placeholder="닉네임을 입력하세요" style="width: 100%; padding: 8px 12px; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--panel); color: var(--text); font-family: inherit;">
+        </div>
+        <h3>🏆 Top 5 (높은 점수 순)</h3>
+        <ul id="rankList" style="padding-left: 20px; color: var(--muted); margin: 0;">
+          <li>로딩 중...</li>
+        </ul>
+      </div>
+
+      <div class="mt-4" style="text-align: center; border-top: 1px solid var(--panel-border); padding-top: 16px;">
+        <a href="../index.html" class="back-link" style="color: var(--accent); text-decoration: none; font-size: 14px;">← 목록으로 돌아가기</a>
+      </div>
     </div>
   </div>
 
+  <script src="../shared/ranking.js"></script>
+
   <script>
+    const PAGE_ID = "mini6";
     const elBoard = document.getElementById('board');
     const elScore = document.getElementById('score');
     const elBest = document.getElementById('best');
@@ -151,6 +170,8 @@
     const restartBtn = document.getElementById('restartBtn');
     const selDiff = document.getElementById('difficulty');
     const selGrid = document.getElementById('gridSize');
+    const nicknameInput = document.getElementById('nicknameInput');
+    const rankList = document.getElementById('rankList');
 
     let state = {
       score:0, best: Number(localStorage.getItem('sameColorBest')||0), round:1,
@@ -159,6 +180,33 @@
     };
 
     elBest.textContent = state.best;
+
+    // Initialize nickname from localStorage
+    const savedNickname = localStorage.getItem('nickname_mini6');
+    if (savedNickname) {
+      nicknameInput.value = savedNickname;
+    }
+
+    // GameStats: Visit count and rankings
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, (val) => {
+        // Optional: display visit count if needed
+      });
+
+      // Listen for top scores
+      GameStats.listenTopScores(PAGE_ID, 5, (arr) => {
+        rankList.innerHTML = "";
+        if (!arr || arr.length === 0) {
+          rankList.innerHTML = "<li>기록이 없습니다.</li>";
+          return;
+        }
+        arr.forEach((item, idx) => {
+          const li = document.createElement('li');
+          li.textContent = `${idx + 1}위: ${item.name} - ${item.score}점`;
+          rankList.appendChild(li);
+        });
+      });
+    }
 
     const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
     function beep(freq=880,ms=120,gain=0.04){
@@ -296,6 +344,17 @@
       if(state.score>state.best){ state.best=state.score; localStorage.setItem('sameColorBest', String(state.best)); }
       elBest.textContent = state.best;
       startBtn.disabled=false; startBtn.textContent='다시 도전 (다음 라운드)';
+
+      // Save score to ranking system
+      let nick = nicknameInput.value.trim();
+      if (!nick) {
+        nick = localStorage.getItem('nickname_mini6') || "익명";
+      }
+      nicknameInput.value = nick;
+      localStorage.setItem('nickname_mini6', nick);
+      if (window.GameStats) {
+        GameStats.saveScore(PAGE_ID, nick, Math.round(state.score));
+      }
     }
 
     function restart(){
