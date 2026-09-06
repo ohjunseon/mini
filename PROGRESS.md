@@ -82,7 +82,8 @@
 - [ ] Phase6 정리: `assets.directory:"."`라 worker/·server/·*.md·schema.sql이 **공개 다운로드됨**(시크릿은 없음). 사이트를 하위폴더로 옮기거나 assets 제외 고려
 - [ ] 루트 stray `package.json` 제거
 - [x] 디자인 토큰 일원화 (D2) ✅ 2026-09-06 (Main/Opus) — index.html :root를 정본(shared/style.css) 팔레트로 교체 + 하드코딩 accent/bg/text literal→토큰/정본값 치환. 30개 게임 전부 shared/style.css 링크 확인, mini6 자체:root는 값 동일(무해). ⚠️게임별 인라인색 잔재 정리는 Phase3
-- [ ] mini6 shared 연동 (style.css + ranking.js)
+- [x] mini6 shared 연동 (style.css + ranking.js) ✅ 2026-09-06
+- [x] Phase 2: games.json + 런처 개편 ✅ 2026-09-06 (Main/Opus) — 커밋 3662363
 - [ ] games.json 스키마 + 30개 데이터
 - [x] 기존 29개: firebase 3줄 → ranking.js 1줄 교체 ✅ 2026-09-06 (sed 일괄, 검증완료)
 - [x] mini6 전체 연동(style.css+ranking.js+방문수+Top5+gameOver저장) ✅ 2026-09-06 (Haiku/Opus검증) → **30개 전부 연동 완료**
@@ -115,6 +116,7 @@
 
 | 일시 | 세션/에이전트 | 작업 | 결과 | 4점 점검 |
 |---|---|---|---|---|
+| 2026-09-06 | Main(Opus) | Phase2: games.json + 런처 개편(fetch+검색) | ✅ 커밋 3662363 | ①JSON구문/fetch체인 정적검증OK ②정적데이터(시크릿X) ③filter/render로직정상 ④배포후실테스트 |
 | 2026-09-06 | Main(Opus) | 디자인 토큰 일원화(D2): 런처 index.html | ✅ 통과 | ①정적검증: var참조7개 전부정의·잔재색0·깨진참조0 ②CSS값만변경(시크릿/입력무관) ③JS로직불변·색값만 ④CSS-only→실렌더는 배포/로컬시 |
 | 2026-09-06 | Main(Opus) | 29개 firebase→ranking.js 일괄 교체(sed) | ✅ 통과 | ①정적검증(잔존0·ranking29·CDN0) ②죽은firebase제거 ③GameStats계약유지=동작동일 ④실브라우저는 배포본에서 |
 | 2026-09-06 | Haiku+Opus | Cloudflare Worker+D1 백엔드 코드 작성 | ✅ 코드검토 통과(파라미터바인딩·검증·CORS·정적폴백). 동작검증은 D1 생성 후 wrangler | ①②③ 코드검토 ④ 배포후 |
