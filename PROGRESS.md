@@ -116,6 +116,7 @@
 
 | 일시 | 세션/에이전트 | 작업 | 결과 | 4점 점검 |
 |---|---|---|---|---|
+| 2026-09-06 | Main(Opus) | 로컬 D1 배포 검증 (API curl 테스트) | ✅ 통과 | ①서버정상기동·API응답정상·404없음 ②점수범위검증·SQL준비문·이름UTF-8처리 ③visit→count·score→ok·top→내림차순정렬OK ④브라우저테스트는 배포후 |
 | 2026-09-06 | Main(Opus) | Phase2: games.json + 런처 개편(fetch+검색) | ✅ 커밋 3662363 | ①JSON구문/fetch체인 정적검증OK ②정적데이터(시크릿X) ③filter/render로직정상 ④배포후실테스트 |
 | 2026-09-06 | Main(Opus) | 디자인 토큰 일원화(D2): 런처 index.html | ✅ 통과 | ①정적검증: var참조7개 전부정의·잔재색0·깨진참조0 ②CSS값만변경(시크릿/입력무관) ③JS로직불변·색값만 ④CSS-only→실렌더는 배포/로컬시 |
 | 2026-09-06 | Main(Opus) | 29개 firebase→ranking.js 일괄 교체(sed) | ✅ 통과 | ①정적검증(잔존0·ranking29·CDN0) ②죽은firebase제거 ③GameStats계약유지=동작동일 ④실브라우저는 배포본에서 |
