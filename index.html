@@ -4,8 +4,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MiniGames — 메인</title>
+  <title>MiniGames - 100개의 미니게임 모음</title>
+  <meta name="description" content="100가지 다양한 미니게임을 즐겨보세요. 액션, 퍼즐, 리듬, 반응 속도 테스트 등 다양한 장르의 게임을 한 곳에서 플레이할 수 있습니다.">
+  <meta name="keywords" content="미니게임, 게임, 온라인 게임, 캐주얼 게임, 퍼즐, 액션, 리듬게임">
   <meta name="theme-color" content="#0b1020" />
+  <meta property="og:title" content="MiniGames - 100개의 미니게임 모음">
+  <meta property="og:description" content="다양한 장르의 100개 미니게임을 한 곳에서 플레이하세요.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta property="twitter:card" content="summary">
+  <meta property="twitter:title" content="MiniGames - 100개의 미니게임">
+  <meta property="twitter:description" content="액션, 퍼즐, 리듬 등 다양한 미니게임 모음">
   <style>
     /* 디자인 토큰 정본 = shared/style.css (D2). 값은 반드시 그쪽과 일치시킬 것. */
     :root {
@@ -315,6 +324,24 @@
     let games = [];
     let allGames = [];
 
+    // 카테고리별 색상 + 아이콘 맵핑
+    const categoryColors = {
+      '액션': { bg: '#ef4444', icon: '⚡' },
+      '리듬': { bg: '#f59e0b', icon: '🎵' },
+      '퍼즐': { bg: '#8b5cf6', icon: '🧩' },
+      '블록': { bg: '#6366f1', icon: '🧱' },
+      '두뇌': { bg: '#06b6d4', icon: '🧠' },
+      '격게임': { bg: '#ec4899', icon: '👊' },
+      '트레이닝': { bg: '#10b981', icon: '💪' },
+      '캐주얼': { bg: '#f97316', icon: '🎲' },
+      '반응': { bg: '#d946ef', icon: '⚡' },
+      '캐치': { bg: '#14b8a6', icon: '🎯' },
+      '피하기': { bg: '#f43f5e', icon: '🚀' },
+      '스포츠': { bg: '#059669', icon: '🏆' },
+      '타이핑': { bg: '#3b82f6', icon: '⌨️' },
+      '언어': { bg: '#8b7355', icon: '📚' }
+    };
+
     const grid = document.getElementById('grid');
     const year = document.getElementById('year');
     if (year) year.textContent = new Date().getFullYear();
@@ -357,8 +384,8 @@
       img.loading = 'lazy';
       img.src = game.thumb;
       img.onerror = () => {
-        // 썸네일 없으면 자동 대체 이미지 (SVG data URL)
-        img.src = makeFallbackThumb(game.title);
+        // 썸네일 없으면 자동 대체 이미지 (카테고리별 색상 + 아이콘)
+        img.src = makeFallbackThumb(game.title, game.category);
       };
 
       const badge = document.createElement('div');
@@ -442,25 +469,39 @@
       }
     }
 
-    function makeFallbackThumb(label = 'Game') {
+    function makeFallbackThumb(label = 'Game', category = '캐주얼') {
+      const categoryData = categoryColors[category] || categoryColors['캐주얼'];
+      const bgColor = categoryData.bg;
+      const categoryIcon = categoryData.icon;
+
+      // 라벨에서 이모지 추출 (첫 문자가 이모지면 사용)
+      const emojiMatch = label.match(/^[\p{Emoji}]/u);
+      const emoji = emojiMatch ? emojiMatch[0] : categoryIcon;
+
       const svg = encodeURIComponent(`
         <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500'>
           <defs>
             <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
-              <stop offset='0%' stop-color='#1f2937'/>
-              <stop offset='100%' stop-color='#0ea5e9'/>
+              <stop offset='0%' stop-color='${bgColor}'/>
+              <stop offset='100%' stop-color='${adjustBrightness(bgColor, -30)}'/>
             </linearGradient>
           </defs>
           <rect width='800' height='500' fill='url(#g)'/>
-          <g fill='white' fill-opacity='.9'>
-            <circle cx='120' cy='250' r='26'/>
-            <rect x='160' y='238' width='120' height='24' rx='12'/>
-          </g>
-          <text x='50%' y='62%' dominant-baseline='middle' text-anchor='middle'
-                font-family='system-ui, -apple-system, Segoe UI, Roboto, Arial' font-size='44' fill='white'
-                opacity='0.92'>${label}</text>
+          <text x='50%' y='45%' dominant-baseline='middle' text-anchor='middle'
+                font-family='system-ui, -apple-system, Segoe UI, Roboto, Arial' font-size='140' fill='white'
+                opacity='0.95'>${emoji}</text>
+          <text x='50%' y='72%' dominant-baseline='middle' text-anchor='middle'
+                font-family='system-ui, -apple-system, Segoe UI, Roboto, Arial' font-size='36' fill='white'
+                opacity='0.9' font-weight='bold'>${category}</text>
         </svg>`);
       return `data:image/svg+xml;charset=utf-8,${svg}`;
+    }
+
+    function adjustBrightness(hex, amount) {
+      const r = Math.min(255, Math.max(0, parseInt(hex.substr(1,2), 16) + amount));
+      const g = Math.min(255, Math.max(0, parseInt(hex.substr(3,2), 16) + amount));
+      const b = Math.min(255, Math.max(0, parseInt(hex.substr(5,2), 16) + amount));
+      return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
     }
 
     // Buttons
