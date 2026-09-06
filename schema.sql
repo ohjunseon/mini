@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS scores (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  game_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  score INTEGER NOT NULL,
+  ts INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_scores_game ON scores(game_id, score);
+
+CREATE TABLE IF NOT EXISTS visits (
+  game_id TEXT PRIMARY KEY,
+  count INTEGER NOT NULL DEFAULT 0
+);

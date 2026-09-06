@@ -77,7 +77,9 @@
 ### Phase 1 — 인프라 정비
 - [x] 로컬개발용 랭킹 서버 (server/, Express+sql.js) ✅ 2026-09-06 (Haiku, Opus검증) — **프로덕션 아님**
 - [x] 랭킹 클라이언트 (shared/ranking.js, GameStats API 유지) ✅ 2026-09-06 — **재사용OK**(엔드포인트 무관)
-- [ ] **★다음 유닛: Cloudflare Worker + D1 백엔드** (프로덕션 랭킹, 아래 계약대로 /api 구현)
+- [x] **Cloudflare Worker + D1 백엔드 코드** ✅ 2026-09-06 (Haiku작성/Opus검토) — `worker/index.js`, `schema.sql`, `wrangler.jsonc`(D1바인딩), `worker/README.md`. **동작검증(wrangler dev/deploy)은 사장님 D1 생성 후**
+- [ ] ★사장님 액션: `npx wrangler d1 create mini-ranking` → id를 wrangler.jsonc에 기입 → `wrangler d1 execute ... --file=schema.sql` → 배포브랜치 확인 후 배포
+- [ ] Phase6 정리: `assets.directory:"."`라 worker/·server/·*.md·schema.sql이 **공개 다운로드됨**(시크릿은 없음). 사이트를 하위폴더로 옮기거나 assets 제외 고려
 - [ ] 루트 stray `package.json` 제거
 - [ ] 디자인 토큰 일원화 (D2)
 - [ ] mini6 shared 연동 (style.css + ranking.js)
@@ -111,6 +113,8 @@
 
 | 일시 | 세션/에이전트 | 작업 | 결과 | 4점 점검 |
 |---|---|---|---|---|
+| 2026-09-06 | Haiku+Opus | Cloudflare Worker+D1 백엔드 코드 작성 | ✅ 코드검토 통과(파라미터바인딩·검증·CORS·정적폴백). 동작검증은 D1 생성 후 wrangler | ①②③ 코드검토 ④ 배포후 |
+| 2026-09-06 | Main(Opus) | 커밋 000ef71 (인프라+문서) | 완료(push 보류=배포트리거) | N/A |
 | 2026-09-06 | Main(Opus) | Cloudflare 연결 점검 | ⚠️ Workers 정적배포 확인 → Express서버 프로덕션 부적합, D1+Worker로 결정(D7). ranking.js는 재사용 | 배포환경 |
 | 2026-09-06 | Haiku+Opus | 로컬 서버(server/) + shared/ranking.js 구축 | ✅ 통과 | ①서버 클린기동 ②파라미터쿼리·점수검증·이름살균 ③재시작후영속성✔·asc/desc✔·UTF-8왕복✔(한글깨짐은 셸오탐) ④게임연동시 확인예정 |
 | 2026-09-06 | Main(Opus) | grill-me 스킬 설치·검증 / awesome은 코드스킬아님 기각 | 완료 | 안전(순수프롬프트) |
