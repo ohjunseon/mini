@@ -8,6 +8,18 @@ const app = express();
 const dbPath = path.join(__dirname, 'ranking.db');
 let db = null;
 
+// Phase 4: Per-game score ceiling validation (must match worker/index.js)
+const GAME_SCORE_LIMITS = {
+  mini1: 5000, mini2: 999, mini3: 100, mini4: 100, mini5: 25,
+  mini6: 999, mini7: 1000, mini8: 100000, mini9: 131072, mini10: 10000,
+  mini11: 999, mini12: 999, mini13: 1, mini14: 100, mini15: 100,
+  mini16: 999, mini17: 999, mini18: 999, mini19: 999, mini20: 100,
+  mini21: 100, mini22: 999, mini23: 999, mini24: 999, mini25: 999999,
+  mini26: 100, mini27: 999, mini28: 10000, mini29: 1, mini30: 9999,
+};
+
+const NAME_FILTER = /[^\w\s\-_\.一-鿿가-힯]/g;
+
 // Initialize SQL.js and database
 async function initializeDatabase() {
   const SQL = await initSqlJs();
@@ -134,15 +146,24 @@ app.post('/api/score', (req, res) => {
     return res.status(400).json({ error: 'gameId is required and must be a non-empty string' });
   }
 
-  // Validate score
-  if (!Number.isInteger(score) || !isFinite(score) || score < 0 || score > 1000000000) {
-    return res.status(400).json({ error: 'score must be a finite integer between 0 and 1000000000' });
+  // Validate score (per-game ceiling from Phase 4)
+  if (!Number.isInteger(score) || !isFinite(score) || score < 0) {
+    return res.status(400).json({ error: 'score must be a non-negative integer' });
   }
 
-  // Sanitize name
-  let sanitizedName = String(name || '').replace(/[<>]/g, '').trim();
-  if (sanitizedName.length > 12) {
-    sanitizedName = sanitizedName.substring(0, 12);
+  const maxScore = GAME_SCORE_LIMITS[gameId] || 1000000;
+  if (score > maxScore) {
+    return res.status(400).json({ error: `score exceeds maximum ${maxScore} for ${gameId}` });
+  }
+
+  // Sanitize name (Phase 4: stronger filtering)
+  let sanitizedName = String(name || '')
+    .replace(NAME_FILTER, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (sanitizedName.length > 20) {
+    sanitizedName = sanitizedName.substring(0, 20);
   }
   if (sanitizedName === '') {
     sanitizedName = '익명';

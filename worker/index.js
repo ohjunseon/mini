@@ -1,7 +1,49 @@
+// Per-game score ceiling validation (Phase 4)
+const GAME_SCORE_LIMITS = {
+  mini1: 5000,    // ms (reaction)
+  mini2: 999,
+  mini3: 100,
+  mini4: 100,
+  mini5: 25,      // bricks
+  mini6: 999,
+  mini7: 1000,    // snake
+  mini8: 100000,  // tetris
+  mini9: 131072,  // 2048
+  mini10: 10000,
+  mini11: 999,
+  mini12: 999,
+  mini13: 1,
+  mini14: 100,
+  mini15: 100,
+  mini16: 999,
+  mini17: 999,
+  mini18: 999,
+  mini19: 999,
+  mini20: 100,
+  mini21: 100,
+  mini22: 999,
+  mini23: 999,
+  mini24: 999,
+  mini25: 999999,
+  mini26: 100,
+  mini27: 999,
+  mini28: 10000,
+  mini29: 1,
+  mini30: 9999,
+};
+
+// Regex for name filtering - allow basic chars, block emoji/control
+const NAME_FILTER = /[^\w\s\-_\.一-鿿가-힯]/g;
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const pathname = url.pathname;
+
+    // Extract client IP for rate limiting
+    const clientIp = request.headers.get('CF-Connecting-IP') ||
+                     request.headers.get('X-Forwarded-For')?.split(',')[0] ||
+                     'unknown';
 
     // CORS headers
     const corsHeaders = {
@@ -63,20 +105,32 @@ export default {
             });
           }
 
-          // Validate score
-          if (typeof score !== 'number' || !Number.isInteger(score) || score < 0 || score > 1000000000) {
-            return new Response(JSON.stringify({ error: 'score must be integer 0-1000000000' }), {
+          // Validate score (per-game ceiling from Phase 4)
+          if (typeof score !== 'number' || !Number.isInteger(score) || score < 0) {
+            return new Response(JSON.stringify({ error: 'score must be non-negative integer' }), {
               status: 400,
               headers: corsHeaders,
             });
           }
 
-          // Sanitize name
-          let sanitized = String(name || '').replace(/[<>]/g, '').trim();
+          const maxScore = GAME_SCORE_LIMITS[gameId] || 1000000;
+          if (score > maxScore) {
+            return new Response(JSON.stringify({ error: `score exceeds maximum ${maxScore} for ${gameId}` }), {
+              status: 400,
+              headers: corsHeaders,
+            });
+          }
+
+          // Sanitize name (Phase 4: stronger filtering)
+          let sanitized = String(name || '')
+            .replace(NAME_FILTER, '')  // Remove non-word, emoji, control chars
+            .replace(/\s+/g, ' ')       // Collapse whitespace
+            .trim();
+
           if (sanitized.length === 0) {
             sanitized = '익명';
-          } else if (sanitized.length > 12) {
-            sanitized = sanitized.slice(0, 12);
+          } else if (sanitized.length > 20) {
+            sanitized = sanitized.slice(0, 20);
           }
 
           const ts = Date.now();
