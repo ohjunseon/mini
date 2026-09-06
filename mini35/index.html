@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>반사 테스트 (mini35)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .reaction-area {
+            width: 100%;
+            height: 300px;
+            background: #222;
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            margin: 20px 0;
+            transition: background-color 0.1s;
+            cursor: pointer;
+        }
+
+        .reaction-area.ready {
+            background: #333;
+            color: var(--muted);
+        }
+
+        .reaction-area.waiting {
+            background: #FF6B6B;
+            color: #fff;
+        }
+
+        .reaction-area.success {
+            background: #6BCB77;
+            color: #fff;
+        }
+
+        .timer {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            color: var(--accent);
+            margin: 20px 0;
+        }
+
+        .status {
+            text-align: center;
+            font-size: 1.2rem;
+            margin: 10px 0;
+            color: var(--muted);
+        }
+
+        .reaction-time {
+            text-align: center;
+            font-size: 1.5rem;
+            margin: 10px 0;
+            min-height: 30px;
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>⚡ 반사 테스트</h1>
+                    <p>20초 동안 화면이 빨개지면 즉시 클릭하세요!</p>
+                </header>
+
+                <div class="timer" id="timer">20.0</div>
+                <div class="status" id="status">준비 중...</div>
+
+                <div class="reaction-area ready" id="reactionArea">클릭 대기 중</div>
+
+                <div class="reaction-time" id="reactionTime"></div>
+
+                <div class="stats-bar mb-4">
+                    <div class="stat-item">점수: <span id="score">0</span></div>
+                    <div class="stat-item">평균 반응: <span id="avgReaction">-</span>ms</div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+
+    <script>
+        const PAGE_ID = "mini35";
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
+        }
+
+        const reactionArea = document.getElementById('reactionArea');
+        const timerEl = document.getElementById('timer');
+        const scoreEl = document.getElementById('score');
+        const btnStart = document.getElementById('btnStart');
+        const statusEl = document.getElementById('status');
+        const reactionTimeEl = document.getElementById('reactionTime');
+        const avgReactionEl = document.getElementById('avgReaction');
+
+        let score = 0;
+        let time = 20.0;
+        let running = false;
+        let timer = null;
+        let stimulusTimer = null;
+        let reactionTimes = [];
+        let stimulusActive = false;
+        let stimulusStartTime = 0;
+
+        function showStimulus() {
+            if (!running) return;
+
+            stimulusActive = false;
+            reactionArea.className = 'reaction-area ready';
+            reactionArea.textContent = '클릭 대기 중';
+            statusEl.textContent = '준비 중...';
+            reactionTimeEl.textContent = '';
+
+            const delay = 800 + Math.random() * 2000;
+            setTimeout(() => {
+                if (running && !stimulusActive) {
+                    stimulusActive = true;
+                    stimulusStartTime = Date.now();
+                    reactionArea.className = 'reaction-area waiting';
+                    reactionArea.textContent = '클릭!';
+                    statusEl.textContent = '지금 클릭하세요!';
+                }
+            }, delay);
+        }
+
+        function tick() {
+            time -= 0.1;
+            timerEl.textContent = time.toFixed(1);
+            if (time <= 0) {
+                time = 0;
+                gameOver();
+            }
+        }
+
+        function gameOver() {
+            running = false;
+            clearInterval(timer);
+            clearInterval(stimulusTimer);
+            reactionArea.className = 'reaction-area ready';
+            reactionArea.textContent = '게임 종료';
+            statusEl.textContent = '';
+            btnStart.disabled = false;
+            btnStart.textContent = '다시 시작';
+
+            const name = prompt('이름을 입력하세요:', '익명') || '익명';
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, score, () => {
+                    scoreEl.textContent = '0';
+                    avgReactionEl.textContent = '-';
+                    score = 0;
+                    reactionTimes = [];
+                    time = 20.0;
+                    timerEl.textContent = time.toFixed(1);
+                });
+            }
+        }
+
+        reactionArea.addEventListener('click', () => {
+            if (running && stimulusActive) {
+                const reactionTime = Date.now() - stimulusStartTime;
+                reactionTimes.push(reactionTime);
+                score++;
+                scoreEl.textContent = score;
+
+                const avg = Math.round(reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length);
+                avgReactionEl.textContent = avg;
+                reactionTimeEl.textContent = reactionTime + 'ms';
+
+                reactionArea.className = 'reaction-area success';
+                reactionArea.textContent = '✓';
+                statusEl.textContent = reactionTime + 'ms';
+                stimulusActive = false;
+
+                setTimeout(showStimulus, 800);
+            }
+        });
+
+        reactionArea.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (running && stimulusActive) {
+                const reactionTime = Date.now() - stimulusStartTime;
+                reactionTimes.push(reactionTime);
+                score++;
+                scoreEl.textContent = score;
+
+                const avg = Math.round(reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length);
+                avgReactionEl.textContent = avg;
+                reactionTimeEl.textContent = reactionTime + 'ms';
+
+                reactionArea.className = 'reaction-area success';
+                reactionArea.textContent = '✓';
+                statusEl.textContent = reactionTime + 'ms';
+                stimulusActive = false;
+
+                setTimeout(showStimulus, 800);
+            }
+        }, { passive: false });
+
+        btnStart.addEventListener('click', () => {
+            if (running) return;
+            running = true;
+            score = 0;
+            reactionTimes = [];
+            time = 20.0;
+            scoreEl.textContent = '0';
+            avgReactionEl.textContent = '-';
+            timerEl.textContent = '20.0';
+            btnStart.disabled = true;
+            reactionArea.className = 'reaction-area ready';
+            reactionArea.textContent = '클릭 대기 중';
+            statusEl.textContent = '준비 중...';
+            reactionTimeEl.textContent = '';
+
+            timer = setInterval(tick, 100);
+            showStimulus();
+        });
+    </script>
+</body>
+
+</html>

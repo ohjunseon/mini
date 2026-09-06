@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>펄스 클릭 (mini37)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .pulse-area {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pulse-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            color: #fff;
+            animation: pulse-beat 1s infinite;
+        }
+
+        @keyframes pulse-beat {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+        }
+
+        .pulse-circle.active {
+            animation: pulse-active 0.1s forwards;
+        }
+
+        @keyframes pulse-active {
+            0% {
+                transform: scale(1.1);
+                background: #6BCB77;
+            }
+            100% {
+                transform: scale(0.95);
+                background: var(--accent);
+            }
+        }
+
+        .click-btn {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 8px solid #fff;
+            font-size: 2rem;
+            color: #fff;
+            cursor: pointer;
+            margin: 30px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            transition: all 0.05s;
+        }
+
+        .click-btn:active {
+            transform: scale(0.92);
+        }
+
+        .click-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .timer {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            color: var(--accent);
+            margin: 20px 0;
+        }
+
+        .accuracy {
+            text-align: center;
+            font-size: 1.2rem;
+            margin: 10px 0;
+            color: var(--muted);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>💓 펄스 클릭</h1>
+                    <p>30초 동안 박자에 맞춰 클릭하세요!</p>
+                </header>
+
+                <div class="timer" id="timer">30.0</div>
+
+                <div class="pulse-area" id="pulseArea">
+                    <div class="pulse-circle" id="pulseCircle">박자</div>
+                </div>
+
+                <div class="click-btn" id="clickBtn">클릭!</div>
+
+                <div class="accuracy" id="accuracy"></div>
+
+                <div class="stats-bar mb-4">
+                    <div class="stat-item">정확 클릭: <span id="score">0</span></div>
+                    <div class="stat-item">잘못된 클릭: <span id="mistakes">0</span></div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+
+    <script>
+        const PAGE_ID = "mini37";
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
+        }
+
+        const clickBtn = document.getElementById('clickBtn');
+        const pulseCircle = document.getElementById('pulseCircle');
+        const timerEl = document.getElementById('timer');
+        const scoreEl = document.getElementById('score');
+        const mistakesEl = document.getElementById('mistakes');
+        const accuracyEl = document.getElementById('accuracy');
+        const btnStart = document.getElementById('btnStart');
+
+        let score = 0;
+        let mistakes = 0;
+        let time = 30.0;
+        let running = false;
+        let timer = null;
+        let beatTimer = null;
+        let beatActive = false;
+        let beatStart = 0;
+
+        function showBeat() {
+            if (!running) return;
+
+            beatActive = true;
+            beatStart = Date.now();
+            pulseCircle.classList.add('active');
+
+            setTimeout(() => {
+                beatActive = false;
+                pulseCircle.classList.remove('active');
+            }, 200);
+
+            beatTimer = setTimeout(showBeat, 1000);
+        }
+
+        function tick() {
+            time -= 0.1;
+            timerEl.textContent = time.toFixed(1);
+            if (time <= 0) {
+                time = 0;
+                gameOver();
+            }
+        }
+
+        function gameOver() {
+            running = false;
+            clearInterval(timer);
+            clearTimeout(beatTimer);
+            clickBtn.disabled = true;
+            btnStart.disabled = false;
+            btnStart.textContent = '다시 시작';
+            pulseCircle.classList.remove('active');
+            accuracyEl.textContent = '';
+
+            const finalScore = Math.max(0, score - Math.floor(mistakes / 2));
+            const name = prompt('이름을 입력하세요:', '익명') || '익명';
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, finalScore, () => {
+                    scoreEl.textContent = '0';
+                    mistakesEl.textContent = '0';
+                    score = 0;
+                    mistakes = 0;
+                    time = 30.0;
+                    timerEl.textContent = time.toFixed(1);
+                    clickBtn.disabled = false;
+                });
+            }
+        }
+
+        clickBtn.addEventListener('click', () => {
+            if (running) {
+                if (beatActive) {
+                    const timeDiff = Date.now() - beatStart;
+                    if (timeDiff < 150) {
+                        score++;
+                        scoreEl.textContent = score;
+                        accuracyEl.textContent = '✓ 완벽!';
+                        setTimeout(() => accuracyEl.textContent = '', 500);
+                    }
+                } else {
+                    mistakes++;
+                    mistakesEl.textContent = mistakes;
+                    accuracyEl.textContent = '✗ 박자 맞춰!';
+                    setTimeout(() => accuracyEl.textContent = '', 500);
+                }
+            }
+        });
+
+        clickBtn.addEventListener('touchstart', (e) => {
+            if (running) {
+                e.preventDefault();
+                if (beatActive) {
+                    const timeDiff = Date.now() - beatStart;
+                    if (timeDiff < 150) {
+                        score++;
+                        scoreEl.textContent = score;
+                        accuracyEl.textContent = '✓ 완벽!';
+                        setTimeout(() => accuracyEl.textContent = '', 500);
+                    }
+                } else {
+                    mistakes++;
+                    mistakesEl.textContent = mistakes;
+                    accuracyEl.textContent = '✗ 박자 맞춰!';
+                    setTimeout(() => accuracyEl.textContent = '', 500);
+                }
+            }
+        }, { passive: false });
+
+        btnStart.addEventListener('click', () => {
+            if (running) return;
+            running = true;
+            score = 0;
+            mistakes = 0;
+            time = 30.0;
+            scoreEl.textContent = '0';
+            mistakesEl.textContent = '0';
+            timerEl.textContent = '30.0';
+            btnStart.disabled = true;
+            clickBtn.disabled = false;
+            accuracyEl.textContent = '';
+            pulseCircle.classList.remove('active');
+
+            timer = setInterval(tick, 100);
+            setTimeout(showBeat, 500);
+        });
+    </script>
+</body>
+
+</html>

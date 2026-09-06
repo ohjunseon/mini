@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>쿨다운 클릭 (mini39)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .click-btn {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 8px solid #fff;
+            font-size: 2rem;
+            color: #fff;
+            cursor: pointer;
+            margin: 30px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            user-select: none;
+            transition: all 0.05s;
+            position: relative;
+        }
+
+        .click-btn:active {
+            transform: scale(0.92);
+        }
+
+        .click-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .cooldown-text {
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+
+        .timer {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            color: var(--accent);
+            margin: 20px 0;
+        }
+
+        .energy-bar {
+            width: 100%;
+            max-width: 400px;
+            height: 30px;
+            background: #333;
+            border-radius: 15px;
+            margin: 20px auto;
+            overflow: hidden;
+            border: 2px solid var(--accent);
+        }
+
+        .energy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FF6B6B, var(--accent));
+            width: 100%;
+            transition: width 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #fff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>⚡ 쿨다운 클릭</h1>
+                    <p>20초 동안 쿨다운을 관리하며 클릭하세요!</p>
+                </header>
+
+                <div class="timer" id="timer">20.0</div>
+
+                <p style="text-align: center; color: var(--muted); margin: 10px 0;">에너지:</p>
+                <div class="energy-bar">
+                    <div class="energy-fill" id="energyFill" style="width: 100%;">100%</div>
+                </div>
+
+                <div class="click-btn" id="clickBtn">
+                    <span>클릭!</span>
+                    <span class="cooldown-text" id="cooldownText"></span>
+                </div>
+
+                <div class="stats-bar mb-4">
+                    <div class="stat-item">점수: <span id="score">0</span></div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+
+    <script>
+        const PAGE_ID = "mini39";
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
+        }
+
+        const clickBtn = document.getElementById('clickBtn');
+        const timerEl = document.getElementById('timer');
+        const scoreEl = document.getElementById('score');
+        const btnStart = document.getElementById('btnStart');
+        const energyFill = document.getElementById('energyFill');
+        const cooldownText = document.getElementById('cooldownText');
+
+        let score = 0;
+        let time = 20.0;
+        let running = false;
+        let timer = null;
+        let energy = 100;
+        let maxEnergy = 100;
+        let cooldown = 0;
+        let cooldownMax = 0;
+
+        function updateEnergy() {
+            const percent = Math.round((energy / maxEnergy) * 100);
+            energyFill.style.width = percent + '%';
+            energyFill.textContent = percent + '%';
+
+            if (energy < maxEnergy) {
+                energy = Math.min(maxEnergy, energy + 1);
+            }
+        }
+
+        function updateCooldown() {
+            if (cooldown > 0) {
+                cooldown--;
+                clickBtn.disabled = true;
+                cooldownText.textContent = '쿨: ' + cooldown + 'ms';
+            } else {
+                clickBtn.disabled = !running;
+                cooldownText.textContent = '';
+            }
+        }
+
+        function tick() {
+            time -= 0.1;
+            timerEl.textContent = time.toFixed(1);
+            if (time <= 0) {
+                time = 0;
+                gameOver();
+            }
+        }
+
+        function gameOver() {
+            running = false;
+            clearInterval(timer);
+            clickBtn.disabled = true;
+            btnStart.disabled = false;
+            btnStart.textContent = '다시 시작';
+            cooldownText.textContent = '';
+
+            const name = prompt('이름을 입력하세요:', '익명') || '익명';
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, score, () => {
+                    scoreEl.textContent = '0';
+                    score = 0;
+                    energy = 100;
+                    cooldown = 0;
+                    time = 20.0;
+                    timerEl.textContent = time.toFixed(1);
+                    updateEnergy();
+                });
+            }
+        }
+
+        clickBtn.addEventListener('click', () => {
+            if (running && cooldown === 0 && energy > 0) {
+                score++;
+                scoreEl.textContent = score;
+                energy = Math.max(0, energy - 20);
+                updateEnergy();
+
+                cooldownMax = Math.min(300, 50 + score * 10);
+                cooldown = cooldownMax;
+                clickBtn.disabled = true;
+                cooldownText.textContent = '쿨: ' + cooldown + 'ms';
+
+                const cooldownInterval = setInterval(() => {
+                    updateCooldown();
+                    if (cooldown === 0) {
+                        clearInterval(cooldownInterval);
+                    }
+                }, 10);
+            }
+        });
+
+        clickBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (running && cooldown === 0 && energy > 0) {
+                score++;
+                scoreEl.textContent = score;
+                energy = Math.max(0, energy - 20);
+                updateEnergy();
+
+                cooldownMax = Math.min(300, 50 + score * 10);
+                cooldown = cooldownMax;
+                clickBtn.disabled = true;
+                cooldownText.textContent = '쿨: ' + cooldown + 'ms';
+
+                const cooldownInterval = setInterval(() => {
+                    updateCooldown();
+                    if (cooldown === 0) {
+                        clearInterval(cooldownInterval);
+                    }
+                }, 10);
+            }
+        }, { passive: false });
+
+        btnStart.addEventListener('click', () => {
+            if (running) return;
+            running = true;
+            score = 0;
+            energy = 100;
+            cooldown = 0;
+            time = 20.0;
+            scoreEl.textContent = '0';
+            timerEl.textContent = '20.0';
+            btnStart.disabled = true;
+            clickBtn.disabled = false;
+            cooldownText.textContent = '';
+            updateEnergy();
+
+            timer = setInterval(() => {
+                tick();
+                updateEnergy();
+            }, 100);
+        });
+
+        updateEnergy();
+    </script>
+</body>
+
+</html>

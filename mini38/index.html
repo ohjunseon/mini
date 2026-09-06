@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <title>빠른 계산 (mini38)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .math-problem {
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-align: center;
+            color: var(--accent);
+            margin: 30px 0;
+            min-height: 60px;
+        }
+
+        .answer-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 30px auto;
+            max-width: 400px;
+        }
+
+        .answer-btn {
+            padding: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: var(--accent);
+            color: #fff;
+            border: 3px solid #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .answer-btn:active {
+            transform: scale(0.92);
+        }
+
+        .answer-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .timer {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            color: var(--accent);
+            margin: 20px 0;
+        }
+
+        .feedback {
+            text-align: center;
+            font-size: 1.2rem;
+            margin: 10px 0;
+            color: var(--muted);
+            min-height: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🧮 빠른 계산</h1>
+                    <p>30초 동안 정답을 빨리 선택하세요!</p>
+                </header>
+
+                <div class="timer" id="timer">30.0</div>
+
+                <div class="math-problem" id="problem">-</div>
+                <div class="feedback" id="feedback"></div>
+
+                <div class="answer-buttons" id="answerButtons"></div>
+
+                <div class="stats-bar mb-4">
+                    <div class="stat-item">정답: <span id="score">0</span></div>
+                    <div class="stat-item">오답: <span id="mistakes">0</span></div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">게임 시작</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+
+    <script>
+        const PAGE_ID = "mini38";
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
+        }
+
+        const problemEl = document.getElementById('problem');
+        const answerButtons = document.getElementById('answerButtons');
+        const timerEl = document.getElementById('timer');
+        const scoreEl = document.getElementById('score');
+        const mistakesEl = document.getElementById('mistakes');
+        const btnStart = document.getElementById('btnStart');
+        const feedbackEl = document.getElementById('feedback');
+
+        let score = 0;
+        let mistakes = 0;
+        let time = 30.0;
+        let running = false;
+        let timer = null;
+        let currentAnswer = 0;
+
+        function generateProblem() {
+            const a = Math.floor(Math.random() * 20) + 1;
+            const b = Math.floor(Math.random() * 20) + 1;
+            const op = Math.random() > 0.5 ? '+' : '-';
+
+            if (op === '+') {
+                currentAnswer = a + b;
+            } else {
+                currentAnswer = a - b;
+            }
+
+            problemEl.textContent = `${a} ${op} ${b}`;
+
+            const answers = [currentAnswer];
+            while (answers.length < 4) {
+                const wrong = currentAnswer + (Math.floor(Math.random() * 5) - 2) * (Math.random() > 0.5 ? 1 : -1);
+                if (!answers.includes(wrong) && wrong !== currentAnswer) {
+                    answers.push(wrong);
+                }
+            }
+
+            const shuffled = answers.sort(() => Math.random() - 0.5);
+
+            answerButtons.innerHTML = '';
+            shuffled.forEach(ans => {
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.textContent = ans;
+                btn.disabled = !running;
+                btn.addEventListener('click', () => {
+                    if (running) {
+                        if (ans === currentAnswer) {
+                            score++;
+                            scoreEl.textContent = score;
+                            feedbackEl.textContent = '✓ 정답!';
+                        } else {
+                            mistakes++;
+                            mistakesEl.textContent = mistakes;
+                            feedbackEl.textContent = '✗ 틀렸습니다!';
+                        }
+                        setTimeout(() => feedbackEl.textContent = '', 400);
+                        generateProblem();
+                    }
+                });
+                btn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (running) {
+                        if (ans === currentAnswer) {
+                            score++;
+                            scoreEl.textContent = score;
+                            feedbackEl.textContent = '✓ 정답!';
+                        } else {
+                            mistakes++;
+                            mistakesEl.textContent = mistakes;
+                            feedbackEl.textContent = '✗ 틀렸습니다!';
+                        }
+                        setTimeout(() => feedbackEl.textContent = '', 400);
+                        generateProblem();
+                    }
+                }, { passive: false });
+                answerButtons.appendChild(btn);
+            });
+        }
+
+        function tick() {
+            time -= 0.1;
+            timerEl.textContent = time.toFixed(1);
+            if (time <= 0) {
+                time = 0;
+                gameOver();
+            }
+        }
+
+        function gameOver() {
+            running = false;
+            clearInterval(timer);
+            Array.from(answerButtons.querySelectorAll('button')).forEach(btn => btn.disabled = true);
+            btnStart.disabled = false;
+            btnStart.textContent = '다시 시작';
+            feedbackEl.textContent = '';
+
+            const finalScore = Math.max(0, score - Math.floor(mistakes / 2));
+            const name = prompt('이름을 입력하세요:', '익명') || '익명';
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, finalScore, () => {
+                    scoreEl.textContent = '0';
+                    mistakesEl.textContent = '0';
+                    score = 0;
+                    mistakes = 0;
+                    time = 30.0;
+                    timerEl.textContent = time.toFixed(1);
+                    problemEl.textContent = '-';
+                });
+            }
+        }
+
+        btnStart.addEventListener('click', () => {
+            if (running) return;
+            running = true;
+            score = 0;
+            mistakes = 0;
+            time = 30.0;
+            scoreEl.textContent = '0';
+            mistakesEl.textContent = '0';
+            timerEl.textContent = '30.0';
+            btnStart.disabled = true;
+            feedbackEl.textContent = '';
+            generateProblem();
+            Array.from(answerButtons.querySelectorAll('button')).forEach(btn => btn.disabled = false);
+
+            timer = setInterval(tick, 100);
+        });
+    </script>
+</body>
+
+</html>

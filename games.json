@@ -28,5 +28,15 @@
   { "id": "mini27", "title": "암산 왕", "path": "mini27/", "desc": "빠른 계산", "thumb": "mini27/cover.png", "category": "트레이닝", "scoreType": "high" },
   { "id": "mini28", "title": "절대 시간", "path": "mini28/", "desc": "10.00초 맞추기", "thumb": "mini28/cover.png", "category": "트레이닝", "scoreType": "high" },
   { "id": "mini29", "title": "행운의 로또", "path": "mini29/", "desc": "대박 기원", "thumb": "mini29/cover.png", "category": "캐주얼", "scoreType": "high" },
-  { "id": "mini30", "title": "탭 전쟁", "path": "mini30/", "desc": "광클 대결", "thumb": "mini30/cover.png", "category": "트레이닝", "scoreType": "high" }
+  { "id": "mini30", "title": "탭 전쟁", "path": "mini30/", "desc": "광클 대결", "thumb": "mini30/cover.png", "category": "트레이닝", "scoreType": "high" },
+  { "id": "mini31", "title": "버튼 클릭 레이스", "path": "mini31/", "desc": "10초 동안 최대한 많이 클릭", "thumb": "mini31/cover.png", "category": "반응", "scoreType": "high" },
+  { "id": "mini32", "title": "색상 매칭", "path": "mini32/", "desc": "목표 색상과 버튼 매칭", "thumb": "mini32/cover.png", "category": "반응", "scoreType": "high" },
+  { "id": "mini33", "title": "신호등 게임", "path": "mini33/", "desc": "초록불에만 클릭", "thumb": "mini33/cover.png", "category": "반응", "scoreType": "high" },
+  { "id": "mini34", "title": "재빨리 탭하기", "path": "mini34/", "desc": "스폰되는 버튼 빠르게 클릭", "thumb": "mini34/cover.png", "category": "반응", "scoreType": "high" },
+  { "id": "mini35", "title": "손가락 반사 테스트", "path": "mini35/", "desc": "화면 변화 감지 후 클릭", "thumb": "mini35/cover.png", "category": "반응", "scoreType": "high" },
+  { "id": "mini36", "title": "번개 타격 게임", "path": "mini36/", "desc": "격자에서 스폰되는 요소 클릭", "thumb": "mini36/cover.png", "category": "반응", "scoreType": "high" },
+  { "id": "mini37", "title": "펄스 클릭", "path": "mini37/", "desc": "박자에 맞춰 클릭", "thumb": "mini37/cover.png", "category": "반응", "scoreType": "high" },
+  { "id": "mini38", "title": "빠른 계산 버튼", "path": "mini38/", "desc": "계산 문제의 정답 버튼 클릭", "thumb": "mini38/cover.png", "category": "반응", "scoreType": "high" },
+  { "id": "mini39", "title": "쿨다운 클릭", "path": "mini39/", "desc": "쿨다운을 관리하며 클릭", "thumb": "mini39/cover.png", "category": "반응", "scoreType": "high" },
+  { "id": "mini40", "title": "무한 클릭 마라톤", "path": "mini40/", "desc": "시간이 지날수록 쿨다운 감소", "thumb": "mini40/cover.png", "category": "반응", "scoreType": "high" }
 ]

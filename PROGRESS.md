@@ -120,6 +120,7 @@
 
 | 일시 | 세션/에이전트 | 작업 | 결과 | 4점 점검 |
 |---|---|---|---|---|
+| 2026-09-06 | Main(Claude) + Haiku | Phase 5 Batch 1: mini31~mini40 생성 | ✅ 완료 | ①콘솔에러=없음 ②입력필터OK(prompt기본값익명)·시크릿무노출 ③gameOver연동·GameStats.saveScore·listenTopScores모두구현 ④UI다양(색상매칭/신호등/반응/계산/쿨다운/무한클릭) |
 | 2026-09-06 | Main(Claude) | D1 배포 및 테스트 | ✅ 완료 | ①콘솔에러=favicon.ico 500만(무시) ②API검증·점수저장·조회OK ③D1스키마적용·2테이블생성 ④브라우저mini6로드·API모두200OK·점수저장/조회실동작 |
 |---|---|---|---|---|
 | 2026-09-06 | Main(Haiku) | Phase 4: 점수 상한 검증·이름 필터 강화 | ✅ 커밋 620352c | ①문법검증(node -c)OK·verify-phase4.js 모든테스트통과 ②per-game limit+name filter ③GAME_SCORE_LIMITS 30게임 정의·games-scoring.json ④배포후실테스트 |
