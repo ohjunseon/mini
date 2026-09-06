@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>리듬 클릭</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    canvas {
+      display: block;
+      margin: 20px auto;
+      background: var(--panel);
+      border: 2px solid var(--panel-border);
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-item {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🎯 리듬 클릭</h1>
+          <p>중앙의 원이 확대될 때 클릭하세요!</p>
+        </header>
+
+        <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">점수</span>
+            <span class="stat-value" id="scoreValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">정확도</span>
+            <span class="stat-value" id="accuracyValue">0%</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">콤보</span>
+            <span class="stat-value" id="comboValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Miss</span>
+            <span class="stat-value" id="missValue">0</span>
+          </div>
+        </div>
+
+        <button class="btn" id="startBtn" style="width: 100%; margin: 10px 0;">게임 시작</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini87";
+    const GAME_DURATION = 30;
+    const CENTER_X = 160;
+    const CENTER_Y = 240;
+    const TARGET_RADIUS = 60;
+    const MAX_RADIUS = 100;
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('startBtn');
+    const scoreValue = document.getElementById('scoreValue');
+    const accuracyValue = document.getElementById('accuracyValue');
+    const comboValue = document.getElementById('comboValue');
+    const missValue = document.getElementById('missValue');
+    const rankList = document.getElementById('rankList');
+
+    let gameActive = false;
+    let score = 0;
+    let totalClicks = 0;
+    let correctClicks = 0;
+    let combo = 0;
+    let miss = 0;
+    let circles = [];
+    let gameStartTime = 0;
+    let animationId = null;
+
+    // Load visit count
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      loadRanking();
+    }
+
+    function loadRanking() {
+      if (window.GameStats && window.GameStats.listenForTopScores) {
+        GameStats.listenForTopScores(PAGE_ID, 5, (rows) => {
+          rankList.innerHTML = rows.map((r, i) =>
+            `<li>${i+1}. ${r.name} - ${r.score} 점</li>`
+          ).join('') || '<li>기록이 없습니다</li>';
+        });
+      }
+    }
+
+    function startGame() {
+      gameActive = true;
+      score = 0;
+      totalClicks = 0;
+      correctClicks = 0;
+      combo = 0;
+      miss = 0;
+      circles = [];
+      gameStartTime = Date.now();
+      startBtn.disabled = true;
+
+      // Generate circles at intervals
+      for (let i = 0; i < 8; i++) {
+        setTimeout(() => {
+          if (gameActive) {
+            circles.push({
+              spawnTime: Date.now(),
+              maxRadius: MAX_RADIUS,
+              hit: false
+            });
+          }
+        }, i * 3500);
+      }
+
+      gameLoop();
+    }
+
+    function gameLoop() {
+      const elapsed = Date.now() - gameStartTime;
+
+      if (elapsed >= GAME_DURATION * 1000) {
+        endGame();
+        return;
+      }
+
+      ctx.fillStyle = 'var(--panel)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw background circles
+      ctx.strokeStyle = 'var(--panel-border)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(CENTER_X, CENTER_Y, 80, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Update and draw circles
+      for (let i = circles.length - 1; i >= 0; i--) {
+        const circle = circles[i];
+        const age = Date.now() - circle.spawnTime;
+        const progress = age / 2000; // 2 seconds to expand
+
+        if (progress < 1) {
+          const radius = progress * MAX_RADIUS;
+
+          // Draw expanding circle
+          ctx.strokeStyle = circle.hit ? 'var(--good)' : 'var(--accent)';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(CENTER_X, CENTER_Y, radius, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Draw hit zone indicator
+          if (!circle.hit) {
+            ctx.strokeStyle = 'rgba(91, 156, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(CENTER_X, CENTER_Y, TARGET_RADIUS, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        } else if (!circle.hit) {
+          miss++;
+          circle.hit = true;
+          missValue.textContent = miss;
+        } else if (progress > 1.2) {
+          circles.splice(i, 1);
+        }
+      }
+
+      // Draw center dot
+      ctx.fillStyle = 'var(--accent)';
+      ctx.beginPath();
+      ctx.arc(CENTER_X, CENTER_Y, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      animationId = requestAnimationFrame(gameLoop);
+    }
+
+    function endGame() {
+      gameActive = false;
+      cancelAnimationFrame(animationId);
+      startBtn.disabled = false;
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'var(--accent)';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('게임 종료!', CENTER_X, CENTER_Y - 20);
+      ctx.font = '18px sans-serif';
+      ctx.fillText(`점수: ${score}`, CENTER_X, CENTER_Y + 20);
+
+      setTimeout(() => {
+        if (window.GameStats) {
+          const playerName = prompt('이름을 입력하세요:') || '익명';
+          GameStats.saveScore(PAGE_ID, playerName, score);
+        }
+      }, 500);
+    }
+
+    canvas.addEventListener('click', (e) => {
+      if (!gameActive) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const dist = Math.sqrt((x - CENTER_X) ** 2 + (y - CENTER_Y) ** 2);
+
+      totalClicks++;
+
+      // Check if click is close to any circle in hit zone
+      for (const circle of circles) {
+        if (!circle.hit) {
+          const age = Date.now() - circle.spawnTime;
+          const progress = age / 2000;
+          const radius = progress * MAX_RADIUS;
+
+          if (Math.abs(radius - TARGET_RADIUS) < 20) {
+            circle.hit = true;
+            score += 100;
+            combo++;
+            correctClicks++;
+            scoreValue.textContent = score;
+            comboValue.textContent = combo;
+            break;
+          }
+        }
+      }
+
+      if (totalClicks > 0) {
+        const accuracy = Math.round((correctClicks / totalClicks) * 100);
+        accuracyValue.textContent = accuracy + '%';
+      }
+    });
+
+    startBtn.addEventListener('click', startGame);
+  </script>
+</body>
+</html>

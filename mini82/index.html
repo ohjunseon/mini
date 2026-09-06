@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>문장 타이핑</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    #sentenceDisplay {
+      font-size: 1.2rem;
+      line-height: 1.8;
+      padding: 20px;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(91, 156, 255, 0.1);
+      border-radius: 12px;
+      margin: 20px 0;
+      text-align: center;
+      word-break: break-word;
+    }
+    #inputArea {
+      width: 100%;
+      padding: 12px;
+      font-size: 1rem;
+      border: 2px solid var(--panel-border);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+      margin: 10px 0;
+      min-height: 80px;
+      font-family: monospace;
+    }
+    #inputArea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-item {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+    .accuracy-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--panel-border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .accuracy-fill {
+      height: 100%;
+      background: var(--good);
+      transition: width 0.2s;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>📝 문장 타이핑</h1>
+          <p>주어진 문장을 정확히 입력하세요!</p>
+        </header>
+
+        <div id="gameArea">
+          <div id="sentenceDisplay">준비 중...</div>
+          <textarea id="inputArea" placeholder="여기에 문장을 입력하세요..."></textarea>
+          <div class="accuracy-bar">
+            <div class="accuracy-fill" id="accuracyFill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">남은 시간</span>
+            <span class="stat-value" id="timerValue">30</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">정확도</span>
+            <span class="stat-value" id="accuracyValue">0%</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">점수</span>
+            <span class="stat-value" id="scoreValue">0</span>
+          </div>
+        </div>
+
+        <button class="btn" id="startBtn" style="width: 100%; margin: 10px 0;">게임 시작</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini82";
+    const GAME_DURATION = 30; // seconds
+    const SENTENCES = [
+      '빠른 갈색 여우가 게으른 개를 뛰어넘습니다.',
+      '코딩은 예술과 과학의 완벽한 조합입니다.',
+      '매일 작은 진전이 큰 성공으로 이어집니다.',
+      '자신을 믿으면 반은 성공한 것입니다.',
+      '실패는 성공의 어머니입니다.',
+      '게임은 즐거움과 도전의 완벽한 균형입니다.',
+      '타이핑 속도는 연습으로 향상됩니다.',
+      '정확성이 속도보다 더 중요합니다.',
+      '한 걸음씩 나아가는 것이 중요합니다.',
+      '최고의 순간은 노력 후에 옵니다.'
+    ];
+
+    const sentenceDisplay = document.getElementById('sentenceDisplay');
+    const inputArea = document.getElementById('inputArea');
+    const timerValue = document.getElementById('timerValue');
+    const accuracyValue = document.getElementById('accuracyValue');
+    const scoreValue = document.getElementById('scoreValue');
+    const accuracyFill = document.getElementById('accuracyFill');
+    const startBtn = document.getElementById('startBtn');
+    const rankList = document.getElementById('rankList');
+
+    let gameActive = false;
+    let timeLeft = GAME_DURATION;
+    let currentSentence = '';
+    let timerInterval = null;
+
+    // Load visit count
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      loadRanking();
+    }
+
+    function loadRanking() {
+      if (window.GameStats && window.GameStats.listenForTopScores) {
+        GameStats.listenForTopScores(PAGE_ID, 5, (rows) => {
+          rankList.innerHTML = rows.map((r, i) =>
+            `<li>${i+1}. ${r.name} - ${r.score} 점</li>`
+          ).join('') || '<li>기록이 없습니다</li>';
+        });
+      }
+    }
+
+    function pickRandomSentence() {
+      return SENTENCES[Math.floor(Math.random() * SENTENCES.length)];
+    }
+
+    function calculateAccuracy() {
+      const target = currentSentence;
+      const input = inputArea.value;
+      let matches = 0;
+
+      for (let i = 0; i < Math.max(target.length, input.length); i++) {
+        if (target[i] === input[i]) {
+          matches++;
+        }
+      }
+
+      const accuracy = target.length > 0 ? (matches / target.length) * 100 : 0;
+      return Math.min(100, Math.max(0, accuracy));
+    }
+
+    function updateStats() {
+      const accuracy = calculateAccuracy();
+      const score = Math.round((accuracy / 100) * currentSentence.length);
+
+      accuracyValue.textContent = accuracy.toFixed(1) + '%';
+      accuracyFill.style.width = accuracy + '%';
+      scoreValue.textContent = score;
+    }
+
+    function startGame() {
+      gameActive = true;
+      timeLeft = GAME_DURATION;
+      inputArea.value = '';
+      inputArea.focus();
+      inputArea.disabled = false;
+      startBtn.disabled = true;
+
+      currentSentence = pickRandomSentence();
+      sentenceDisplay.textContent = currentSentence;
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timerValue.textContent = timeLeft;
+
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function endGame() {
+      gameActive = false;
+      clearInterval(timerInterval);
+      inputArea.disabled = true;
+      startBtn.disabled = false;
+
+      const finalScore = Math.round((calculateAccuracy() / 100) * currentSentence.length);
+      sentenceDisplay.textContent = `게임 종료! 점수: ${finalScore}`;
+
+      setTimeout(() => {
+        if (window.GameStats) {
+          const playerName = prompt('이름을 입력하세요:') || '익명';
+          GameStats.saveScore(PAGE_ID, playerName, finalScore);
+        }
+
+        setTimeout(() => {
+          accuracyValue.textContent = '0%';
+          accuracyFill.style.width = '0%';
+          scoreValue.textContent = '0';
+          timerValue.textContent = GAME_DURATION;
+          sentenceDisplay.textContent = '준비 중...';
+          inputArea.value = '';
+        }, 1000);
+      }, 1000);
+    }
+
+    inputArea.addEventListener('input', () => {
+      if (gameActive) {
+        updateStats();
+      }
+    });
+
+    startBtn.addEventListener('click', startGame);
+  </script>
+</body>
+</html>

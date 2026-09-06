@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>한글 조합</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .game-area {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .target-section {
+      background: rgba(91, 156, 255, 0.1);
+      padding: 20px;
+      border-radius: 12px;
+      border: 2px solid var(--panel-border);
+      text-align: center;
+    }
+    #targetChar {
+      font-size: 3rem;
+      font-weight: bold;
+      color: var(--accent);
+      margin: 20px 0;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .char-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 15px 0;
+    }
+    .char-btn {
+      padding: 10px;
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .char-btn:hover {
+      border-color: var(--accent);
+      background: rgba(91, 156, 255, 0.1);
+    }
+    .char-btn.selected {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      font-weight: bold;
+    }
+    .char-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .section-title {
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-weight: bold;
+      margin: 10px 0 5px 0;
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-item {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    .btn {
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+    .btn-primary:disabled {
+      background: var(--muted);
+      cursor: not-allowed;
+    }
+    .btn-danger {
+      background: var(--bad);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🔤 한글 조합</h1>
+          <p>자음과 모음을 선택하여 한글을 만드세요!</p>
+        </header>
+
+        <div class="game-area">
+          <div class="target-section">
+            <div style="font-size: 0.9rem; color: var(--muted);">목표 글자</div>
+            <div id="targetChar">가</div>
+          </div>
+
+          <div class="target-section">
+            <div style="font-size: 0.9rem; color: var(--muted);">현재 입력</div>
+            <div id="inputChar" style="font-size: 2.5rem; color: var(--good); min-height: 80px; display: flex; align-items: center; justify-content: center;">-</div>
+          </div>
+        </div>
+
+        <div style="background: var(--panel); padding: 15px; border-radius: 8px; border: 1px solid var(--panel-border);">
+          <div class="section-title">초음</div>
+          <div class="char-buttons" id="chosonBtns"></div>
+
+          <div class="section-title">중음</div>
+          <div class="char-buttons" id="jungsonBtns"></div>
+
+          <div class="section-title">종음</div>
+          <div class="char-buttons" id="jongsonBtns"></div>
+        </div>
+
+        <div class="button-group">
+          <button class="btn btn-primary" id="checkBtn">✓ 확인</button>
+          <button class="btn btn-danger" id="resetBtn">↺ 초기화</button>
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">남은 시간</span>
+            <span class="stat-value" id="timerValue">20</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">맞은 글자</span>
+            <span class="stat-value" id="scoreValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">진행률</span>
+            <span class="stat-value" id="progressValue">0/5</span>
+          </div>
+        </div>
+
+        <button class="btn" id="startBtn" style="width: 100%; margin: 10px 0;">게임 시작</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini85";
+    const GAME_DURATION = 20;
+
+    // Korean characters
+    const CHOSON = ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㄸ'];
+    const JUNGSON = ['ㅏ', 'ㅑ', 'ㅓ', 'ㅕ', 'ㅗ', 'ㅜ', 'ㅡ', 'ㅐ', 'ㅔ'];
+    const JONGSON = ['', 'ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ'];
+
+    const TARGET_CHARS = ['가', '나', '다', '라', '마', '바', '사'];
+
+    let gameActive = false;
+    let selectedChoson = null;
+    let selectedJungson = null;
+    let selectedJongson = null;
+    let targetChar = '';
+    let score = 0;
+    let charIndex = 0;
+    let timerInterval = null;
+    let timeLeft = GAME_DURATION;
+
+    const targetCharDiv = document.getElementById('targetChar');
+    const inputCharDiv = document.getElementById('inputChar');
+    const chosonBtns = document.getElementById('chosonBtns');
+    const jungsonBtns = document.getElementById('jungsonBtns');
+    const jongsonBtns = document.getElementById('jongsonBtns');
+    const checkBtn = document.getElementById('checkBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const startBtn = document.getElementById('startBtn');
+    const timerValue = document.getElementById('timerValue');
+    const scoreValue = document.getElementById('scoreValue');
+    const progressValue = document.getElementById('progressValue');
+    const rankList = document.getElementById('rankList');
+
+    // Load visit count
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      loadRanking();
+    }
+
+    function loadRanking() {
+      if (window.GameStats && window.GameStats.listenForTopScores) {
+        GameStats.listenForTopScores(PAGE_ID, 5, (rows) => {
+          rankList.innerHTML = rows.map((r, i) =>
+            `<li>${i+1}. ${r.name} - ${r.score} 점</li>`
+          ).join('') || '<li>기록이 없습니다</li>';
+        });
+      }
+    }
+
+    function createButtons() {
+      chosonBtns.innerHTML = CHOSON.map((ch, i) =>
+        `<button class="char-btn" data-choson="${i}">${ch}</button>`
+      ).join('');
+
+      jungsonBtns.innerHTML = JUNGSON.map((ch, i) =>
+        `<button class="char-btn" data-jungson="${i}">${ch}</button>`
+      ).join('');
+
+      jongsonBtns.innerHTML = JONGSON.map((ch, i) =>
+        `<button class="char-btn" data-jongson="${i}">${ch || '(없음)'}</button>`
+      ).join('');
+
+      // Add event listeners
+      document.querySelectorAll('[data-choson]').forEach(btn => {
+        btn.addEventListener('click', (e) => selectChoson(parseInt(e.target.dataset.choson), e.target));
+      });
+
+      document.querySelectorAll('[data-jungson]').forEach(btn => {
+        btn.addEventListener('click', (e) => selectJungson(parseInt(e.target.dataset.jungson), e.target));
+      });
+
+      document.querySelectorAll('[data-jongson]').forEach(btn => {
+        btn.addEventListener('click', (e) => selectJongson(parseInt(e.target.dataset.jongson), e.target));
+      });
+    }
+
+    function selectChoson(idx, btn) {
+      if (!gameActive) return;
+      document.querySelectorAll('[data-choson]').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedChoson = idx;
+      updateInputChar();
+    }
+
+    function selectJungson(idx, btn) {
+      if (!gameActive) return;
+      document.querySelectorAll('[data-jungson]').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedJungson = idx;
+      updateInputChar();
+    }
+
+    function selectJongson(idx, btn) {
+      if (!gameActive) return;
+      document.querySelectorAll('[data-jongson]').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedJongson = idx;
+      updateInputChar();
+    }
+
+    function updateInputChar() {
+      if (selectedChoson !== null && selectedJungson !== null && selectedJongson !== null) {
+        const chosung = CHOSON[selectedChoson];
+        const jungsung = JUNGSON[selectedJungson];
+        const jongsung = JONGSON[selectedJongson];
+        inputCharDiv.textContent = chosung + jungsung + jongsung;
+      }
+    }
+
+    function resetSelection() {
+      document.querySelectorAll('.char-btn').forEach(btn => btn.classList.remove('selected'));
+      selectedChoson = null;
+      selectedJungson = null;
+      selectedJongson = null;
+      inputCharDiv.textContent = '-';
+    }
+
+    function nextChar() {
+      if (charIndex >= TARGET_CHARS.length) {
+        endGame();
+        return;
+      }
+
+      targetChar = TARGET_CHARS[charIndex];
+      targetCharDiv.textContent = targetChar;
+      charIndex++;
+      progressValue.textContent = charIndex + '/' + TARGET_CHARS.length;
+      resetSelection();
+    }
+
+    function startGame() {
+      gameActive = true;
+      score = 0;
+      charIndex = 0;
+      timeLeft = GAME_DURATION;
+      selectedChoson = null;
+      selectedJungson = null;
+      selectedJongson = null;
+
+      startBtn.disabled = true;
+      checkBtn.disabled = false;
+      resetBtn.disabled = false;
+
+      nextChar();
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timerValue.textContent = timeLeft;
+
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function endGame() {
+      gameActive = false;
+      clearInterval(timerInterval);
+      startBtn.disabled = false;
+      checkBtn.disabled = true;
+      resetBtn.disabled = true;
+
+      targetCharDiv.textContent = `게임 종료! 점수: ${score}`;
+
+      setTimeout(() => {
+        if (window.GameStats) {
+          const playerName = prompt('이름을 입력하세요:') || '익명';
+          GameStats.saveScore(PAGE_ID, playerName, score);
+        }
+
+        setTimeout(() => {
+          scoreValue.textContent = '0';
+          progressValue.textContent = '0/5';
+          timerValue.textContent = GAME_DURATION;
+          targetCharDiv.textContent = '준비 중...';
+          inputCharDiv.textContent = '-';
+          resetSelection();
+        }, 1000);
+      }, 1000);
+    }
+
+    checkBtn.addEventListener('click', () => {
+      if (!gameActive || selectedChoson === null || selectedJungson === null || selectedJongson === null) return;
+
+      const inputChar = CHOSON[selectedChoson] + JUNGSON[selectedJungson] + JONGSON[selectedJongson];
+
+      if (inputChar === targetChar) {
+        score++;
+        scoreValue.textContent = score;
+      }
+
+      nextChar();
+    });
+
+    resetBtn.addEventListener('click', resetSelection);
+    startBtn.addEventListener('click', startGame);
+
+    createButtons();
+  </script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>빠른 타이핑</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    #wordDisplay {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: var(--accent);
+      padding: 20px;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(91, 156, 255, 0.1);
+      border-radius: 12px;
+      margin: 20px 0;
+    }
+    #inputArea {
+      width: 100%;
+      padding: 12px;
+      font-size: 1.1rem;
+      border: 2px solid var(--panel-border);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+      text-align: center;
+      margin: 10px 0;
+    }
+    #inputArea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    #inputArea.error {
+      border-color: var(--bad);
+      background: rgba(255, 91, 91, 0.1);
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-item {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+    .completed-word {
+      color: var(--good);
+      text-decoration: line-through;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>⌨️ 빠른 타이핑</h1>
+          <p>단어를 정확히 입력하고 스페이스바를 누르세요!</p>
+        </header>
+
+        <div id="gameArea">
+          <div id="wordDisplay">준비 중...</div>
+          <input type="text" id="inputArea" placeholder="여기에 입력하세요..." />
+          <div style="font-size: 0.9rem; color: var(--muted); margin: 10px 0;">스페이스바로 다음 단어</div>
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">남은 시간</span>
+            <span class="stat-value" id="timerValue">20</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">입력 단어</span>
+            <span class="stat-value" id="wordCountValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">WPM</span>
+            <span class="stat-value" id="wpmValue">0</span>
+          </div>
+        </div>
+
+        <button class="btn" id="startBtn" style="width: 100%; margin: 10px 0;">게임 시작</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini81";
+    const GAME_DURATION = 20; // seconds
+    const WORD_POOL = [
+      '빠른', '단어', '입력', '테스트', '게임', '정확히', '스페이스',
+      '타이핑', '클릭', '시작', '종료', '점수', '순위', '높다',
+      '낮다', '중간', '전체', '평균', '확인', '기록', '반복',
+      '강화', '개선', '달성', '목표', '성공', '실패', '재시작'
+    ];
+
+    const wordDisplay = document.getElementById('wordDisplay');
+    const inputArea = document.getElementById('inputArea');
+    const timerValue = document.getElementById('timerValue');
+    const wordCountValue = document.getElementById('wordCountValue');
+    const wpmValue = document.getElementById('wpmValue');
+    const startBtn = document.getElementById('startBtn');
+    const rankList = document.getElementById('rankList');
+
+    let gameActive = false;
+    let timeLeft = GAME_DURATION;
+    let wordCount = 0;
+    let currentWord = '';
+    let timerInterval = null;
+
+    // Load visit count
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      loadRanking();
+    }
+
+    function loadRanking() {
+      if (window.GameStats && window.GameStats.listenForTopScores) {
+        GameStats.listenForTopScores(PAGE_ID, 5, (rows) => {
+          rankList.innerHTML = rows.map((r, i) =>
+            `<li>${i+1}. ${r.name} - ${r.score} WPM</li>`
+          ).join('') || '<li>기록이 없습니다</li>';
+        });
+      }
+    }
+
+    function pickRandomWord() {
+      return WORD_POOL[Math.floor(Math.random() * WORD_POOL.length)];
+    }
+
+    function startGame() {
+      gameActive = true;
+      timeLeft = GAME_DURATION;
+      wordCount = 0;
+      inputArea.value = '';
+      inputArea.focus();
+      startBtn.disabled = true;
+      wordDisplay.classList.remove('completed-word');
+
+      currentWord = pickRandomWord();
+      wordDisplay.textContent = currentWord;
+      inputArea.classList.remove('error');
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timerValue.textContent = timeLeft;
+        updateWPM();
+
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function nextWord() {
+      if (inputArea.value.trim().toLowerCase() === currentWord.toLowerCase()) {
+        wordCount++;
+        inputArea.classList.remove('error');
+      } else {
+        inputArea.classList.add('error');
+      }
+
+      inputArea.value = '';
+      currentWord = pickRandomWord();
+      wordDisplay.textContent = currentWord;
+      wordCountValue.textContent = wordCount;
+      updateWPM();
+    }
+
+    function updateWPM() {
+      const minutes = (GAME_DURATION - timeLeft) / 60;
+      const wpm = minutes > 0 ? Math.round(wordCount / minutes) : 0;
+      wpmValue.textContent = wpm;
+    }
+
+    function endGame() {
+      gameActive = false;
+      clearInterval(timerInterval);
+      startBtn.disabled = false;
+      inputArea.disabled = true;
+
+      const finalWPM = Math.round(wordCount / (GAME_DURATION / 60));
+      wordDisplay.textContent = `게임 종료! WPM: ${finalWPM}`;
+
+      setTimeout(() => {
+        if (window.GameStats) {
+          const playerName = prompt('이름을 입력하세요:') || '익명';
+          GameStats.saveScore(PAGE_ID, playerName, finalWPM);
+        }
+
+        setTimeout(() => {
+          inputArea.disabled = false;
+          startBtn.disabled = false;
+          wordCountValue.textContent = '0';
+          wpmValue.textContent = '0';
+          timerValue.textContent = GAME_DURATION;
+          wordDisplay.textContent = '준비 중...';
+          inputArea.value = '';
+        }, 1000);
+      }, 1000);
+    }
+
+    inputArea.addEventListener('keydown', (e) => {
+      if (!gameActive) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        nextWord();
+      }
+    });
+
+    startBtn.addEventListener('click', startGame);
+  </script>
+</body>
+</html>

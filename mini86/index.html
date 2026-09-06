@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>영어 단어 게임</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    #definitionDisplay {
+      font-size: 1.3rem;
+      padding: 20px;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(91, 156, 255, 0.1);
+      border-radius: 12px;
+      margin: 20px 0;
+      text-align: center;
+      color: var(--text);
+    }
+    .alphabet-buttons {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      margin: 20px 0;
+    }
+    .alpha-btn {
+      padding: 12px;
+      border: 2px solid var(--panel-border);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    .alpha-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: rgba(91, 156, 255, 0.1);
+    }
+    .alpha-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      background: var(--panel-border);
+    }
+    .alpha-btn.correct {
+      border-color: var(--good);
+      background: rgba(46, 204, 113, 0.2);
+      color: var(--good);
+    }
+    .alpha-btn.wrong {
+      border-color: var(--bad);
+      background: rgba(255, 91, 91, 0.2);
+      color: var(--bad);
+    }
+    #answerDisplay {
+      font-size: 1.8rem;
+      font-weight: bold;
+      padding: 20px;
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(91, 156, 255, 0.05);
+      border: 2px solid var(--panel-border);
+      border-radius: 8px;
+      letter-spacing: 10px;
+      margin: 15px 0;
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-item {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    .btn {
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+    .btn-primary:disabled {
+      background: var(--muted);
+      cursor: not-allowed;
+    }
+    .btn-danger {
+      background: var(--bad);
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #e04646;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🔡 영어 단어 게임</h1>
+          <p>뜻을 보고 정확한 알파벳을 선택하세요!</p>
+        </header>
+
+        <div id="gameArea">
+          <div style="font-size: 0.9rem; color: var(--muted); margin: 10px 0;">단어의 뜻</div>
+          <div id="definitionDisplay">준비 중...</div>
+
+          <div id="answerDisplay">_ _ _</div>
+
+          <div class="alphabet-buttons" id="alphaButtons"></div>
+        </div>
+
+        <div class="button-group">
+          <button class="btn btn-primary" id="submitBtn" disabled>✓ 제출</button>
+          <button class="btn btn-danger" id="resetBtn" disabled>↺ 초기화</button>
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">남은 시간</span>
+            <span class="stat-value" id="timerValue">20</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">현재 단어</span>
+            <span class="stat-value" id="wordCountValue">0/3</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">점수</span>
+            <span class="stat-value" id="scoreValue">0</span>
+          </div>
+        </div>
+
+        <button class="btn" id="startBtn" style="width: 100%; margin: 10px 0;">게임 시작</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini86";
+    const GAME_DURATION = 20;
+
+    const WORDS_DATA = [
+      { word: 'APPLE', definition: '빨간 과일' },
+      { word: 'BOOK', definition: '읽을 수 있는 물건' },
+      { word: 'CAT', definition: '집에서 기르는 동물' },
+      { word: 'DOG', definition: '충성스러운 애완동물' },
+      { word: 'EASY', definition: '어렵지 않은' },
+      { word: 'FAST', definition: '빠른 속도' },
+      { word: 'GAME', definition: '즐거운 활동' },
+      { word: 'HAND', definition: '팔의 끝 부분' },
+      { word: 'JUMP', definition: '높이 뛰다' },
+      { word: 'KIND', definition: '친절한' }
+    ];
+
+    let gameActive = false;
+    let currentWordIndex = 0;
+    let selectedLetters = [];
+    let currentWordData = null;
+    let score = 0;
+    let timerInterval = null;
+    let timeLeft = GAME_DURATION;
+    let usedWords = [];
+
+    const definitionDisplay = document.getElementById('definitionDisplay');
+    const answerDisplay = document.getElementById('answerDisplay');
+    const alphaButtons = document.getElementById('alphaButtons');
+    const submitBtn = document.getElementById('submitBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const startBtn = document.getElementById('startBtn');
+    const timerValue = document.getElementById('timerValue');
+    const wordCountValue = document.getElementById('wordCountValue');
+    const scoreValue = document.getElementById('scoreValue');
+    const rankList = document.getElementById('rankList');
+
+    // Load visit count
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      loadRanking();
+    }
+
+    function loadRanking() {
+      if (window.GameStats && window.GameStats.listenForTopScores) {
+        GameStats.listenForTopScores(PAGE_ID, 5, (rows) => {
+          rankList.innerHTML = rows.map((r, i) =>
+            `<li>${i+1}. ${r.name} - ${r.score} 점</li>`
+          ).join('') || '<li>기록이 없습니다</li>';
+        });
+      }
+    }
+
+    function createAlphaButtons() {
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      alphaButtons.innerHTML = alphabet.map((letter, idx) =>
+        `<button class="alpha-btn" data-letter="${letter}">${letter}</button>`
+      ).join('');
+
+      document.querySelectorAll('.alpha-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          if (!gameActive || !currentWordData) return;
+          selectLetter(e.target.dataset.letter, e.target);
+        });
+      });
+    }
+
+    function selectLetter(letter, btn) {
+      if (selectedLetters.length >= currentWordData.word.length) return;
+
+      selectedLetters.push(letter);
+      btn.disabled = true;
+
+      if (currentWordData.word[selectedLetters.length - 1] === letter) {
+        btn.classList.add('correct');
+      } else {
+        btn.classList.add('wrong');
+      }
+
+      updateAnswerDisplay();
+    }
+
+    function updateAnswerDisplay() {
+      const display = selectedLetters.map((l, i) => l).join(' ');
+      const padding = Array(currentWordData.word.length - selectedLetters.length).fill('_').join(' ');
+      answerDisplay.textContent = (display + (padding ? ' ' + padding : '')).trim();
+    }
+
+    function resetSelection() {
+      document.querySelectorAll('.alpha-btn').forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('correct', 'wrong');
+      });
+      selectedLetters = [];
+      updateAnswerDisplay();
+    }
+
+    function pickRandomWord() {
+      let word;
+      do {
+        word = WORDS_DATA[Math.floor(Math.random() * WORDS_DATA.length)];
+      } while (usedWords.includes(word.word));
+      usedWords.push(word.word);
+      return word;
+    }
+
+    function nextWord() {
+      // Check if answer is correct
+      if (selectedLetters.length === currentWordData.word.length) {
+        const answer = selectedLetters.join('');
+        if (answer === currentWordData.word) {
+          score += 10;
+          scoreValue.textContent = score;
+        }
+      }
+
+      currentWordIndex++;
+
+      if (currentWordIndex >= 3 || usedWords.length >= WORDS_DATA.length) {
+        endGame();
+        return;
+      }
+
+      currentWordData = pickRandomWord();
+      definitionDisplay.textContent = currentWordData.definition;
+      wordCountValue.textContent = currentWordIndex + '/3';
+      resetSelection();
+    }
+
+    function startGame() {
+      gameActive = true;
+      score = 0;
+      currentWordIndex = 0;
+      selectedLetters = [];
+      usedWords = [];
+      timeLeft = GAME_DURATION;
+
+      startBtn.disabled = true;
+      submitBtn.disabled = false;
+      resetBtn.disabled = false;
+
+      currentWordData = pickRandomWord();
+      definitionDisplay.textContent = currentWordData.definition;
+      wordCountValue.textContent = '1/3';
+      updateAnswerDisplay();
+      resetSelection();
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timerValue.textContent = timeLeft;
+
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function endGame() {
+      gameActive = false;
+      clearInterval(timerInterval);
+      startBtn.disabled = false;
+      submitBtn.disabled = true;
+      resetBtn.disabled = true;
+
+      definitionDisplay.textContent = `게임 종료! 점수: ${score}`;
+
+      setTimeout(() => {
+        if (window.GameStats) {
+          const playerName = prompt('이름을 입력하세요:') || '익명';
+          GameStats.saveScore(PAGE_ID, playerName, score);
+        }
+
+        setTimeout(() => {
+          scoreValue.textContent = '0';
+          wordCountValue.textContent = '0/3';
+          timerValue.textContent = GAME_DURATION;
+          definitionDisplay.textContent = '준비 중...';
+          answerDisplay.textContent = '_ _ _';
+          resetSelection();
+        }, 1000);
+      }, 1000);
+    }
+
+    submitBtn.addEventListener('click', nextWord);
+    resetBtn.addEventListener('click', resetSelection);
+    startBtn.addEventListener('click', startGame);
+
+    createAlphaButtons();
+  </script>
+</body>
+</html>

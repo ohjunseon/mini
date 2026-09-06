@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>종합 리듬</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    canvas {
+      display: block;
+      margin: 20px auto;
+      background: var(--panel);
+      border: 2px solid var(--panel-border);
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #gameContent {
+      text-align: center;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #modeIndicator {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--accent);
+      margin: 20px 0;
+      padding: 15px;
+      background: rgba(91, 156, 255, 0.1);
+      border-radius: 8px;
+      border: 2px solid var(--accent);
+    }
+    #contentDisplay {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--accent);
+      padding: 20px;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #typingInput {
+      width: 100%;
+      padding: 12px;
+      font-size: 1.1rem;
+      border: 2px solid var(--panel-border);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+      text-align: center;
+      margin: 10px 0;
+    }
+    #typingInput:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-item {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🎼 종합 리듬</h1>
+          <p>타이핑, 리듬, 정확도를 모두 마스터하세요!</p>
+        </header>
+
+        <div id="modeIndicator">모드: 대기 중</div>
+
+        <canvas id="gameCanvas" width="320" height="300" style="display: none;"></canvas>
+
+        <div id="gameContent">
+          <div id="contentDisplay">준비 중...</div>
+          <input type="text" id="typingInput" placeholder="단어를 입력하세요..." style="display: none;" />
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">남은 시간</span>
+            <span class="stat-value" id="timerValue">30</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">총 점수</span>
+            <span class="stat-value" id="totalScoreValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">모드 점수</span>
+            <span class="stat-value" id="modeScoreValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">진행</span>
+            <span class="stat-value" id="progressValue">0/3</span>
+          </div>
+        </div>
+
+        <button class="btn" id="startBtn" style="width: 100%; margin: 10px 0;">게임 시작</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini90";
+    const GAME_DURATION = 30;
+    const MODE_DURATION = 10; // 10 seconds per mode
+
+    const WORDS = ['APPLE', 'BOOK', 'CLOUD', 'DREAM', 'ENERGY'];
+    const MODES = ['typing', 'rhythm', 'accuracy'];
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const modeIndicator = document.getElementById('modeIndicator');
+    const contentDisplay = document.getElementById('contentDisplay');
+    const typingInput = document.getElementById('typingInput');
+    const startBtn = document.getElementById('startBtn');
+    const timerValue = document.getElementById('timerValue');
+    const totalScoreValue = document.getElementById('totalScoreValue');
+    const modeScoreValue = document.getElementById('modeScoreValue');
+    const progressValue = document.getElementById('progressValue');
+    const rankList = document.getElementById('rankList');
+
+    let gameActive = false;
+    let totalScore = 0;
+    let modeScore = 0;
+    let currentMode = 0;
+    let gameStartTime = 0;
+    let modeStartTime = 0;
+    let timeLeft = GAME_DURATION;
+    let timerInterval = null;
+    let animationId = null;
+
+    // Mode-specific variables
+    let currentWord = '';
+    let circles = [];
+    let clickCount = 0;
+    let correctClicks = 0;
+
+    // Load visit count
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      loadRanking();
+    }
+
+    function loadRanking() {
+      if (window.GameStats && window.GameStats.listenForTopScores) {
+        GameStats.listenForTopScores(PAGE_ID, 5, (rows) => {
+          rankList.innerHTML = rows.map((r, i) =>
+            `<li>${i+1}. ${r.name} - ${r.score} 점</li>`
+          ).join('') || '<li>기록이 없습니다</li>';
+        });
+      }
+    }
+
+    function startGame() {
+      gameActive = true;
+      totalScore = 0;
+      currentMode = 0;
+      gameStartTime = Date.now();
+      timeLeft = GAME_DURATION;
+      startBtn.disabled = true;
+
+      startMode();
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timerValue.textContent = timeLeft;
+
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function startMode() {
+      modeScore = 0;
+      modeScoreValue.textContent = '0';
+      modeStartTime = Date.now();
+      clickCount = 0;
+      correctClicks = 0;
+
+      const mode = MODES[currentMode % 3];
+      modeIndicator.textContent = `모드: ${
+        mode === 'typing' ? '타이핑' : mode === 'rhythm' ? '리듬' : '정확도'
+      } (${currentMode + 1}/3)`;
+
+      progressValue.textContent = (currentMode + 1) + '/3';
+
+      if (mode === 'typing') {
+        startTypingMode();
+      } else if (mode === 'rhythm') {
+        startRhythmMode();
+      } else {
+        startAccuracyMode();
+      }
+    }
+
+    function startTypingMode() {
+      canvas.style.display = 'none';
+      typingInput.style.display = 'block';
+      currentWord = WORDS[Math.floor(Math.random() * WORDS.length)];
+      contentDisplay.textContent = currentWord;
+      typingInput.value = '';
+      typingInput.focus();
+      typingInput.placeholder = '단어를 입력하세요...';
+    }
+
+    function startRhythmMode() {
+      canvas.style.display = 'block';
+      typingInput.style.display = 'none';
+      contentDisplay.textContent = '리듬 모드';
+
+      circles = [
+        { spawnTime: modeStartTime + 1000 },
+        { spawnTime: modeStartTime + 2500 },
+        { spawnTime: modeStartTime + 4000 },
+        { spawnTime: modeStartTime + 5500 },
+      ];
+
+      rhythmGameLoop();
+    }
+
+    function startAccuracyMode() {
+      canvas.style.display = 'block';
+      typingInput.style.display = 'none';
+      contentDisplay.textContent = '정확도 모드';
+      clickCount = 0;
+      correctClicks = 0;
+
+      accuracyGameLoop();
+    }
+
+    function rhythmGameLoop() {
+      const elapsed = Date.now() - modeStartTime;
+
+      if (elapsed >= MODE_DURATION * 1000 || !gameActive) {
+        nextMode();
+        return;
+      }
+
+      ctx.fillStyle = 'var(--panel)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = 'var(--panel-border)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(160, 150, 80, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Draw circles
+      for (const circle of circles) {
+        const age = Date.now() - circle.spawnTime;
+        const progress = age / 2000;
+
+        if (progress >= 0 && progress < 1) {
+          const radius = progress * 100;
+          ctx.strokeStyle = circle.hit ? 'var(--good)' : 'var(--accent)';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(160, 150, radius, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      ctx.fillStyle = 'var(--accent)';
+      ctx.beginPath();
+      ctx.arc(160, 150, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      animationId = requestAnimationFrame(rhythmGameLoop);
+    }
+
+    function accuracyGameLoop() {
+      const elapsed = Date.now() - modeStartTime;
+
+      if (elapsed >= MODE_DURATION * 1000 || !gameActive) {
+        nextMode();
+        return;
+      }
+
+      ctx.fillStyle = 'var(--panel)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw target
+      ctx.fillStyle = 'var(--accent)';
+      ctx.font = 'bold 40px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('●', 160, 150);
+
+      ctx.font = '14px sans-serif';
+      ctx.fillStyle = 'var(--muted)';
+      ctx.fillText(`클릭: ${clickCount}`, 160, 280);
+
+      animationId = requestAnimationFrame(accuracyGameLoop);
+    }
+
+    function nextMode() {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+
+      totalScore += modeScore;
+      totalScoreValue.textContent = totalScore;
+      currentMode++;
+
+      if (currentMode >= 3) {
+        currentMode = 0;
+      }
+
+      if (timeLeft > 0 && gameActive) {
+        startMode();
+      }
+    }
+
+    function endGame() {
+      gameActive = false;
+      clearInterval(timerInterval);
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+      startBtn.disabled = false;
+      typingInput.style.display = 'none';
+      canvas.style.display = 'none';
+
+      contentDisplay.textContent = `게임 종료! 최종 점수: ${totalScore}`;
+
+      setTimeout(() => {
+        if (window.GameStats) {
+          const playerName = prompt('이름을 입력하세요:') || '익명';
+          GameStats.saveScore(PAGE_ID, playerName, totalScore);
+        }
+
+        setTimeout(() => {
+          totalScoreValue.textContent = '0';
+          modeScoreValue.textContent = '0';
+          progressValue.textContent = '0/3';
+          timerValue.textContent = GAME_DURATION;
+          contentDisplay.textContent = '준비 중...';
+          modeIndicator.textContent = '모드: 대기 중';
+          typingInput.value = '';
+        }, 1000);
+      }, 1000);
+    }
+
+    typingInput.addEventListener('keydown', (e) => {
+      if (e.code === 'Enter' && gameActive) {
+        if (typingInput.value.toUpperCase() === currentWord) {
+          modeScore += 50;
+          currentWord = WORDS[Math.floor(Math.random() * WORDS.length)];
+          contentDisplay.textContent = currentWord;
+          typingInput.value = '';
+        } else {
+          typingInput.value = '';
+        }
+        modeScoreValue.textContent = modeScore;
+      }
+    });
+
+    canvas.addEventListener('click', (e) => {
+      if (!gameActive) return;
+
+      const mode = MODES[currentMode % 3];
+
+      if (mode === 'rhythm') {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const dist = Math.sqrt((x - 160) ** 2 + (y - 150) ** 2);
+
+        for (const circle of circles) {
+          if (!circle.hit) {
+            const age = Date.now() - circle.spawnTime;
+            const progress = age / 2000;
+            const radius = progress * 100;
+
+            if (Math.abs(radius - 60) < 20) {
+              circle.hit = true;
+              modeScore += 100;
+              modeScoreValue.textContent = modeScore;
+              break;
+            }
+          }
+        }
+      } else if (mode === 'accuracy') {
+        clickCount++;
+        const acc = Math.round((clickCount / (Date.now() - modeStartTime)) * 1000);
+        if (acc > 50) {
+          correctClicks++;
+        }
+        modeScore = correctClicks * 50;
+        modeScoreValue.textContent = modeScore;
+      }
+    });
+
+    startBtn.addEventListener('click', startGame);
+  </script>
+</body>
+</html>

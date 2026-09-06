@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>리듬 게임: 박자</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    canvas {
+      display: block;
+      margin: 20px auto;
+      background: var(--panel);
+      border: 2px solid var(--panel-border);
+      border-radius: 8px;
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-item {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+    .keys-hint {
+      background: var(--panel);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      margin: 15px 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🎵 리듬 게임: 박자</h1>
+          <p>떨어지는 노트를 정확한 타이밍에 누르세요!</p>
+        </header>
+
+        <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+        <div class="keys-hint">
+          <strong>조작:</strong> A / S / D / F 키를 노트에 맞춰 누르세요
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">점수</span>
+            <span class="stat-value" id="scoreValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Perfect</span>
+            <span class="stat-value" id="perfectValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Good</span>
+            <span class="stat-value" id="goodValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Miss</span>
+            <span class="stat-value" id="missValue">0</span>
+          </div>
+        </div>
+
+        <button class="btn" id="startBtn" style="width: 100%; margin: 10px 0;">게임 시작</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini83";
+    const GAME_DURATION = 30; // seconds
+    const LANE_COUNT = 4;
+    const LANE_WIDTH = 80;
+    const LANE_HEIGHT = 480;
+    const NOTE_SIZE = 60;
+    const HIT_ZONE = 60;
+    const NOTE_SPEED = 5;
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('startBtn');
+    const scoreValue = document.getElementById('scoreValue');
+    const perfectValue = document.getElementById('perfectValue');
+    const goodValue = document.getElementById('goodValue');
+    const missValue = document.getElementById('missValue');
+    const rankList = document.getElementById('rankList');
+
+    let gameActive = false;
+    let score = 0;
+    let perfect = 0;
+    let good = 0;
+    let miss = 0;
+    let notes = [];
+    let gameStartTime = 0;
+    let animationId = null;
+    let keysPressed = {};
+
+    const NOTES_PATTERN = [
+      { time: 0.5, lane: 0 },
+      { time: 1, lane: 1 },
+      { time: 1.5, lane: 2 },
+      { time: 2, lane: 3 },
+      { time: 2.5, lane: 0 },
+      { time: 3, lane: 2 },
+      { time: 3.5, lane: 1 },
+      { time: 4, lane: 3 },
+      { time: 4.5, lane: 1 },
+      { time: 5, lane: 2 },
+      { time: 5.5, lane: 0 },
+      { time: 6, lane: 3 },
+    ];
+
+    // Load visit count
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      loadRanking();
+    }
+
+    function loadRanking() {
+      if (window.GameStats && window.GameStats.listenForTopScores) {
+        GameStats.listenForTopScores(PAGE_ID, 5, (rows) => {
+          rankList.innerHTML = rows.map((r, i) =>
+            `<li>${i+1}. ${r.name} - ${r.score} 점</li>`
+          ).join('') || '<li>기록이 없습니다</li>';
+        });
+      }
+    }
+
+    function startGame() {
+      gameActive = true;
+      score = 0;
+      perfect = 0;
+      good = 0;
+      miss = 0;
+      notes = [];
+      gameStartTime = Date.now();
+      startBtn.disabled = true;
+      keysPressed = {};
+
+      // Generate notes based on pattern
+      for (let i = 0; i < 5; i++) {
+        NOTES_PATTERN.forEach(pattern => {
+          notes.push({
+            lane: pattern.lane,
+            spawnTime: (pattern.time + i * 7) * 1000,
+            hit: false,
+            y: -NOTE_SIZE
+          });
+        });
+      }
+
+      gameLoop();
+    }
+
+    function gameLoop() {
+      const elapsed = Date.now() - gameStartTime;
+
+      if (elapsed >= GAME_DURATION * 1000) {
+        endGame();
+        return;
+      }
+
+      ctx.fillStyle = 'var(--panel)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw lanes
+      ctx.strokeStyle = 'var(--panel-border)';
+      ctx.lineWidth = 2;
+      for (let i = 1; i < LANE_COUNT; i++) {
+        const x = (canvas.width / LANE_COUNT) * i;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+
+      // Draw hit zone
+      ctx.fillStyle = 'rgba(91, 156, 255, 0.2)';
+      ctx.fillRect(0, canvas.height - HIT_ZONE, canvas.width, HIT_ZONE);
+
+      // Update and draw notes
+      for (let i = notes.length - 1; i >= 0; i--) {
+        const note = notes[i];
+        const noteProgress = (elapsed - note.spawnTime) / 1000;
+        note.y = noteProgress * NOTE_SPEED * 100;
+
+        if (note.y < canvas.height + NOTE_SIZE) {
+          // Draw note
+          ctx.fillStyle = note.hit ? 'rgba(46, 204, 113, 0.3)' : 'var(--accent)';
+          const laneX = (canvas.width / LANE_COUNT) * note.lane + (canvas.width / LANE_COUNT - NOTE_SIZE) / 2;
+          ctx.fillRect(laneX, note.y, NOTE_SIZE, NOTE_SIZE);
+          ctx.strokeStyle = 'var(--accent)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(laneX, note.y, NOTE_SIZE, NOTE_SIZE);
+        } else if (!note.hit) {
+          miss++;
+          note.hit = true;
+          missValue.textContent = miss;
+        }
+
+        if (note.y > canvas.height + NOTE_SIZE) {
+          notes.splice(i, 1);
+        }
+      }
+
+      // Check key presses
+      const keyMap = { 'a': 0, 's': 1, 'd': 2, 'f': 3 };
+      for (const [key, lane] of Object.entries(keyMap)) {
+        if (keysPressed[key]) {
+          for (const note of notes) {
+            if (note.lane === lane && !note.hit && note.y > canvas.height - HIT_ZONE * 1.5) {
+              const diff = Math.abs(note.y - (canvas.height - HIT_ZONE / 2));
+              if (diff < 40) {
+                score += 100;
+                perfect++;
+                perfectValue.textContent = perfect;
+              } else if (diff < 60) {
+                score += 50;
+                good++;
+                goodValue.textContent = good;
+              }
+              note.hit = true;
+              scoreValue.textContent = score;
+            }
+          }
+          keysPressed[key] = false;
+        }
+      }
+
+      animationId = requestAnimationFrame(gameLoop);
+    }
+
+    function endGame() {
+      gameActive = false;
+      cancelAnimationFrame(animationId);
+      startBtn.disabled = false;
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'var(--accent)';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('게임 종료!', canvas.width / 2, canvas.height / 2 - 20);
+      ctx.font = '18px sans-serif';
+      ctx.fillText(`최종 점수: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+
+      setTimeout(() => {
+        if (window.GameStats) {
+          const playerName = prompt('이름을 입력하세요:') || '익명';
+          GameStats.saveScore(PAGE_ID, playerName, score);
+        }
+      }, 500);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      const key = e.key.toLowerCase();
+      if (['a', 's', 'd', 'f'].includes(key) && gameActive) {
+        keysPressed[key] = true;
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      const key = e.key.toLowerCase();
+      if (['a', 's', 'd', 'f'].includes(key)) {
+        keysPressed[key] = false;
+      }
+    });
+
+    startBtn.addEventListener('click', startGame);
+  </script>
+</body>
+</html>

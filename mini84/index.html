@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>음성 발음</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    #wordDisplay {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--accent);
+      padding: 30px;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(91, 156, 255, 0.1);
+      border-radius: 12px;
+      margin: 20px 0;
+    }
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    .btn {
+      padding: 15px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+    .btn-primary:disabled {
+      background: var(--muted);
+      cursor: not-allowed;
+    }
+    .btn-danger {
+      background: var(--bad);
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #e04646;
+    }
+    .btn-success {
+      background: var(--good);
+      color: white;
+    }
+    .btn-success:hover {
+      background: #26b560;
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-item {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+    #recordingStatus {
+      text-align: center;
+      color: var(--accent);
+      font-weight: bold;
+      min-height: 24px;
+      margin: 10px 0;
+    }
+    .record-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      background: var(--bad);
+      border-radius: 50%;
+      animation: pulse 1s infinite;
+      margin-right: 8px;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🎤 음성 발음</h1>
+          <p>주어진 단어를 정확히 발음하세요!</p>
+        </header>
+
+        <div id="gameArea">
+          <div id="wordDisplay">준비 중...</div>
+          <div id="recordingStatus"></div>
+
+          <div class="button-group">
+            <button class="btn btn-primary" id="playBtn">🔊 재생</button>
+            <button class="btn btn-primary" id="recordBtn">🎙️ 녹음</button>
+          </div>
+
+          <div style="font-size: 0.9rem; color: var(--muted); margin: 10px 0;">
+            스페이스바: 재생 / 녹음
+          </div>
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">현재 단어</span>
+            <span class="stat-value" id="wordCountValue">1/5</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">평균 점수</span>
+            <span class="stat-value" id="avgScoreValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">총 점수</span>
+            <span class="stat-value" id="totalScoreValue">0</span>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button class="btn btn-success" id="nextBtn">✓ 다음</button>
+          <button class="btn btn-danger" id="skipBtn">✕ 건너뛰기</button>
+        </div>
+
+        <button class="btn" id="startBtn" style="width: 100%; margin: 10px 0;">게임 시작</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script>
+    const PAGE_ID = "mini84";
+    const WORDS = [
+      { word: 'Apple', ko: '사과' },
+      { word: 'Beautiful', ko: '아름다운' },
+      { word: 'Computer', ko: '컴퓨터' },
+      { word: 'Develop', ko: '개발하다' },
+      { word: 'Excellent', ko: '뛰어난' },
+      { word: 'Forget', ko: '잊다' },
+      { word: 'Growth', ko: '성장' },
+      { word: 'Happy', ko: '행복한' },
+      { word: 'Improve', ko: '개선하다' },
+      { word: 'Journey', ko: '여행' }
+    ];
+
+    const wordDisplay = document.getElementById('wordDisplay');
+    const recordingStatus = document.getElementById('recordingStatus');
+    const playBtn = document.getElementById('playBtn');
+    const recordBtn = document.getElementById('recordBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const skipBtn = document.getElementById('skipBtn');
+    const startBtn = document.getElementById('startBtn');
+    const wordCountValue = document.getElementById('wordCountValue');
+    const avgScoreValue = document.getElementById('avgScoreValue');
+    const totalScoreValue = document.getElementById('totalScoreValue');
+    const rankList = document.getElementById('rankList');
+
+    let gameActive = false;
+    let currentWordIndex = 0;
+    let currentScore = 50; // Default score 0-100
+    let totalScore = 0;
+    let selectedWords = [];
+    let audioContext = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecording = false;
+
+    // Load visit count
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      loadRanking();
+    }
+
+    function loadRanking() {
+      if (window.GameStats && window.GameStats.listenForTopScores) {
+        GameStats.listenForTopScores(PAGE_ID, 5, (rows) => {
+          rankList.innerHTML = rows.map((r, i) =>
+            `<li>${i+1}. ${r.name} - ${r.score} 점</li>`
+          ).join('') || '<li>기록이 없습니다</li>';
+        });
+      }
+    }
+
+    async function initAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = (e) => {
+        recordedChunks.push(e.data);
+      };
+    }
+
+    function playWord() {
+      const utterance = new SpeechSynthesisUtterance(selectedWords[currentWordIndex].word);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.8;
+      speechSynthesis.speak(utterance);
+    }
+
+    async function startRecording() {
+      try {
+        if (!mediaRecorder) {
+          await initAudio();
+        }
+        recordedChunks = [];
+        mediaRecorder.start();
+        isRecording = true;
+        recordingStatus.innerHTML = '<span class="record-indicator"></span> 녹음 중...';
+        recordBtn.textContent = '⏹️ 녹음 중지';
+      } catch (err) {
+        console.warn('Microphone access denied');
+        recordingStatus.textContent = '마이크 접근 권한이 필요합니다';
+      }
+    }
+
+    function stopRecording() {
+      if (isRecording && mediaRecorder) {
+        mediaRecorder.stop();
+        isRecording = false;
+        recordingStatus.textContent = '✓ 녹음 완료';
+        recordBtn.textContent = '🎙️ 녹음';
+
+        // Simulate pronunciation scoring
+        currentScore = 50 + Math.floor(Math.random() * 51);
+      }
+    }
+
+    function nextWord() {
+      totalScore += currentScore;
+      currentWordIndex++;
+
+      if (currentWordIndex >= selectedWords.length) {
+        endGame();
+        return;
+      }
+
+      currentScore = 50;
+      recordingStatus.textContent = '';
+      wordDisplay.textContent = selectedWords[currentWordIndex].word + ' (' + selectedWords[currentWordIndex].ko + ')';
+      wordCountValue.textContent = (currentWordIndex + 1) + '/5';
+      avgScoreValue.textContent = Math.round(totalScore / (currentWordIndex + 1));
+    }
+
+    function skipWord() {
+      currentScore = 0;
+      nextWord();
+    }
+
+    function startGame() {
+      gameActive = true;
+      currentWordIndex = 0;
+      totalScore = 0;
+      currentScore = 50;
+
+      // Select 5 random words
+      selectedWords = [];
+      const indices = [];
+      while (selectedWords.length < 5) {
+        const idx = Math.floor(Math.random() * WORDS.length);
+        if (!indices.includes(idx)) {
+          indices.push(idx);
+          selectedWords.push(WORDS[idx]);
+        }
+      }
+
+      startBtn.disabled = true;
+      nextBtn.disabled = false;
+      skipBtn.disabled = false;
+      playBtn.disabled = false;
+      recordBtn.disabled = false;
+
+      wordDisplay.textContent = selectedWords[0].word + ' (' + selectedWords[0].ko + ')';
+      wordCountValue.textContent = '1/5';
+      avgScoreValue.textContent = '0';
+    }
+
+    function endGame() {
+      gameActive = false;
+      startBtn.disabled = false;
+      nextBtn.disabled = true;
+      skipBtn.disabled = true;
+      playBtn.disabled = true;
+      recordBtn.disabled = true;
+
+      const finalScore = Math.round(totalScore / selectedWords.length);
+      wordDisplay.textContent = `게임 종료! 최종 점수: ${finalScore}`;
+      recordingStatus.textContent = '';
+
+      setTimeout(() => {
+        if (window.GameStats) {
+          const playerName = prompt('이름을 입력하세요:') || '익명';
+          GameStats.saveScore(PAGE_ID, playerName, finalScore);
+        }
+
+        setTimeout(() => {
+          totalScoreValue.textContent = '0';
+          avgScoreValue.textContent = '0';
+          wordCountValue.textContent = '0/5';
+          wordDisplay.textContent = '준비 중...';
+        }, 1000);
+      }, 1000);
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (gameActive) playWord();
+    });
+
+    recordBtn.addEventListener('click', () => {
+      if (gameActive) {
+        if (isRecording) {
+          stopRecording();
+        } else {
+          startRecording();
+        }
+      }
+    });
+
+    nextBtn.addEventListener('click', nextWord);
+    skipBtn.addEventListener('click', skipWord);
+    startBtn.addEventListener('click', startGame);
+
+    document.addEventListener('keydown', (e) => {
+      if (!gameActive) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (isRecording) {
+          stopRecording();
+        } else {
+          startRecording();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
