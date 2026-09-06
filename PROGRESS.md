@@ -120,7 +120,7 @@
 
 | 일시 | 세션/에이전트 | 작업 | 결과 | 4점 점검 |
 |---|---|---|---|---|
-| 2026-09-06 | Main(Haiku) | Phase 4: 점수 상한 검증·이름 필터 강화 | ✅ 커밋예정 | ①문법검증(node -c)OK ②per-game limit+name filter ③GAME_SCORE_LIMITS 30개 게임 모두 정의 ④배포후실테스트 |
+| 2026-09-06 | Main(Haiku) | Phase 4: 점수 상한 검증·이름 필터 강화 | ✅ 커밋 620352c | ①문법검증(node -c)OK·verify-phase4.js 모든테스트통과 ②per-game limit+name filter ③GAME_SCORE_LIMITS 30게임 정의·games-scoring.json ④배포후실테스트 |
 | 2026-09-06 | Main(Opus) + Haiku×3 | Phase 3: 30개 게임 인라인색 토큰화 | ✅ 커밋 680687b | ①30개 모두 shared/style.css 링크OK·토큰 참조OK ②토큰화로 색상 일원화 ③게임로직무변화 ④6개 수정(mini1/6/15/19/23/24), 24개 이미 토큰사용 |
 | 2026-09-06 | Main(Opus) | ④ 실브라우저 검증: 배포본 mini6 게임 실행 테스트 | ✅ 통과 | ①런처/mini6로드OK·콘솔에러6개(리소스500-이미지추정) ②API바인딩/CORS정상 ③점수저장/방문수/랭킹조회OK ④페이지렌더·게임플레이수동확인필요 |
 | 2026-09-06 | Main(Opus) | 로컬 D1 배포 검증 (API curl 테스트) | ✅ 통과 | ①서버정상기동·API응답정상·404없음 ②점수범위검증·SQL준비문·이름UTF-8처리 ③visit→count·score→ok·top→내림차순정렬OK ④브라우저테스트는 배포후 |
