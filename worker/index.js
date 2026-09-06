@@ -30,7 +30,7 @@ export default {
           }
 
           // Upsert: increment count or insert with 1
-          await env.DB.prepare(
+          await env.mini_ranking.prepare(
             `INSERT INTO visits (game_id, count) VALUES (?, 1)
              ON CONFLICT(game_id) DO UPDATE SET count = count + 1`
           )
@@ -38,7 +38,7 @@ export default {
             .run();
 
           // Get current count
-          const result = await env.DB.prepare(
+          const result = await env.mini_ranking.prepare(
             'SELECT count FROM visits WHERE game_id = ?'
           )
             .bind(gameId)
@@ -81,7 +81,7 @@ export default {
 
           const ts = Date.now();
 
-          await env.DB.prepare(
+          await env.mini_ranking.prepare(
             'INSERT INTO scores (game_id, name, score, ts) VALUES (?, ?, ?, ?)'
           )
             .bind(gameId, sanitized, score, ts)
@@ -110,7 +110,7 @@ export default {
           const order = searchParams.get('order') === 'asc' ? 'asc' : 'desc';
           const orderClause = order === 'asc' ? 'ASC' : 'DESC';
 
-          const results = await env.DB.prepare(
+          const results = await env.mini_ranking.prepare(
             `SELECT name, score FROM scores
              WHERE game_id = ?
              ORDER BY score ${orderClause}, ts ASC
