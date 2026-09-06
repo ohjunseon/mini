@@ -298,8 +298,17 @@
       </div>
     </header>
 
-    <!-- 애드센스 삽입 위치 예시: 실제 운영 시 스니펫을 붙여넣으세요. -->
-    <div class="ad" id="ad-slot">광고 영역(예시) • Google AdSense 스크립트를 이 영역 위/아래에 삽입</div>
+    <!-- Google AdSense 광고 영역 (ADSENSE-SETUP.md 참고) -->
+    <div class="ad" id="ad-slot">
+      <!-- AdSense 스니펫 삽입 위치 (실제 배포 시) -->
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>
+        (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </div>
 
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="🔍 게임 이름으로 검색..." aria-label="게임 검색">
