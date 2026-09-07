@@ -175,6 +175,7 @@
 | 2026-09-07 | Main(Claude) | 배포 (wrangler deploy) | ✅ 완료 | URL=mini.npig82.workers.dev / 10+배포 히스토리 있음 / D1 바인딩 정상 / 2026-09-07 00:50:23 UTC 최종 배포 |
 | 2026-09-07 | Main(Claude) | Phase 6 최종: API 테스트 + 로컬 서버 통합 테스트 | ✅ 완료 | ①포트4000/8000 정상기동·콘솔에러0 ②점수상한검증·이름필터(20자)·XSS방어OK ③visit/score/top API 모두 정상·다중게임(mini1/50/75/100)동작 ④브라우저 테스트 준비완료, 배포 D1 준비 단계 |
 | 2026-09-07 | Main(Claude) | Phase 6-1/2/3/5: SEO+썸네일+AdSense+문서+성능 | ✅ 커밋 74210ea, 7372c7e | ①정적검증 통과·HTML구조정상 ②점수검증·입력필터OK ③메타태그·카테고리색상·이모지 구현 ④README/LICENSE/PERFORMANCE 작성, 로컬테스트환경 구성 |
+| 2026-09-07 | Main(Claude) | Phase 7 S3: prompt() 73곳 제거 | ✅ 완료 | ①add-prompt-remove.js 스크립트로 HTML+JS파일 동시처리 ②prompt() 0건 완전제거 ③alert() 23→0건 Juice.toast 전환 ④GameStats.saveScore→Juice.submit 73개게임 ⑤Juice.submit 37개게임 적용 |
 | 2026-09-07 | Main(Claude) | Phase 7 S2: juice 자동 주입 (100개) | ✅ 완료 | ①add-juice.js 스크립트 작성·실행 ②100/100 juice.js 링크 주입 ③addEventListener 패턴 분석(click/mousedown/onclick 0개 미검출=이미 최적화) ④샘플 10개 콘솔에러0 ⑤Juice API 모든 게임 정상작동 |
 | 2026-09-07 | Main(Claude) | Phase 7 S1: shared/juice.js 제작 | ✅ 완료 | ①11개 API전부구현 ②juice-test.html검증완료(콘솔에러0) ③bindTap/sfx/buzz/pop/shake/flash/combo/best/countdown/toast/askName/submit모두작동 ④파일크기10KB<15KB목표달성 |
 | 2026-09-07 | Main(Claude) | Phase 5 Batch 7: mini91~mini100 생성 (스포츠 10개 + 명예의전당) | ✅ 완료 | ①콘솔에러=없음(로컬테스트필요) ②입력필터OK(게임로직기반) ③GameStats연동·gameOver→saveScore·listenTopScores구현완료 ④mini91-99=스포츠(농구/골프/펀칭/스키/서핑/탁구/스케이트/복싱/마라톤), mini100=명예의전당(Hall of Fame 페이지) |
