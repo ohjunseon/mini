@@ -101,10 +101,10 @@
                 // Save as negative error
                 const score = -error;
 
-                alert(`기록: ${diff.toFixed(2)}초 (오차 ${error.toFixed(2)}초)`);
+                Juice.toast("기록: ${diff.toFixed(2)}초 (오차 ${error.toFixed(2)}초)", "info");
 
                 const nick = localStorage.getItem('nickname') || '익명';
-                if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+                Juice.submit(PAGE_ID, score);
 
                 btn.textContent = "START";
                 btn.style.background = "";

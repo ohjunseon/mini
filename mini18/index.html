@@ -258,13 +258,13 @@
             clearInterval(timer);
             if (win) {
                 const time = Math.floor((Date.now() - startTime) / 1000);
-                alert(`클리어! 시간: ${time}초`);
+                Juice.toast("클리어! 시간: ${time}초", "info");
 
                 // Save negative for sorting
                 const nick = localStorage.getItem('nickname') || '익명';
-                if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, -time);
+                Juice.submit(PAGE_ID, -time);
             } else {
-                alert('펑! 지뢰가 터졌습니다.');
+                Juice.toast("펑! 지뢰가 터졌습니다.", "info");
                 // Reveal all mines
                 board.forEach((v, i) => {
                     if (v === 'M') {

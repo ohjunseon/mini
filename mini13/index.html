@@ -188,9 +188,7 @@
         }
 
         function save(s) {
-            const nick = localStorage.getItem('nickname') || prompt("기록 저장을 위한 닉네임?") || "익명";
-            localStorage.setItem('nickname', nick);
-            if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, s);
+            Juice.submit(PAGE_ID, s);
         }
 
         function reset() {

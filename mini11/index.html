@@ -171,15 +171,13 @@
             clearInterval(timer);
             running = false;
             const finalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-            alert(`완료! 시간: ${finalTime}s, 클릭: ${moves}`);
+            Juice.toast("완료! 시간: ${finalTime}s, 클릭: ${moves}", "info");
 
             // Save as negative to exploit "Higher is Better" default sort
             // -10s > -20s
             const saveScore = -parseFloat(finalTime);
 
             if (window.GameStats) {
-                const nick = localStorage.getItem('nickname') || prompt('닉네임?') || '익명';
-                localStorage.setItem('nickname', nick);
                 GameStats.saveScore(PAGE_ID, nick, saveScore);
             }
 

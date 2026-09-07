@@ -111,7 +111,7 @@
         }
 
         btn.onclick = async () => {
-            if (money < 50) { alert('파산했습니다!'); money = 1000; mEl.textContent = money; return; }
+            if (money < 50) { Juice.toast("파산했습니다!", "info"); money = 1000; mEl.textContent = money; return; }
 
             money -= 50;
             mEl.textContent = money;
@@ -130,7 +130,7 @@
                 if (v1 === '7') prize = 1000; // Jackpot
                 else if (v1 === '💎') prize = 500;
                 else prize = 200;
-                alert("잭팟! +" + prize);
+                Juice.toast("잭팟! +" + prize, "info");
             } else if (v1 === v2 || v2 === v3 || v1 === v3) {
                 prize = 30; // Small win
             }
@@ -141,7 +141,7 @@
 
             // Save
             const nick = localStorage.getItem('nickname') || '익명';
-            if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, money);
+            Juice.submit(PAGE_ID, money);
         };
     </script>
 </body>

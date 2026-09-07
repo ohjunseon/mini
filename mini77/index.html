@@ -237,9 +237,7 @@
 
     function endGame() {
       document.getElementById('result').textContent = `게임 끝! 최종 승수: ${playerWins}`;
-      const nick = localStorage.getItem('nickname') || prompt("닉네임을 입력하세요:") || "익명";
-      localStorage.setItem('nickname', nick);
-      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, playerWins);
+      Juice.submit(PAGE_ID, playerWins);
     }
 
     if (window.GameStats) {

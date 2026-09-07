@@ -205,7 +205,6 @@
 
       setTimeout(() => {
         if (window.GameStats) {
-          const playerName = prompt('이름을 입력하세요:') || '익명';
           GameStats.saveScore(PAGE_ID, playerName, totalScore);
         }
 

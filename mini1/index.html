@@ -128,9 +128,7 @@
       statusText.textContent = `기록: ${ms}ms`;
 
       // Save Score
-      const nick = localStorage.getItem('nickname') || prompt("기록 등록을 위해 닉네임을 입력하세요:") || "익명";
-      localStorage.setItem('nickname', nick);
-      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, ms);
+      Juice.submit(PAGE_ID, ms);
     }
 
     gameArea.addEventListener('mousedown', () => {

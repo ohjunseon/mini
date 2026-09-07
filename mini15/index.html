@@ -194,10 +194,8 @@
 
         function gameOver() {
             playing = false;
-            alert(`게임 오버! 도달 라운드: ${round}`);
-            const nick = localStorage.getItem('nickname') || prompt("기록 저장을 위한 닉네임?") || "익명";
-            localStorage.setItem('nickname', nick);
-            if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, round);
+            Juice.toast("게임 오버! 도달 라운드: ${round}", "info");
+            Juice.submit(PAGE_ID, round);
 
             startBtn.style.display = 'inline-block';
             startBtn.textContent = "다시 하기";

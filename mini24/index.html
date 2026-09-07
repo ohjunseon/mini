@@ -163,7 +163,7 @@
                 player.y = ny;
                 draw();
                 if (player.x === goal.x && player.y === goal.y) {
-                    alert("탈출 성공!");
+                    Juice.toast("탈출 성공!", "info");
                     level++;
                     lvlEl.textContent = level;
                     initMaze(Math.min(25, 15 + Math.floor(level / 2)));

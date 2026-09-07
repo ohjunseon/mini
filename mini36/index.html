@@ -210,8 +210,6 @@
                 const btn = cell.querySelector('.target-btn');
                 if (btn) btn.remove();
             });
-
-            const name = prompt('이름을 입력하세요:', '익명') || '익명';
             if (window.GameStats) {
                 GameStats.saveScore(PAGE_ID, name, score, () => {
                     scoreEl.textContent = '0';

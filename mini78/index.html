@@ -244,9 +244,7 @@
 
     function endGame() {
       document.getElementById('status').textContent = `게임 끝! 최종 점수: ${score}`;
-      const nick = localStorage.getItem('nickname') || prompt("닉네임을 입력하세요:") || "익명";
-      localStorage.setItem('nickname', nick);
-      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+      Juice.submit(PAGE_ID, score);
     }
 
     if (window.GameStats) {

@@ -218,8 +218,6 @@
             btnStart.disabled = false;
             btnStart.textContent = '다시 시작';
             cooldownText.textContent = '';
-
-            const name = prompt('이름을 입력하세요:', '익명') || '익명';
             if (window.GameStats) {
                 GameStats.saveScore(PAGE_ID, name, score, () => {
                     scoreEl.textContent = '0';

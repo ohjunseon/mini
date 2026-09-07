@@ -104,9 +104,9 @@
                 streak++;
                 sEl.textContent = streak;
             } else {
-                alert(`틀렸습니다! (나온 숫자: ${next}) 최종 연승: ${streak}`);
+                Juice.toast("틀렸습니다! (나온 숫자: ${next}) 최종 연승: ${streak}", "info");
                 const nick = localStorage.getItem('nickname') || '익명';
-                if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, streak);
+                Juice.submit(PAGE_ID, streak);
                 streak = 0;
                 sEl.textContent = streak;
             }

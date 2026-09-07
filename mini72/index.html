@@ -216,7 +216,7 @@
       bestScore = Math.max(bestScore, score);
 
       const nick = localStorage.getItem('nickname') || "익명";
-      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, bestScore);
+      Juice.submit(PAGE_ID, bestScore);
     }
 
     // GameStats

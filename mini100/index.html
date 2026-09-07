@@ -285,7 +285,7 @@
       gameStatus.textContent = `토너먼트 완주! 총 점수: ${totalTournamentScore}`;
 
       setTimeout(() => {
-        const playerName = prompt('이름을 입력하세요:') || '챔피언';
+        const playerName = localStorage.getItem("nickname") || "챔피언";
         showHallOfFame(playerName, totalTournamentScore);
 
         if (window.GameStats) {

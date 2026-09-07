@@ -273,7 +273,6 @@
             document.getElementById('btnStart').disabled = false;
 
             const finalScore = Math.floor(gameTime * 100);
-            const name = prompt('이름을 입력하세요:', '익명') || '익명';
             if (window.GameStats) {
                 GameStats.saveScore(PAGE_ID, name, finalScore);
             }

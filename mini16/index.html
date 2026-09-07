@@ -214,11 +214,9 @@
             inp.disabled = true;
 
             const wpm = parseInt(wpmEl.textContent);
-            alert(`종료! 당신의 속도: ${wpm} WPM`);
+            Juice.toast("종료! 당신의 속도: ${wpm} WPM", "info");
 
-            const nick = localStorage.getItem('nickname') || prompt('닉네임?') || '익명';
-            localStorage.setItem('nickname', nick);
-            if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, wpm);
+            Juice.submit(PAGE_ID, wpm);
 
             btn.style.display = 'inline-block';
             btn.textContent = '다시 하기';

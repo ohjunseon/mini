@@ -98,10 +98,10 @@
             running = false;
             clearInterval(timer);
             tapBtn.textContent = "RETRY";
-            alert(`종료! 총 ${score}회 (TPS: ${(score / 10).toFixed(1)})`);
+            Juice.toast("종료! 총 ${score}회 (TPS: ${(score / 10).toFixed(1)})", "info");
 
             const nick = localStorage.getItem('nickname') || '익명';
-            if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+            Juice.submit(PAGE_ID, score);
         }
 
         tapBtn.addEventListener('mousedown', handleTap);

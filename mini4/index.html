@@ -233,9 +233,7 @@
       btnStart.style.display = 'inline-block';
       btnStart.textContent = "다시 하기";
 
-      const nick = localStorage.getItem('nickname') || prompt("닉네임을 입력하세요:") || "익명";
-      localStorage.setItem('nickname', nick);
-      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+      Juice.submit(PAGE_ID, score);
     }
 
     btnStart.onclick = start;

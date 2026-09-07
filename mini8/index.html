@@ -222,11 +222,9 @@
         function gameOver() {
             running = false;
             cancelAnimationFrame(requestId);
-            alert(`게임 오버! 점수: ${player.score}`);
+            Juice.toast("게임 오버! 점수: ${player.score}", "info");
             if (player.score > 0) {
-                const nick = localStorage.getItem('nickname') || prompt('닉네임?') || '익명';
-                localStorage.setItem('nickname', nick);
-                if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, player.score);
+                Juice.submit(PAGE_ID, player.score);
             }
             document.getElementById('btnStart').style.display = 'inline-block';
             document.getElementById('btnStart').innerText = "다시 시작";

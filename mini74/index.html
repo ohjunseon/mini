@@ -188,9 +188,7 @@
 
     function endGame() {
       document.getElementById('result').textContent = `완료! ${clicks}번 클릭`;
-      const nick = localStorage.getItem('nickname') || prompt("닉네임을 입력하세요:") || "익명";
-      localStorage.setItem('nickname', nick);
-      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, clicks);
+      Juice.submit(PAGE_ID, clicks);
     }
 
     if (window.GameStats) {

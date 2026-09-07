@@ -157,9 +157,9 @@
 
         function gameOver() {
             running = false;
-            alert("충돌! 점수: " + score);
+            Juice.toast("충돌! 점수: " + score, "info");
             const nick = localStorage.getItem('nickname') || '익명';
-            if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+            Juice.submit(PAGE_ID, score);
             btn.style.display = 'inline-block';
         }
 

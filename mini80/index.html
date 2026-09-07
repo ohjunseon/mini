@@ -306,9 +306,7 @@
 
     function endGame() {
       document.getElementById('status').textContent = `🎉 완료! ${pairsFound}개 쌍 제거!`;
-      const nick = localStorage.getItem('nickname') || prompt("닉네임을 입력하세요:") || "익명";
-      localStorage.setItem('nickname', nick);
-      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, pairsFound);
+      Juice.submit(PAGE_ID, pairsFound);
     }
 
     if (window.GameStats) {

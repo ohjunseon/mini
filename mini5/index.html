@@ -204,12 +204,11 @@
     function endGame(msg) {
       clearInterval(interval);
       interval = null;
-      alert(msg);
+      Juice.toast(msg, "info");
 
       // Save
       if (score > 0) {
-        const nick = localStorage.getItem('nickname') || prompt("닉네임?") || "익명";
-        if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+        Juice.submit(PAGE_ID, score);
       }
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);

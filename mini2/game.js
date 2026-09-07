@@ -266,9 +266,9 @@ function gameOver() {
 
     // Save Score
     if (score > 0) {
-        const nick = localStorage.getItem('nickname') || prompt("기록 저장을 위한 닉네임 입력:") || "익명";
+        const nick = localStorage.getItem("nickname") || "익명";
         localStorage.setItem('nickname', nick);
-        if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, score);
+        Juice.submit(PAGE_ID, score);
     }
 
     ctx.font = '32px Arial';

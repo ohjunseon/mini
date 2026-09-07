@@ -156,10 +156,10 @@
                 if (hits < 3) pts = hits * 100;
 
                 sEl.textContent = pts;
-                alert(`${hits}개 일치! 점수: ${pts}`);
+                Juice.toast("${hits}개 일치! 점수: ${pts}", "info");
 
                 const nick = localStorage.getItem('nickname') || '익명';
-                if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, pts);
+                Juice.submit(PAGE_ID, pts);
                 btn.disabled = false;
             }, 3500);
         };

@@ -216,7 +216,6 @@
             feedbackEl.textContent = '';
 
             const finalScore = Math.max(0, score - Math.floor(mistakes / 2));
-            const name = prompt('이름을 입력하세요:', '익명') || '익명';
             if (window.GameStats) {
                 GameStats.saveScore(PAGE_ID, name, finalScore, () => {
                     scoreEl.textContent = '0';

@@ -305,9 +305,7 @@
     }
 
     function endGame() {
-      const nick = localStorage.getItem('nickname') || prompt("닉네임을 입력하세요:") || "익명";
-      localStorage.setItem('nickname', nick);
-      if (window.GameStats) GameStats.saveScore(PAGE_ID, nick, winnings);
+      Juice.submit(PAGE_ID, winnings);
     }
 
     if (window.GameStats) {
