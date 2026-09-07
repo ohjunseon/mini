@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juice API Test</title>
+  <link rel="stylesheet" href="shared/style.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .test-group {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 15px 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .test-group h2 {
+      margin-top: 0;
+      color: #555;
+      font-size: 16px;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 10px;
+    }
+    button {
+      display: inline-block;
+      margin: 5px 5px 5px 0;
+      padding: 10px 15px;
+      background: #FF6B6B;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #e55555;
+    }
+    button:active {
+      transform: scale(0.95);
+    }
+    .info {
+      background: #f9f9f9;
+      border-left: 4px solid #4ECB71;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #666;
+    }
+    #comboDisplay {
+      font-size: 18px;
+      font-weight: bold;
+      color: #FF6B6B;
+      margin-top: 10px;
+    }
+    #testArea {
+      width: 100%;
+      height: 200px;
+      border: 2px dashed #ccc;
+      border-radius: 6px;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 15px 0;
+      font-size: 18px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 Juice API Test Suite</h1>
+
+  <!-- 입력 -->
+  <div class="test-group">
+    <h2>🎯 Input (bindTap)</h2>
+    <button id="testTap">클릭/터치 테스트</button>
+    <div class="info">click + touchstart 동시 감지 + 200ms 디바운스</div>
+  </div>
+
+  <!-- 사운드 -->
+  <div class="test-group">
+    <h2>🔊 SFX (WebAudio)</h2>
+    <button id="testHit">hit</button>
+    <button id="testGood">good</button>
+    <button id="testBad">bad</button>
+    <button id="testLevelup">levelup</button>
+    <button id="testGameover">gameover</button>
+    <button id="testTick">tick</button>
+    <div class="info">WebAudio 오실레이터 합성음 (파일 0개)</div>
+  </div>
+
+  <!-- 햅틱 -->
+  <div class="test-group">
+    <h2>📳 Haptic (buzz)</h2>
+    <button id="testBuzz">진동 테스트</button>
+    <div class="info">navigator.vibrate 래퍼 (iOS 미지원 정상)</div>
+  </div>
+
+  <!-- 시각 피드백 -->
+  <div class="test-group">
+    <h2>✨ Visual Feedback</h2>
+    <button id="testPop">pop (파티클)</button>
+    <button id="testShake">shake (흔들림)</button>
+    <button id="testFlash">flash (플래시)</button>
+    <button id="testAllTogether">전부 함께</button>
+    <div id="testArea">테스트 영역</div>
+  </div>
+
+  <!-- 콤보 -->
+  <div class="test-group">
+    <h2>🔥 Combo</h2>
+    <button id="testComboHit">hit +1</button>
+    <button id="testComboReset">reset</button>
+    <div id="comboDisplay">콤보: 0</div>
+    <div class="info">3연속부터 배너 표시</div>
+  </div>
+
+  <!-- 스코어링 -->
+  <div class="test-group">
+    <h2>🎯 Scoring (best)</h2>
+    <button id="testBestNew">신기록 시뮬레이션</button>
+    <button id="testBestLow">낮은점수(isLow=true) 테스트</button>
+    <button id="testBestClear">localStorage 초기화</button>
+    <div class="info">localStorage 개인최고 비교 + 신기록 연출</div>
+  </div>
+
+  <!-- Countdown -->
+  <div class="test-group">
+    <h2>⏱️ Countdown</h2>
+    <button id="testCountdown">3초 카운트다운</button>
+    <div class="info">3-2-1-START 오버레이</div>
+  </div>
+
+  <!-- UI -->
+  <div class="test-group">
+    <h2>💬 UI (toast, askName)</h2>
+    <button id="testToastInfo">toast (info)</button>
+    <button id="testToastGood">toast (good)</button>
+    <button id="testToastBad">toast (bad)</button>
+    <button id="testAskName">askName (모달)</button>
+    <div class="info">비차단 알림 + 닉네임 모달 (localStorage 캐시)</div>
+  </div>
+
+  <!-- 통합 -->
+  <div class="test-group">
+    <h2>🎮 Unified (submit)</h2>
+    <button id="testSubmit">submit (점수 저장)</button>
+    <div class="info">best() + askName() + GameStats.saveScore() 통합</div>
+  </div>
+
+  <script src="shared/juice.js"></script>
+  <script>
+    // bindTap
+    document.getElementById('testTap').onclick = function() {
+      Juice.bindTap(this, () => {
+        Juice.toast('✅ bindTap 작동', 'good');
+        Juice.sfx('hit');
+      });
+    };
+
+    // SFX
+    document.getElementById('testHit').onclick = () => {
+      Juice.sfx('hit');
+      Juice.toast('hit', 'info');
+    };
+    document.getElementById('testGood').onclick = () => {
+      Juice.sfx('good');
+      Juice.toast('good', 'good');
+    };
+    document.getElementById('testBad').onclick = () => {
+      Juice.sfx('bad');
+      Juice.toast('bad', 'bad');
+    };
+    document.getElementById('testLevelup').onclick = () => {
+      Juice.sfx('levelup');
+      Juice.toast('levelup', 'good');
+    };
+    document.getElementById('testGameover').onclick = () => {
+      Juice.sfx('gameover');
+      Juice.toast('gameover', 'bad');
+    };
+    document.getElementById('testTick').onclick = () => {
+      Juice.sfx('tick');
+      Juice.toast('tick', 'info');
+    };
+
+    // Buzz
+    document.getElementById('testBuzz').onclick = () => {
+      Juice.buzz(100);
+      Juice.toast('진동 실행 (미지원 시 무시)', 'info');
+    };
+
+    // Visual
+    document.getElementById('testPop').onclick = () => {
+      const rect = document.getElementById('testArea').getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      Juice.pop(x, y, { count: 15, color: '#FF6B6B' });
+      Juice.sfx('hit');
+    };
+    document.getElementById('testShake').onclick = () => {
+      Juice.shake(document.getElementById('testArea'), 10);
+      Juice.sfx('hit');
+    };
+    document.getElementById('testFlash').onclick = () => {
+      Juice.flash('#FF6B6B');
+      Juice.sfx('good');
+    };
+    document.getElementById('testAllTogether').onclick = () => {
+      const rect = document.getElementById('testArea').getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      Juice.pop(x, y, { count: 20, color: '#4ECB71' });
+      Juice.shake(document.getElementById('testArea'), 12);
+      Juice.flash('#4ECB71');
+      Juice.buzz(60);
+      Juice.sfx('levelup');
+    };
+
+    // Combo
+    document.getElementById('testComboHit').onclick = () => {
+      const count = Juice.combo.hit();
+      document.getElementById('comboDisplay').textContent = `콤보: ${count}`;
+    };
+    document.getElementById('testComboReset').onclick = () => {
+      Juice.combo.reset();
+      document.getElementById('comboDisplay').textContent = `콤보: 0`;
+      Juice.toast('콤보 리셋', 'info');
+    };
+
+    // Scoring
+    document.getElementById('testBestNew').onclick = () => {
+      localStorage.removeItem('best_test_game');
+      const isBest = Juice.best('test_game', 999);
+      Juice.toast(isBest ? '🎉 신기록! (최초)' : '기록됨', 'good');
+    };
+    document.getElementById('testBestLow').onclick = () => {
+      localStorage.removeItem('best_test_game_low');
+      const isBest = Juice.best('test_game_low', 5, true); // isLow=true
+      Juice.toast(isBest ? '🎉 신기록! (최저시간)' : '기록됨', 'good');
+    };
+    document.getElementById('testBestClear').onclick = () => {
+      localStorage.removeItem('best_test_game');
+      localStorage.removeItem('best_test_game_low');
+      Juice.toast('localStorage 초기화', 'info');
+    };
+
+    // Countdown
+    document.getElementById('testCountdown').onclick = () => {
+      Juice.countdown(3, () => {
+        Juice.toast('⏱️ START!', 'good');
+      });
+    };
+
+    // Toast
+    document.getElementById('testToastInfo').onclick = () => {
+      Juice.toast('📢 info 메시지', 'info');
+    };
+    document.getElementById('testToastGood').onclick = () => {
+      Juice.toast('✅ good 메시지', 'good');
+    };
+    document.getElementById('testToastBad').onclick = () => {
+      Juice.toast('❌ bad 메시지', 'bad');
+    };
+    document.getElementById('testAskName').onclick = async () => {
+      const name = await Juice.askName();
+      Juice.toast(`안녕하세요, ${name}님!`, 'good');
+    };
+
+    // Submit
+    document.getElementById('testSubmit').onclick = async () => {
+      // 시뮬레이션 (GameStats 없이도 작동)
+      Juice.submit('test_game', Math.floor(Math.random() * 1000));
+    };
+
+    // 초기 메시지
+    Juice.toast('🎮 Juice API 테스트 준비 완료!', 'good');
+    console.log('✅ window.Juice loaded:', window.Juice);
+  </script>
+</body>
+</html>
