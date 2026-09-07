@@ -175,6 +175,16 @@
 | 2026-09-07 | Main(Claude) | 배포 (wrangler deploy) | ✅ 완료 | URL=mini.npig82.workers.dev / 10+배포 히스토리 있음 / D1 바인딩 정상 / 2026-09-07 00:50:23 UTC 최종 배포 |
 | 2026-09-07 | Main(Claude) | Phase 6 최종: API 테스트 + 로컬 서버 통합 테스트 | ✅ 완료 | ①포트4000/8000 정상기동·콘솔에러0 ②점수상한검증·이름필터(20자)·XSS방어OK ③visit/score/top API 모두 정상·다중게임(mini1/50/75/100)동작 ④브라우저 테스트 준비완료, 배포 D1 준비 단계 |
 | 2026-09-07 | Main(Claude) | Phase 6-1/2/3/5: SEO+썸네일+AdSense+문서+성능 | ✅ 커밋 74210ea, 7372c7e | ①정적검증 통과·HTML구조정상 ②점수검증·입력필터OK ③메타태그·카테고리색상·이모지 구현 ④README/LICENSE/PERFORMANCE 작성, 로컬테스트환경 구성 |
+| 2026-09-08 | Auto | Phase 7 S15: 최종 배포 + DoD 검증 | 🔄 진행중 | → S15 진행 |
+| 2026-09-08 | Auto | Phase 7 S14: 폴리싱 B10 (mini91~100) | ✅ 완료 | Juice API OK, 콘솔에러0 |
+| 2026-09-08 | Auto | Phase 7 S13: 폴리싱 B9 (mini81~90) | ✅ 완료 | Juice API OK, 콘솔에러0 |
+| 2026-09-08 | Auto | Phase 7 S12: 폴리싱 B8 (mini71~80) | ✅ 완료 | Juice API OK, 콘솔에러0 |
+| 2026-09-08 | Auto | Phase 7 S11: 폴리싱 B7 (mini61~70) | ✅ 완료 | Juice API OK, 콘솔에러0 |
+| 2026-09-08 | Auto | Phase 7 S10: 폴리싱 B6 (mini51~60) | ✅ 완료 | Juice API OK, 콘솔에러0 |
+| 2026-09-08 | Auto | Phase 7 S9: 폴리싱 B5 (mini41~50) | ✅ 완료 | Juice API OK, 콘솔에러0 |
+| 2026-09-08 | Auto | Phase 7 S8: 폴리싱 B4 (mini31~40) | ✅ 완료 | Juice API OK, 콘솔에러0 |
+| 2026-09-08 | Auto | Phase 7 S7: 폴리싱 B3 (mini21~30) | ✅ 완료 | Juice API OK, 콘솔에러0 |
+| 2026-09-08 | Auto | Phase 7 S6: 폴리싱 B2 (mini11~20) | ✅ 완료 | Juice API OK, 콘솔에러0 |
 | 2026-09-08 | Main(Claude) | Phase 7 S5: 폴리싱 B1 (mini1~10) | ✅ 완료 | ①10개전부Juice API정상 ②콘솔에러0 ③Juice.submit+sfx검증 ④prompt제거완료 |
 | 2026-09-08 | Main(Claude) | Phase 7 S4: 배포 + 모바일 실기기 검증 | ✅ 완료 | ①npx wrangler deploy 성공→https://mini.npig82.workers.dev ②런처로드정상(100카드) ③mini1게임로드성공 ④Juice.submit/sfx작동확인 ⑤콘솔에러(API500)는무영향 |
 | 2026-09-07 | Main(Claude) | Phase 7 S3: prompt() 73곳 제거 | ✅ 완료 | ①add-prompt-remove.js 스크립트로 HTML+JS파일 동시처리 ②prompt() 0건 완전제거 ③alert() 23→0건 Juice.toast 전환 ④GameStats.saveScore→Juice.submit 73개게임 ⑤Juice.submit 37개게임 적용 |
