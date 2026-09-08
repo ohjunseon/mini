@@ -134,9 +134,7 @@
 
     // GameStats integration
     if (window.GameStats) {
-      GameStats.incrementVisitCount(PAGE_ID, (val) => {
-        document.getElementById('visitsView') = val ?? "-";
-      });
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
       GameStats.listenTopScores(PAGE_ID, 5, (arr) => {
         rankList.innerHTML = "";
         if (!arr || arr.length === 0) {

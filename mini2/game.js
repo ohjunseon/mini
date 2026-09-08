@@ -280,13 +280,29 @@ function gameOver() {
     startButton.textContent = "다시 시작";
 }
 
-// ... (Existing displayGameOver) ...
+// 게임 오버 화면 렌더 (점수 저장 없이 표시만)
+function displayGameOver() {
+    ctx.font = '32px Arial';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.fillText('게임 오버!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
+    ctx.fillText(`최종 점수: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+}
+
+// 시작 전 안내 화면
+function drawStartScreen() {
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.font = '20px Arial';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.fillText('시작 버튼을 눌러 플레이하세요', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+}
 
 // 시작 버튼 이벤트 리스너
 startButton.addEventListener('click', initGame);
 
 // 초기화
-displayGameOver();
+drawStartScreen();
 startButton.style.display = 'inline-block';
 
 

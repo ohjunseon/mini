@@ -70,10 +70,22 @@ window.GameStats = (() => {
     /**
      * Save a score for a game.
      * @param {string} pageId - Game identifier
-     * @param {string} name - Player name
+     * @param {string} name - Player name (falls back to saved nickname or "익명")
      * @param {number} score - Score value
+     * @param {Function} [cb] - Optional callback, invoked once after the save
+     *   settles (success or failure). Many games pass their round-reset logic here.
      */
-    saveScore(pageId, name, score) {
+    saveScore(pageId, name, score, cb) {
+      const done = typeof cb === 'function' ? cb : () => {};
+      let called = false;
+      const finish = () => { if (!called) { called = true; done(); } };
+      // Sensible player name even when callers pass an undefined/empty value.
+      let playerName = (name != null && String(name).trim()) || '';
+      if (!playerName) {
+        try { playerName = localStorage.getItem('nickname') || ''; } catch (e) {}
+      }
+      if (!playerName) playerName = '익명';
+
       try {
         const url = `${apiBase}/api/score`;
         fetch(url, {
@@ -81,14 +93,18 @@ window.GameStats = (() => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             gameId: pageId,
-            name,
+            name: playerName,
             score
           })
-        }).catch(err => {
-          console.warn('GameStats.saveScore error:', err);
-        });
+        })
+          .then(finish)
+          .catch(err => {
+            console.warn('GameStats.saveScore error:', err);
+            finish();
+          });
       } catch (err) {
         console.warn('GameStats.saveScore error:', err);
+        finish();
       }
     },
 
