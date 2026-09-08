@@ -84,7 +84,7 @@
       <div class="card">
         <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
           <h1>⛳ 골프</h1>
-          <p>9개 홀을 최소 타수로 클리어하세요!</p>
+          <p>9개 홀을 최소 타수로 클리어하세요! (화살표 또는 화면 좌·우 탭으로 조준, 스페이스·가운데 탭으로 발사)</p>
         </header>
 
         <div class="canvas-wrapper">
@@ -360,12 +360,21 @@
       }
     });
 
-    canvas.addEventListener('click', () => {
-      if (!gameActive || !canShoot) return;
+    function shoot() {
       currentStroke++;
       const rad = (angle * Math.PI) / 180;
       ballVX = Math.cos(rad) * powerGauge * 0.5;
       ballVY = -Math.sin(rad) * powerGauge * 0.5;
+    }
+
+    // 모바일/마우스: 캔버스 좌·우 끝을 탭하면 조준, 가운데를 탭하면 발사
+    canvas.addEventListener('click', (e) => {
+      if (!gameActive || !canShoot) return;
+      const rect = canvas.getBoundingClientRect();
+      const relX = (e.clientX - rect.left) / rect.width;
+      if (relX < 0.3) { angle = (angle - 8 + 360) % 360; }
+      else if (relX > 0.7) { angle = (angle + 8) % 360; }
+      else { shoot(); }
     });
 
     startBtn.addEventListener('click', startGame);
