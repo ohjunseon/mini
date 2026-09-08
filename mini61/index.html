@@ -88,7 +88,7 @@
       <div class="card">
         <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
           <h1>🎮 2048 게임</h1>
-          <p>화살표 또는 WASD로 타일을 움직여 2048을 만들어보세요!</p>
+          <p>화살표·WASD 또는 화면 스와이프로 타일을 움직여 2048을 만들어보세요!</p>
         </header>
 
         <div class="stats-bar">
@@ -283,6 +283,20 @@
              e.key.toLowerCase() === 'a' ? 'left' : 'right');
       }
     });
+
+    // 모바일: 스와이프로 타일 이동
+    let touchStartX = 0, touchStartY = 0;
+    gameGrid.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+    gameGrid.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = e.changedTouches[0].clientY - touchStartY;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 30) return; // 탭은 무시
+      if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 'right' : 'left');
+      else move(dy > 0 ? 'down' : 'up');
+    }, { passive: true });
 
     // Initialize
     initializeGrid();

@@ -24,7 +24,7 @@
       <div class="card">
         <header class="mb-4">
           <h1>🧱 벽돌 깨기</h1>
-          <p>공을 튀겨 모든 벽돌을 제거하세요.</p>
+          <p>공을 튀겨 모든 벽돌을 제거하세요. (← → 키 또는 화면 터치·드래그로 패들 이동)</p>
         </header>
 
         <canvas id="gameCanvas" width="480" height="320"
@@ -228,6 +228,16 @@
 
     document.addEventListener("keydown", keyDownHandler, false);
     document.addEventListener("keyup", keyUpHandler, false);
+
+    // 모바일: 캔버스를 터치/드래그해 패들 이동
+    function movePaddleToTouch(e) {
+      const rect = canvas.getBoundingClientRect();
+      const t = e.touches[0] || e.changedTouches[0];
+      const relX = (t.clientX - rect.left) * (canvas.width / rect.width);
+      paddleX = Math.max(0, Math.min(canvas.width - paddleW, relX - paddleW / 2));
+    }
+    canvas.addEventListener("touchstart", (e) => { e.preventDefault(); movePaddleToTouch(e); }, { passive: false });
+    canvas.addEventListener("touchmove", (e) => { e.preventDefault(); movePaddleToTouch(e); }, { passive: false });
 
     function keyDownHandler(e) {
       if (e.key == "Right" || e.key == "ArrowRight") rightPressed = true;

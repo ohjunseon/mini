@@ -74,7 +74,7 @@
       <div class="card">
         <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
           <h1>⛷️ 스키 내려오기</h1>
-          <p>A/D키로 좌우 회피하세요!</p>
+          <p>A/D키 또는 화면 좌·우 터치로 좌우 회피하세요!</p>
         </header>
 
         <div class="canvas-wrapper">
@@ -299,6 +299,21 @@
     document.addEventListener('keyup', (e) => {
       keys[e.key] = false;
     });
+
+    // 모바일: 캔버스 왼쪽/오른쪽 절반을 누르면 그 방향으로 이동
+    function touchDir(e) {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const t = e.touches[0];
+      const left = t.clientX - rect.left < rect.width / 2;
+      keys['a'] = left;
+      keys['d'] = !left;
+    }
+    function touchClear() { keys['a'] = false; keys['d'] = false; }
+    canvas.addEventListener('touchstart', touchDir, { passive: false });
+    canvas.addEventListener('touchmove', touchDir, { passive: false });
+    canvas.addEventListener('touchend', touchClear, { passive: true });
+    canvas.addEventListener('touchcancel', touchClear, { passive: true });
 
     startBtn.addEventListener('click', startGame);
   </script>
