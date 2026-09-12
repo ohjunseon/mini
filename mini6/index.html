@@ -6,43 +6,39 @@
   <title>같은 색 찾기 게임</title>
   <link rel="stylesheet" href="../shared/style.css">
   <style>
-    :root{
-      --bg:#0b1020; --panel:#121931; --accent:#5b9cff; --text:#e9eef9; --muted:#9fb3d9;
-      --good:#2ecc71; --bad:#ff5b5b; --warn:#ffd166;
-    }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
       margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Pretendard,Apple SD Gothic Neo,Helvetica,Arial,sans-serif;
-      color:var(--text); background:linear-gradient(180deg,var(--bg),#0c1328 40%, #0a0f1f);
+      color:var(--text); background:linear-gradient(180deg,var(--bg),#0d0620 40%, #05010c);
       display:flex; align-items:center; justify-content:center; padding:16px;
     }
     .wrap{width:min(100%, 980px);}
     .card{
-      background:radial-gradient(1200px 400px at 50% -200px, #1b2447 0%, #121931 60%, #0c1328 100%);
-      border:1px solid #1a2244; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,.35);
+      background:radial-gradient(1200px 400px at 50% -200px, #241454 0%, #150a30 60%, #0a0518 100%);
+      border:1px solid var(--panel-border); border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,.35);
       overflow:hidden;
     }
     header{
-      display:grid; grid-template-columns: 1fr auto; gap:16px; align-items:center; padding:16px 20px; border-bottom:1px solid #212a4e;
+      display:grid; grid-template-columns: 1fr auto; gap:16px; align-items:center; padding:16px 20px; border-bottom:1px solid #2a1f5e;
     }
     .title{font-weight:800; letter-spacing:.2px;}
-    .pill{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#172045; color:var(--muted); font-size:12px}
+    .pill{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#1f1245; color:var(--muted); font-size:12px}
     .row{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
-    .stat{background:#0f1735; padding:8px 12px; border-radius:12px; border:1px solid #1a2246; font-weight:700;}
+    .stat{background:#170a35; padding:8px 12px; border-radius:12px; border:1px solid var(--panel-border); font-weight:700;}
     .stat small{display:block; font-weight:600; color:var(--muted);}
 
-    .controls{display:flex; flex-wrap:wrap; gap:10px; padding:12px 20px; border-bottom:1px solid #212a4e;}
+    .controls{display:flex; flex-wrap:wrap; gap:10px; padding:12px 20px; border-bottom:1px solid #2a1f5e;}
     select,button,input[type="checkbox"]{accent-color:var(--accent)}
-    .btn{background:linear-gradient(180deg,#2b68ff,#2a57e6); color:white; border:none; padding:10px 14px; border-radius:12px; font-weight:800; letter-spacing:.3px; cursor:pointer; box-shadow:0 6px 16px rgba(43,104,255,.35);}
-    .btn.secondary{background:#16204a; color:#cdd8ff; border:1px solid #28356b; box-shadow:none}
-    .btn.ghost{background:transparent; border:1px dashed #334072; color:var(--muted)}
+    .btn{background:linear-gradient(135deg,#0077b3,#7c3aed); color:white; border:none; padding:10px 14px; border-radius:12px; font-weight:800; letter-spacing:.3px; cursor:pointer; box-shadow:0 6px 16px rgba(0,229,255,.35);}
+    .btn.secondary{background:#1a0f3d; color:#c9d4ff; border:1px solid var(--panel-border); box-shadow:none}
+    .btn.ghost{background:transparent; border:1px dashed #4a2f8e; color:var(--muted)}
     .btn:disabled{opacity:.6; cursor:not-allowed}
 
     .swatch{width:34px; height:34px; border-radius:10px; border:2px solid rgba(255,255,255,.25)}
 
     .board-wrap{padding:16px;}
-    .board{display:grid; gap:10px; width:100%; aspect-ratio:1/1; background:#0e1631; border:1px solid #1a2246; border-radius:18px; padding:10px}
+    .board{display:grid; gap:10px; width:100%; aspect-ratio:1/1; background:#120826; border:1px solid var(--panel-border); border-radius:18px; padding:10px}
     .cell{
       border-radius:12px; position:relative; cursor:pointer; outline: none; border:1px solid rgba(255,255,255,.06);
       transition: transform .06s ease, box-shadow .2s ease;
@@ -54,15 +50,15 @@
     .cell.pattern::after{content:""; position:absolute; inset:0; background: repeating-linear-gradient(45deg, rgba(255,255,255,.25) 0 6px, transparent 6px 12px); border-radius:inherit;}
 
     .status-bar{display:flex; gap:10px; padding:0 20px 16px; align-items:center}
-    .progress{flex:1; height:10px; border-radius:999px; background:#10183a; border:1px solid #1a2246; position:relative; overflow:hidden}
-    .progress>i{position:absolute; inset:0; width:50%; background:linear-gradient(90deg, var(--accent), #61d8ff); border-radius:999px}
+    .progress{flex:1; height:10px; border-radius:999px; background:#170a35; border:1px solid var(--panel-border); position:relative; overflow:hidden}
+    .progress>i{position:absolute; inset:0; width:50%; background:linear-gradient(90deg, var(--accent), #61e3ff); border-radius:999px}
 
-    .footer{padding:10px 20px 20px; color:#a9b8e8; font-size:12px}
+    .footer{padding:10px 20px 20px; color:#b3bdea; font-size:12px}
 
     .hidden{display:none !important}
-    .tag{padding:6px 10px; background:#111a3a; border:1px solid #253163; border-radius:999px; color:#a9b8e8; font-size:12px}
-    .target-chip{display:flex; align-items:center; gap:10px; padding:8px 12px; background:#0f1735; border:1px solid #1a2246; border-radius:12px}
-    .kbd{padding:2px 6px; border:1px solid #36406c; border-radius:6px; font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace; font-size:12px; color:#d5def9}
+    .tag{padding:6px 10px; background:#170a35; border:1px solid var(--panel-border); border-radius:999px; color:#b3bdea; font-size:12px}
+    .target-chip{display:flex; align-items:center; gap:10px; padding:8px 12px; background:#170a35; border:1px solid var(--panel-border); border-radius:12px}
+    .kbd{padding:2px 6px; border:1px solid #4a2f8e; border-radius:6px; font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace; font-size:12px; color:#eafcff}
 
     @media (max-width:520px){
       header{grid-template-columns:1fr; gap:8px}
@@ -70,7 +66,7 @@
   </style>
   <meta name="description" content="색각 능력 테스트 - 미니게임">
   <meta name="keywords" content="트레이닝, 미니게임, 게임">
-  <meta name="theme-color" content="#5b9cff">
+  <meta name="theme-color" content="#00e5ff">
   <meta property="og:title" content="같은 색 찾기 게임">
   <meta property="og:description" content="색각 능력 테스트">
   <meta property="og:type" content="website">

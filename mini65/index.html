@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="../shared/style.css">
   <meta name="description" content="떨어지는 블록을 배치하여 줄을 완성하세요! (25초) - 미니게임">
   <meta name="keywords" content="두뇌, 미니게임, 게임">
-  <meta name="theme-color" content="#5b9cff">
+  <meta name="theme-color" content="#00e5ff">
   <meta property="og:title" content="🧩 퍼즐 조각">
   <meta property="og:description" content="떨어지는 블록을 배치하여 줄을 완성하세요! (25초)">
   <meta property="og:type" content="website">
@@ -85,7 +85,7 @@
     const BLOCK_SIZE = 40;
     const COLS = 8;
     const ROWS = 12;
-    const COLORS = ['#5b9cff', '#ff9a5b', '#2ecc71', '#ffd166'];
+    const COLORS = ['#00e5ff', '#ff9a5b', '#2ecc71', '#ffd166'];
 
     let grid = Array(ROWS).fill(0).map(() => Array(COLS).fill(0));
     let currentBlock = null;
@@ -165,7 +165,7 @@
     }
 
     function draw() {
-      ctx.fillStyle = '#121931';
+      ctx.fillStyle = '#150a30';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Draw grid
@@ -187,7 +187,7 @@
       // Draw next block indicator
       ctx.fillStyle = '#2a2f3a';
       ctx.fillRect(0, 0, canvas.width, 40);
-      ctx.fillStyle = '#9fb3d9';
+      ctx.fillStyle = '#a9b4e0';
       ctx.font = '12px sans-serif';
       ctx.fillText('다음:', 10, 25);
       ctx.fillStyle = COLORS[nextBlock.type];
@@ -195,7 +195,7 @@
 
       // Draw hover effect
       if (selectedCol >= 0) {
-        ctx.strokeStyle = '#5b9cff';
+        ctx.strokeStyle = '#00e5ff';
         ctx.lineWidth = 3;
         ctx.strokeRect(selectedCol * BLOCK_SIZE, 0, BLOCK_SIZE, BLOCK_SIZE);
       }
