@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>체커 (mini66)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 0;
+            width: min(400px, 92vw);
+            aspect-ratio: 1/1;
+            margin: 0 auto;
+            border-radius: 12px;
+            border: 1px solid var(--panel-border);
+            overflow: hidden;
+            box-shadow: inset 0 0 30px rgba(0, 229, 255, .08);
+        }
+
+        .cell {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .cell.light {
+            background: #14102c;
+        }
+
+        .cell.dark {
+            background: #0a0620;
+            cursor: pointer;
+        }
+
+        .cell.dark.selectable::after {
+            content: "";
+            width: 20%;
+            height: 20%;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .25);
+        }
+
+        .cell.dark.hint::after {
+            content: "";
+            width: 26%;
+            height: 26%;
+            border-radius: 50%;
+            background: rgba(255, 230, 102, .55);
+            box-shadow: 0 0 10px rgba(255, 230, 102, .6);
+        }
+
+        .cell.dark.selected {
+            background: #241a4a;
+        }
+
+        .piece {
+            width: 78%;
+            height: 78%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            transform: scale(0);
+            animation: pop .18s ease-out forwards;
+        }
+
+        @keyframes pop {
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .piece.p {
+            background: radial-gradient(circle at 35% 30%, #bffcff, var(--accent) 55%, #007a8f 100%);
+            box-shadow: 0 0 10px rgba(0, 229, 255, .7), 0 2px 4px rgba(0, 0, 0, .4);
+        }
+
+        .piece.a {
+            background: radial-gradient(circle at 35% 30%, #ffd6f7, var(--accent2) 55%, #8a0f6e 100%);
+            box-shadow: 0 0 10px rgba(255, 43, 214, .7), 0 2px 4px rgba(0, 0, 0, .4);
+        }
+
+        .piece.king::after {
+            content: "♛";
+            color: rgba(0, 0, 0, .55);
+            font-size: 1.1rem;
+            text-shadow: 0 0 4px rgba(255, 255, 255, .5);
+        }
+
+        .turn-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .turn-dot.p {
+            background: var(--accent);
+            box-shadow: 0 0 6px var(--accent);
+        }
+
+        .turn-dot.a {
+            background: var(--accent2);
+            box-shadow: 0 0 6px var(--accent2);
+        }
+    </style>
+    <meta name="description" content="대각선 이동과 점프로 상대 말을 모두 잡으세요 - 미니게임">
+    <meta name="keywords" content="보드게임, 체커, 체스, 미니게임, 게임">
+    <meta name="theme-color" content="#00e5ff">
+    <meta property="og:title" content="🔵 체커 🟣">
+    <meta property="og:description" content="대각선 이동과 점프로 상대 말을 모두 잡으세요">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/mini66/cover.png">
+    <meta property="twitter:card" content="summary">
+    <meta property="twitter:title" content="🔵 체커 🟣">
+    <meta property="twitter:description" content="대각선 이동과 점프로 상대 말을 모두 잡으세요">
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🔵 체커 🟣</h1>
+                    <p>대각선으로 이동하고 점프로 상대 말을 잡으세요! (점프 가능하면 점프가 필수)</p>
+                </header>
+
+                <div class="stats-bar mt-4">
+                    <div class="stat-item"><span class="turn-dot p"></span>나 <span id="pCount">12</span></div>
+                    <div class="stat-item"><span class="turn-dot a"></span>AI <span id="aCount">12</span></div>
+                    <div class="stat-item">연승: <span id="streak">0</span></div>
+                </div>
+
+                <div class="board" id="board"></div>
+
+                <div id="msg" class="mt-4" style="font-weight:bold; height: 24px;">당신의 차례입니다 (🔵)</div>
+
+                <div class="controls mt-4">
+                    <button id="btnReset" class="btn">다시 하기</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹 (최대 연승)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+                <div class="mt-4">
+                    <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+    <script src="../shared/juice.js"></script>
+
+    <script>
+        const PAGE_ID = "mini66";
+        if (window.GameStats) {
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                const rl = document.getElementById('rankList');
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}연승)</li>`).join('');
+            });
+        }
+
+        const SIZE = 8;
+        const P = 'P', A = 'A';
+        const DIRS_P_MAN = [[-1, -1], [-1, 1]];
+        const DIRS_A_MAN = [[1, -1], [1, 1]];
+        const DIRS_KING = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+        const DEPTH = 6;
+        const NO_CAPTURE_DRAW_LIMIT = 60;
+
+        const boardEl = document.getElementById('board');
+        const msg = document.getElementById('msg');
+        const streakEl = document.getElementById('streak');
+        const pCountEl = document.getElementById('pCount');
+        const aCountEl = document.getElementById('aCount');
+
+        let board, current, gameActive, streak = 0, selected = null, forcedFrom = null, noCaptureStreak = 0;
+
+        function newBoard() {
+            const b = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
+            for (let r = 0; r < 3; r++) for (let c = 0; c < SIZE; c++) if ((r + c) % 2 === 1) b[r][c] = { owner: A, king: false };
+            for (let r = 5; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if ((r + c) % 2 === 1) b[r][c] = { owner: P, king: false };
+            return b;
+        }
+
+        function cloneBoard(b) { return b.map(row => row.map(cell => cell ? { ...cell } : null)); }
+        function inBounds(r, c) { return r >= 0 && r < SIZE && c >= 0 && c < SIZE; }
+        function pieceDirs(piece) { return piece.king ? DIRS_KING : (piece.owner === P ? DIRS_P_MAN : DIRS_A_MAN); }
+
+        function getCapturesForPiece(b, row, col) {
+            const piece = b[row][col];
+            if (!piece) return [];
+            const moves = [];
+            for (const [dr, dc] of pieceDirs(piece)) {
+                const mr = row + dr, mc = col + dc, lr = row + 2 * dr, lc = col + 2 * dc;
+                if (inBounds(lr, lc) && b[mr][mc] && b[mr][mc].owner !== piece.owner && !b[lr][lc]) {
+                    moves.push({ from: { row, col }, to: { row: lr, col: lc }, captured: { row: mr, col: mc }, isCapture: true });
+                }
+            }
+            return moves;
+        }
+
+        function getSimpleMovesForPiece(b, row, col) {
+            const piece = b[row][col];
+            if (!piece) return [];
+            const moves = [];
+            for (const [dr, dc] of pieceDirs(piece)) {
+                const nr = row + dr, nc = col + dc;
+                if (inBounds(nr, nc) && !b[nr][nc]) {
+                    moves.push({ from: { row, col }, to: { row: nr, col: nc }, isCapture: false });
+                }
+            }
+            return moves;
+        }
+
+        function getAllMoves(b, owner, forced) {
+            const pieces = [];
+            if (forced) {
+                pieces.push(forced);
+            } else {
+                for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (b[r][c] && b[r][c].owner === owner) pieces.push({ row: r, col: c });
+            }
+            let captures = [];
+            for (const p of pieces) captures = captures.concat(getCapturesForPiece(b, p.row, p.col));
+            if (captures.length) return captures;
+            if (forced) return [];
+            let simples = [];
+            for (const p of pieces) simples = simples.concat(getSimpleMovesForPiece(b, p.row, p.col));
+            return simples;
+        }
+
+        function applyMove(b, mv, owner) {
+            const piece = b[mv.from.row][mv.from.col];
+            b[mv.from.row][mv.from.col] = null;
+            if (mv.isCapture) b[mv.captured.row][mv.captured.col] = null;
+            const kingRow = owner === P ? 0 : SIZE - 1;
+            let king = piece.king;
+            let promoted = false;
+            if (!king && mv.to.row === kingRow) { king = true; promoted = true; }
+            b[mv.to.row][mv.to.col] = { owner, king };
+            return promoted;
+        }
+
+        function countPieces(b, owner) {
+            let n = 0;
+            for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (b[r][c] && b[r][c].owner === owner) n++;
+            return n;
+        }
+
+        function evaluate(b) {
+            let score = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const p = b[r][c];
+                    if (!p) continue;
+                    let v = p.king ? 3 : 1;
+                    if (!p.king) v += (p.owner === A ? r : (SIZE - 1 - r)) * 0.05;
+                    score += p.owner === A ? v : -v;
+                }
+            }
+            return score;
+        }
+
+        function minimax(b, depth, alpha, beta, isMax, forced) {
+            const owner = isMax ? A : P;
+            const moves = getAllMoves(b, owner, forced);
+
+            if (moves.length === 0) {
+                if (forced) return minimax(b, depth - 1, alpha, beta, !isMax, null);
+                return isMax ? -100000 : 100000;
+            }
+            if (depth <= 0) return evaluate(b);
+
+            if (isMax) {
+                let value = -Infinity;
+                for (const mv of moves) {
+                    const nb = cloneBoard(b);
+                    const promoted = applyMove(nb, mv, A);
+                    const cont = mv.isCapture && !promoted && getCapturesForPiece(nb, mv.to.row, mv.to.col).length > 0;
+                    const val = cont
+                        ? minimax(nb, depth - 1, alpha, beta, true, { row: mv.to.row, col: mv.to.col })
+                        : minimax(nb, depth - 1, alpha, beta, false, null);
+                    value = Math.max(value, val);
+                    alpha = Math.max(alpha, value);
+                    if (alpha >= beta) break;
+                }
+                return value;
+            } else {
+                let value = Infinity;
+                for (const mv of moves) {
+                    const nb = cloneBoard(b);
+                    const promoted = applyMove(nb, mv, P);
+                    const cont = mv.isCapture && !promoted && getCapturesForPiece(nb, mv.to.row, mv.to.col).length > 0;
+                    const val = cont
+                        ? minimax(nb, depth - 1, alpha, beta, false, { row: mv.to.row, col: mv.to.col })
+                        : minimax(nb, depth - 1, alpha, beta, true, null);
+                    value = Math.min(value, val);
+                    beta = Math.min(beta, value);
+                    if (beta <= alpha) break;
+                }
+                return value;
+            }
+        }
+
+        function render() {
+            boardEl.innerHTML = '';
+            const legal = gameActive ? getAllMoves(board, current, forcedFrom) : [];
+            const selectableFroms = new Set(legal.map(m => m.from.row + '_' + m.from.col));
+            const hintTos = selected
+                ? new Set(legal.filter(m => m.from.row === selected.row && m.from.col === selected.col).map(m => m.to.row + '_' + m.to.col))
+                : (forcedFrom ? new Set(legal.map(m => m.to.row + '_' + m.to.col)) : new Set());
+
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const cell = document.createElement('div');
+                    const dark = (r + c) % 2 === 1;
+                    cell.className = 'cell ' + (dark ? 'dark' : 'light');
+                    if (dark && current === P && gameActive) {
+                        if (selectableFroms.has(r + '_' + c) && !forcedFrom) cell.classList.add('selectable');
+                        if (selected && selected.row === r && selected.col === c) cell.classList.add('selected');
+                        if (hintTos.has(r + '_' + c)) cell.classList.add('hint');
+                    }
+                    const piece = board[r][c];
+                    if (piece) {
+                        const el = document.createElement('div');
+                        el.className = 'piece ' + (piece.owner === P ? 'p' : 'a') + (piece.king ? ' king' : '');
+                        cell.appendChild(el);
+                    }
+                    if (dark) cell.onclick = () => onCellClick(r, c);
+                    boardEl.appendChild(cell);
+                }
+            }
+            pCountEl.textContent = countPieces(board, P);
+            aCountEl.textContent = countPieces(board, A);
+        }
+
+        function onCellClick(row, col) {
+            if (!gameActive || current !== P) return;
+            const legal = getAllMoves(board, P, forcedFrom);
+
+            if (forcedFrom) {
+                const mv = legal.find(m => m.to.row === row && m.to.col === col);
+                if (mv) executeMove(mv, P);
+                return;
+            }
+
+            if (selected) {
+                const mv = legal.find(m => m.from.row === selected.row && m.from.col === selected.col && m.to.row === row && m.to.col === col);
+                if (mv) { executeMove(mv, P); return; }
+            }
+
+            const piece = board[row][col];
+            if (piece && piece.owner === P) {
+                const hasMoves = legal.some(m => m.from.row === row && m.from.col === col);
+                selected = hasMoves ? { row, col } : null;
+                render();
+            } else if (selected) {
+                selected = null;
+                render();
+            }
+        }
+
+        function executeMove(mv, owner) {
+            const promoted = applyMove(board, mv, owner);
+            selected = null;
+            noCaptureStreak = mv.isCapture ? 0 : noCaptureStreak + 1;
+
+            if (mv.isCapture && !promoted) {
+                const cont = getCapturesForPiece(board, mv.to.row, mv.to.col);
+                if (cont.length) {
+                    forcedFrom = { row: mv.to.row, col: mv.to.col };
+                    processTurn();
+                    return;
+                }
+            }
+            forcedFrom = null;
+            current = current === P ? A : P;
+            processTurn();
+        }
+
+        function aiTurn() {
+            if (!gameActive) return;
+            const moves = getAllMoves(board, A, forcedFrom);
+            let best = null, bestScore = -Infinity;
+            for (const mv of moves) {
+                const nb = cloneBoard(board);
+                const promoted = applyMove(nb, mv, A);
+                const cont = mv.isCapture && !promoted && getCapturesForPiece(nb, mv.to.row, mv.to.col).length > 0;
+                const score = cont
+                    ? minimax(nb, DEPTH - 1, -Infinity, Infinity, true, { row: mv.to.row, col: mv.to.col })
+                    : minimax(nb, DEPTH - 1, -Infinity, Infinity, false, null);
+                if (score > bestScore) { bestScore = score; best = mv; }
+            }
+            executeMove(best, A);
+        }
+
+        function processTurn() {
+            if (!gameActive) return;
+
+            if (noCaptureStreak >= NO_CAPTURE_DRAW_LIMIT) {
+                render();
+                endGame('draw');
+                return;
+            }
+
+            const moves = getAllMoves(board, current, forcedFrom);
+            if (moves.length === 0) {
+                if (forcedFrom) {
+                    forcedFrom = null;
+                    current = current === P ? A : P;
+                    processTurn();
+                    return;
+                }
+                render();
+                endGame(current === P ? 'lose' : 'win');
+                return;
+            }
+
+            render();
+            if (current === A) {
+                msg.textContent = forcedFrom ? 'AI가 연속 점프 중...' : 'AI 생각 중...';
+                setTimeout(aiTurn, forcedFrom ? 450 : 600);
+            } else {
+                msg.textContent = forcedFrom ? '연속 점프! 같은 말로 계속 이동하세요' : '당신의 차례입니다 (🔵)';
+            }
+        }
+
+        function endGame(result) {
+            gameActive = false;
+            if (result === 'win') {
+                streak++;
+                msg.textContent = '승리! 🎉 상대가 더 이상 움직일 수 없어요';
+                msg.style.color = 'var(--good)';
+            } else if (result === 'lose') {
+                if (streak > 0) save(streak);
+                streak = 0;
+                msg.textContent = '패배... 😢 더 이상 움직일 수 없어요';
+                msg.style.color = 'var(--bad)';
+            } else {
+                msg.textContent = '무승부 (60수 동안 잡기 없음)';
+                msg.style.color = 'var(--text)';
+            }
+            streakEl.textContent = streak;
+        }
+
+        function save(s) {
+            Juice.submit(PAGE_ID, s);
+        }
+
+        function reset() {
+            board = newBoard();
+            current = P;
+            gameActive = true;
+            selected = null;
+            forcedFrom = null;
+            noCaptureStreak = 0;
+            msg.textContent = '당신의 차례입니다 (🔵)';
+            msg.style.color = 'var(--text)';
+            render();
+        }
+
+        document.getElementById('btnReset').onclick = () => {
+            if (gameActive) streak = 0;
+            streakEl.textContent = streak;
+            reset();
+        };
+
+        reset();
+    </script>
+</body>
+
+</html>

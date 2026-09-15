@@ -1,3 +1,5 @@
+export { OthelloRoom } from './othello-room.js';
+
 // Per-game score ceiling validation (renumbered after mini1~65 cleanup)
 const GAME_SCORE_LIMITS = {
   mini1: 5000,
@@ -52,6 +54,20 @@ export default {
     // Handle OPTIONS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: corsHeaders });
+    }
+
+    // Route: WebSocket room for online Othello (mini65)
+    if (pathname.startsWith('/ws/othello/')) {
+      const code = pathname.slice('/ws/othello/'.length).trim();
+      if (!code || !/^[A-Za-z0-9]{4,12}$/.test(code)) {
+        return new Response(JSON.stringify({ error: 'invalid room code' }), {
+          status: 400,
+          headers: corsHeaders,
+        });
+      }
+      const id = env.OTHELLO_ROOM.idFromName(code.toUpperCase());
+      const stub = env.OTHELLO_ROOM.get(id);
+      return stub.fetch(request);
     }
 
     // Route API endpoints

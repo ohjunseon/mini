@@ -15,5 +15,13 @@
 			"database_id": "b6f68cd8-2118-48e5-9e04-d2b6edb8db37",
 			"remote": true
 		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{ "name": "OTHELLO_ROOM", "class_name": "OthelloRoom" }
+		]
+	},
+	"migrations": [
+		{ "tag": "v1", "new_sqlite_classes": ["OthelloRoom"] }
 	]
 }
