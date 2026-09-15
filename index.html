@@ -466,10 +466,14 @@
     function render() {
       grid.innerHTML = '';
       games.forEach((g, i) => grid.appendChild(createCard(g, i)));
-      // 최근 플레이가 있으면 가장 위에 안내
+      // 최근 플레이가 있으면 가장 위에 안내 (재호출 시 이전 안내는 교체)
+      const prevGuide = document.getElementById('recentPlayGuide');
+      if (prevGuide) prevGuide.remove();
+
       const last = getLastPlayed();
       if (last && games.some(g => g.id === last.id)) {
         const guide = document.createElement('div');
+        guide.id = 'recentPlayGuide';
         guide.style.margin = '6px 2px 18px';
         guide.style.color = 'var(--muted)';
         const g = games.find(x => x.id === last.id);
