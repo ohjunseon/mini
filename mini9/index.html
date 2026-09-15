@@ -4,102 +4,28 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>2048 (mini9)</title>
+    <title>Flappy Bird Clone (mini9)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            background: #bbada0;
-            padding: 10px;
-            border-radius: 6px;
-            width: 300px;
-            height: 300px;
+        canvas {
+            background: #70c5ce;
+            /* Sky blue */
+            border: 2px solid var(--accent);
+            display: block;
             margin: 0 auto;
-            position: relative;
-        }
-
-        .grid-cell {
-            background: rgba(238, 228, 218, 0.35);
-            border-radius: 3px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
-            font-weight: bold;
-            color: #776e65;
-            transition: 0.1s;
-        }
-
-        .c-2 {
-            background: #eee4da;
-        }
-
-        .c-4 {
-            background: #ede0c8;
-        }
-
-        .c-8 {
-            background: #f2b179;
-            color: #f9f6f2;
-        }
-
-        .c-16 {
-            background: #f59563;
-            color: #f9f6f2;
-        }
-
-        .c-32 {
-            background: #f67c5f;
-            color: #f9f6f2;
-        }
-
-        .c-64 {
-            background: #f65e3b;
-            color: #f9f6f2;
-        }
-
-        .c-128 {
-            background: #edcf72;
-            color: #f9f6f2;
-            font-size: 20px;
-        }
-
-        .c-256 {
-            background: #edcc61;
-            color: #f9f6f2;
-            font-size: 20px;
-        }
-
-        .c-512 {
-            background: #edc850;
-            color: #f9f6f2;
-            font-size: 20px;
-        }
-
-        .c-1024 {
-            background: #edc53f;
-            color: #f9f6f2;
-            font-size: 16px;
-        }
-
-        .c-2048 {
-            background: #edc22e;
-            color: #f9f6f2;
-            font-size: 16px;
+            max-width: 100%;
         }
     </style>
-  <meta name="description" content="숫자 합치기 - 미니게임">
-  <meta name="keywords" content="블록, 미니게임, 게임">
+  <meta name="description" content="장애물 피하기 - 미니게임">
+  <meta name="keywords" content="액션, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🔢 2048">
-  <meta property="og:description" content="숫자 합치기">
+  <meta property="og:title" content="🐦 플래피 버드">
+  <meta property="og:description" content="장애물 피하기">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini9/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🔢 2048">
-  <meta property="twitter:description" content="숫자 합치기">
+  <meta property="twitter:title" content="🐦 플래피 버드">
+  <meta property="twitter:description" content="장애물 피하기">
 </head>
 
 <body>
@@ -107,28 +33,18 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>🔢 2048</h1>
-                    <p>숫자를 합쳐 2048을 만드세요! (방향키)</p>
+                    <h1>🐦 플래피 버드</h1>
+                    <p>화면을 클릭하여 날아가세요!</p>
                 </header>
 
-                <div class="grid-container" id="grid"></div>
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
 
                 <div class="controls mt-4">
-                    <button id="btnStart" class="btn">재시작</button>
+                    <button id="btnStart" class="btn">게임 시작</button>
                 </div>
 
                 <div class="stats-bar mt-4">
                     <div class="stat-item">점수: <span id="score">0</span></div>
-                </div>
-
-                <div class="controls mt-4"
-                    style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; max-width: 200px; margin: 20px auto;">
-                    <div></div><button class="btn secondary" id="btnUp">▲</button>
-                    <div></div>
-                    <button class="btn secondary" id="btnLeft">◀</button>
-                    <div></div><button class="btn secondary" id="btnRight">▶</button>
-                    <div></div><button class="btn secondary" id="btnDown">▼</button>
-                    <div></div>
                 </div>
 
                 <div class="panel mt-4" style="text-align: left;">
@@ -150,157 +66,192 @@
     <script>
         const PAGE_ID = "mini9";
         if (window.GameStats) {
+            const rl = document.getElementById('rankList');
             GameStats.listenTopScores(PAGE_ID, 5, arr => {
-                const rl = document.getElementById('rankList');
                 rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
             });
         }
 
-        const gridEl = document.getElementById('grid');
+        const cvs = document.getElementById('gameCanvas');
+        const ctx = cvs.getContext('2d');
         const scoreEl = document.getElementById('score');
-        let board = [];
+        const btnStart = document.getElementById('btnStart');
+
+        // Game Vars
+        let frames = 0;
         let score = 0;
+        let running = false;
+        let requestId = null;
 
-        function init() {
-            board = [
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0]
-            ];
-            score = 0;
-            scoreEl.textContent = 0;
-            addNew();
-            addNew();
-            draw();
-        }
+        const DEGREE = Math.PI / 180;
 
-        function addNew() {
-            let empty = [];
-            for (let r = 0; r < 4; r++) {
-                for (let c = 0; c < 4; c++) {
-                    if (board[r][c] === 0) empty.push({ r, c });
+        const bird = {
+            x: 50, y: 150, w: 20, h: 20, radius: 10,
+            speed: 0, gravity: 0.25, jump: 4.6, rotation: 0,
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.fillStyle = "yellow";
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            },
+            update() {
+                this.speed += this.gravity;
+                this.y += this.speed;
+
+                if (this.y + this.h / 2 >= cvs.height - 20) { // floor
+                    this.y = cvs.height - 20 - this.h / 2;
+                    gameOver();
                 }
-            }
-            if (empty.length > 0) {
-                const { r, c } = empty[Math.floor(Math.random() * empty.length)];
-                board[r][c] = Math.random() < 0.9 ? 2 : 4;
-            }
-        }
-
-        function draw() {
-            gridEl.innerHTML = '';
-            for (let r = 0; r < 4; r++) {
-                for (let c = 0; c < 4; c++) {
-                    const val = board[r][c];
-                    const div = document.createElement('div');
-                    div.className = `grid-cell c-${val}`;
-                    div.textContent = val === 0 ? '' : val;
-                    gridEl.appendChild(div);
+                if (this.speed < this.jump) {
+                    this.rotation = -25 * DEGREE;
+                } else {
+                    this.rotation += 5 * DEGREE;
+                    this.rotation = this.rotation > 90 * DEGREE ? 90 * DEGREE : this.rotation;
                 }
+            },
+            flap() {
+                this.speed = -this.jump;
             }
-        }
+        };
 
-        function slide(row) {
-            let arr = row.filter(val => val);
-            let missing = 4 - arr.length;
-            let zeros = Array(missing).fill(0);
-            return arr.concat(zeros);
-        }
-
-        function combine(row) {
-            for (let i = 0; i < 3; i++) {
-                if (row[i] !== 0 && row[i] === row[i + 1]) {
-                    row[i] *= 2;
-                    row[i + 1] = 0;
-                    score += row[i];
+        const pipes = {
+            position: [],
+            w: 40, h: 100, dx: 2, gap: 100, maxYPos: -150,
+            draw() {
+                ctx.fillStyle = "green";
+                for (let i = 0; i < this.position.length; i++) {
+                    let p = this.position[i];
+                    let topY = p.y;
+                    let bottomY = p.y + this.h + this.gap;
+                    ctx.fillRect(p.x, topY, this.w, this.h); // Top Pipe (simplified)
+                    ctx.fillRect(p.x, bottomY, this.w, 400); // Bottom Pipe
                 }
-            }
-            return row;
-        }
+            },
+            update() {
+                if (frames % 100 === 0) {
+                    this.position.push({
+                        x: cvs.width,
+                        y: Math.max(-200, Math.random() * 200 - 200) // random Y
+                    });
+                }
+                for (let i = 0; i < this.position.length; i++) {
+                    let p = this.position[i];
+                    p.x -= this.dx;
 
-        function moveLeft() {
-            let changed = false;
-            for (let r = 0; r < 4; r++) {
-                let old = [...board[r]];
-                let row = slide(board[r]);
-                row = combine(row);
-                row = slide(row);
-                board[r] = row;
-                if (JSON.stringify(old) !== JSON.stringify(board[r])) changed = true;
-            }
-            return changed;
-        }
+                    // Collision
+                    let bottomPipeY = p.y + this.h + this.gap; // h used as top pipe height
 
-        function rotate(matrix) {
-            return matrix[0].map((val, index) => matrix.map(row => row[index]).reverse());
-        }
+                    // Top pipe logic needed actual height
+                    // Simplified: Top pipe y is absolute. 
+                    // Let's redraw properly
+                    // p.y is top pipe Y position (e.g. -100)
+                    // We draw top pipe from p.y to p.y+this.h? No.
+                    // Let's reimplement similar to classic
 
-        function move(dir) {
-            // 0:Left, 1:Up, 2:Right, 3:Down
-            let changed = false;
-            if (dir === 0) {
-                changed = moveLeft();
-            } else if (dir === 1) { // Up = Rotate 270(Right 3 times) -> Left -> Rotate 90
-                board = rotate(board); board = rotate(board); board = rotate(board);
-                changed = moveLeft();
-                board = rotate(board);
-            } else if (dir === 2) { // Right = Rotate 180 -> Left -> Rotate 180
-                board = rotate(board); board = rotate(board);
-                changed = moveLeft();
-                board = rotate(board); board = rotate(board);
-            } else if (dir === 3) { // Down = Rotate 90 -> Left -> Rotate 270
-                board = rotate(board);
-                changed = moveLeft();
-                board = rotate(board); board = rotate(board); board = rotate(board);
-            }
-
-            if (changed) {
-                scoreEl.textContent = score;
-                addNew();
-                draw();
-                if (checkGameOver()) {
-                    setTimeout(() => {
-                        Juice.toast("게임 오버! 점수: ${score}", "info");
-                        save();
-                    }, 100);
                 }
             }
         }
 
-        function checkGameOver() {
-            // Check for zeros
-            for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if (board[r][c] === 0) return false;
-            // Check neighbors
-            for (let r = 0; r < 4; r++) {
-                for (let c = 0; c < 4; c++) {
-                    if (c !== 3 && board[r][c] === board[r][c + 1]) return false;
-                    if (r !== 3 && board[r][c] === board[r + 1][c]) return false;
+        // Simplification for reliability
+        let pipeArr = [];
+        const pipeW = 50;
+        const pipeGap = 120;
+
+        function updatePipes() {
+            if (frames % 100 === 0) {
+                let topH = Math.random() * (cvs.height - pipeGap - 50) + 20;
+                pipeArr.push({ x: cvs.width, top: topH });
+            }
+            for (let i = 0; i < pipeArr.length; i++) {
+                let p = pipeArr[i];
+                p.x -= 2;
+
+                // Collision with bird
+                // Bird Circle: bird.x, bird.y, radius 10
+                // Rect 1: p.x, 0, width, p.top
+                // Rect 2: p.x, p.top+pipeGap, width, height...
+
+                if (
+                    bird.x + 10 > p.x &&
+                    bird.x - 10 < p.x + pipeW &&
+                    (bird.y - 10 < p.top || bird.y + 10 > p.top + pipeGap)
+                ) {
+                    gameOver();
+                }
+
+                if (p.x + pipeW < 0) {
+                    pipeArr.shift();
+                    score++;
+                    scoreEl.textContent = score;
+                    i--;
                 }
             }
-            return true;
         }
 
-        function save() {
+        function drawPipes() {
+            ctx.fillStyle = "#2ecc71";
+            for (let i = 0; i < pipeArr.length; i++) {
+                let p = pipeArr[i];
+                ctx.fillRect(p.x, 0, pipeW, p.top);
+                ctx.fillRect(p.x, p.top + pipeGap, pipeW, cvs.height);
+            }
+        }
+
+        function loop() {
+            if (!running) return;
+            ctx.fillStyle = "#70c5ce";
+            ctx.fillRect(0, 0, cvs.width, cvs.height);
+
+            // Floor
+            ctx.fillStyle = "#ded895";
+            ctx.fillRect(0, cvs.height - 20, cvs.width, 20);
+
+            updatePipes();
+            drawPipes();
+
+            bird.update();
+            bird.draw();
+
+            frames++;
+            requestId = requestAnimationFrame(loop);
+        }
+
+        function gameOver() {
+            running = false;
+            cancelAnimationFrame(requestId);
+            Juice.toast("게임 오버! 점수: ${score}", "info");
             if (score > 0) {
                 Juice.submit(PAGE_ID, score);
             }
+            btnStart.style.display = 'inline-block';
+            btnStart.textContent = "다시 시작";
+            score = 0;
         }
 
-        document.addEventListener('keydown', e => {
-            if (e.key === "ArrowLeft") move(0);
-            else if (e.key === "ArrowUp") move(1);
-            else if (e.key === "ArrowRight") move(2);
-            else if (e.key === "ArrowDown") move(3);
+        function start() {
+            if (running) return;
+            running = true;
+            bird.y = 150; bird.speed = 0;
+            pipeArr = []; frames = 0; score = 0;
+            scoreEl.textContent = 0;
+            btnStart.style.display = 'none';
+            loop();
+        }
+
+        window.addEventListener("mousedown", () => {
+            if (running) bird.flap();
+        });
+        window.addEventListener("keydown", (e) => {
+            if (e.key === ' ') if (running) bird.flap();
         });
 
-        document.getElementById('btnLeft').onclick = () => move(0);
-        document.getElementById('btnUp').onclick = () => move(1);
-        document.getElementById('btnRight').onclick = () => move(2);
-        document.getElementById('btnDown').onclick = () => move(3);
-        document.getElementById('btnStart').onclick = init;
+        btnStart.onclick = start;
 
-        init();
     </script>
 </body>
 

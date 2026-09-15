@@ -1,36 +1,151 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>색상 배치 게임</title>
+  <title>복싱 훈련</title>
   <link rel="stylesheet" href="../shared/style.css">
-  <meta name="description" content="색상을 회전하여 목표 패턴을 만드세요! (20초) - 미니게임">
-  <meta name="keywords" content="두뇌, 미니게임, 게임">
+  <style>
+    #gameContainer {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 30px;
+      border-radius: 12px;
+      border: 2px solid var(--panel-border);
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+    #comboDisplay {
+      font-size: 3rem;
+      font-weight: bold;
+      color: var(--accent);
+      text-align: center;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #nextPunch {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--good);
+      padding: 20px;
+      background: rgba(46, 204, 113, 0.1);
+      border-radius: 12px;
+      border: 2px solid var(--good);
+      min-width: 150px;
+      text-align: center;
+    }
+    #gameStatus {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--accent);
+      margin: 15px 0;
+      padding: 12px;
+      background: rgba(91, 156, 255, 0.1);
+      border-radius: 8px;
+      border: 2px solid var(--accent);
+    }
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      width: 100%;
+      max-width: 400px;
+      margin: 20px 0;
+    }
+    .punch-btn {
+      padding: 20px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: white;
+      text-transform: uppercase;
+    }
+    .punch-btn:hover:not(:disabled) {
+      transform: scale(1.05);
+    }
+    .punch-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .punch-left { background: #ff6b6b; }
+    .punch-right { background: #ffd700; }
+    .punch-upper { background: #34d399; }
+    .punch-lower { background: #a78bfa; }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-item {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+  </style>
+  <meta name="description" content="순서대로 펀치 콤보 입력 - 미니게임">
+  <meta name="keywords" content="스포츠, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🎨 색상 배치">
-  <meta property="og:description" content="색상을 회전하여 목표 패턴을 만드세요! (20초)">
+  <meta property="og:title" content="🥊 복싱 훈련">
+  <meta property="og:description" content="순서대로 펀치 콤보 입력">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini62/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🎨 색상 배치">
-  <meta property="twitter:description" content="색상을 회전하여 목표 패턴을 만드세요! (20초)">
+  <meta property="twitter:title" content="🥊 복싱 훈련">
+  <meta property="twitter:description" content="순서대로 펀치 콤보 입력">
 </head>
-
 <body>
   <div class="container">
     <div class="game-container">
       <div class="card">
         <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
-          <h1>🎨 색상 배치</h1>
-          <p>각 칸의 색상을 회전하여 목표 패턴을 만드세요! (20초)</p>
+          <h1>🥊 복싱 훈련</h1>
+          <p>올바른 순서대로 펀치를 입력하세요!</p>
         </header>
+
+        <div id="gameContainer">
+          <div id="comboDisplay">준비 중...</div>
+          <div id="nextPunch">-</div>
+        </div>
+
+        <div id="gameStatus">게임 시작을 누르세요</div>
+
+        <div class="button-group">
+          <button class="punch-btn punch-left" id="punchLeft">좌 (L)</button>
+          <button class="punch-btn punch-right" id="punchRight">우 (R)</button>
+          <button class="punch-btn punch-upper" id="punchUpper">상 (U)</button>
+          <button class="punch-btn punch-lower" id="punchLower">하 (D)</button>
+        </div>
 
         <div class="stats-bar">
           <div class="stat-item">
-            <span class="stat-label">시간</span>
-            <span class="stat-value" id="timeLeft">20</span>
+            <span class="stat-label">남은 시간</span>
+            <span class="stat-value" id="timerValue">20</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">콤보 길이</span>
+            <span class="stat-value" id="comboValue">0</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">점수</span>
@@ -38,26 +153,10 @@
           </div>
         </div>
 
-        <canvas id="gameCanvas" width="320" height="400" style="
-          display: block;
-          margin: 20px auto;
-          background: var(--panel);
-          border-radius: 12px;
-          cursor: pointer;
-          border: 1px solid var(--panel-border);
-        "></canvas>
-
-        <div class="stats-bar">
-          <div class="stat-item">
-            <span class="stat-label">상태</span>
-            <span class="stat-value" id="statusText">게임 중...</span>
-          </div>
-        </div>
-
-        <button class="btn btn-primary" id="restartBtn">🔄 새로운 게임</button>
+        <button class="btn" id="startBtn" style="width: 100%; margin: 10px 0;">게임 시작</button>
 
         <div class="panel mt-4" style="text-align: left;">
-          <h3>🏆 Top 5 (높은 점수)</h3>
+          <h3>🏆 Top 5</h3>
           <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
             <li>로딩 중...</li>
           </ul>
@@ -74,179 +173,145 @@
     <script src="../shared/juice.js"></script>
   <script>
     const PAGE_ID = "mini62";
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const timeLeftEl = document.getElementById('timeLeft');
-    const scoreValueEl = document.getElementById('scoreValue');
-    const statusTextEl = document.getElementById('statusText');
-    const restartBtn = document.getElementById('restartBtn');
+    const GAME_DURATION = 20;
+    const PUNCH_TYPES = ['L', 'R', 'U', 'D'];
+    const PUNCH_LABELS = { 'L': '좌', 'R': '우', 'U': '상', 'D': '하' };
+
+    const startBtn = document.getElementById('startBtn');
+    const gameStatus = document.getElementById('gameStatus');
+    const comboDisplay = document.getElementById('comboDisplay');
+    const nextPunch = document.getElementById('nextPunch');
+    const timerValue = document.getElementById('timerValue');
+    const comboValue = document.getElementById('comboValue');
+    const scoreValue = document.getElementById('scoreValue');
     const rankList = document.getElementById('rankList');
 
-    const GRID_SIZE = 3;
-    const CELL_SIZE = 100;
-    const COLORS = ['#00e5ff', '#ff9a5b', '#2ecc71'];
+    const punchLeftBtn = document.getElementById('punchLeft');
+    const punchRightBtn = document.getElementById('punchRight');
+    const punchUpperBtn = document.getElementById('punchUpper');
+    const punchLowerBtn = document.getElementById('punchLower');
 
-    let grid = [];
-    let targetPattern = [];
-    let timeLeft = 20;
-    let score = 0;
-    let gameActive = true;
-    let matchCount = 0;
-    let timer = null;
+    let gameActive = false;
+    let timeLeft = GAME_DURATION;
+    let timerInterval = null;
+    let totalScore = 0;
+    let currentCombo = [];
+    let targetCombo = [];
+    let maxCombo = 0;
 
-    function initializeGame() {
-      grid = Array(GRID_SIZE * GRID_SIZE).fill(0).map(() => Math.floor(Math.random() * 3));
-      generateTargetPattern();
-      matchCount = 0;
-      timeLeft = 20;
-      score = 0;
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      loadRanking();
+    }
+
+    function loadRanking() {
+      if (window.GameStats && window.GameStats.listenForTopScores) {
+        GameStats.listenForTopScores(PAGE_ID, 5, (rows) => {
+          rankList.innerHTML = rows.map((r, i) =>
+            `<li>${i+1}. ${r.name} - ${r.score} 점</li>`
+          ).join('') || '<li>기록이 없습니다</li>';
+        });
+      }
+    }
+
+    function generateCombo() {
+      targetCombo = [];
+      for (let i = 0; i < Math.floor(Math.random() * 5) + 3; i++) {
+        targetCombo.push(PUNCH_TYPES[Math.floor(Math.random() * PUNCH_TYPES.length)]);
+      }
+      updateDisplay();
+    }
+
+    function startGame() {
       gameActive = true;
-      statusTextEl.textContent = '게임 중...';
-      draw();
+      timeLeft = GAME_DURATION;
+      totalScore = 0;
+      currentCombo = [];
+      maxCombo = 0;
+      startBtn.disabled = true;
+      generateCombo();
 
-      clearInterval(timer);
-      timer = setInterval(() => {
+      timerInterval = setInterval(() => {
         timeLeft--;
-        timeLeftEl.textContent = timeLeft;
-        if (timeLeft <= 0) {
-          endGame();
-        }
+        timerValue.textContent = timeLeft;
+        if (timeLeft <= 0) endGame();
       }, 1000);
-    }
-
-    function generateTargetPattern() {
-      targetPattern = Array(GRID_SIZE * GRID_SIZE).fill(0).map(() => Math.floor(Math.random() * 3));
-    }
-
-    function rotateCell(index) {
-      if (!gameActive) return;
-      grid[index] = (grid[index] + 1) % 3;
-      checkMatches();
-      draw();
-    }
-
-    function checkMatches() {
-      let newMatches = 0;
-      for (let i = 0; i < grid.length; i++) {
-        if (grid[i] === targetPattern[i]) {
-          newMatches++;
-        }
-      }
-      const diff = newMatches - matchCount;
-      if (diff > 0) {
-        matchCount = newMatches;
-        score += diff * 10;
-        scoreValueEl.textContent = score;
-        if (matchCount === GRID_SIZE * GRID_SIZE) {
-          generateTargetPattern();
-          matchCount = 0;
-        }
-      }
-    }
-
-    function draw() {
-      ctx.fillStyle = '#150a30';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Draw target pattern (top half)
-      ctx.fillStyle = '#2a2f3a';
-      ctx.fillRect(10, 10, 300, 140);
-      ctx.fillStyle = '#00e5ff';
-      ctx.font = '12px sans-serif';
-      ctx.fillText('목표 패턴:', 20, 30);
-
-      for (let i = 0; i < targetPattern.length; i++) {
-        const row = Math.floor(i / GRID_SIZE);
-        const col = i % GRID_SIZE;
-        const x = 30 + col * 90;
-        const y = 50 + row * 40;
-        ctx.fillStyle = COLORS[targetPattern[i]];
-        ctx.fillRect(x, y, 35, 35);
-        ctx.strokeStyle = '#00e5ff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, 35, 35);
-      }
-
-      // Draw current grid (bottom half)
-      ctx.fillStyle = '#2a2f3a';
-      ctx.fillRect(10, 160, 300, 230);
-      ctx.fillStyle = '#a9b4e0';
-      ctx.fillText('현재 상태:', 20, 180);
-
-      for (let i = 0; i < grid.length; i++) {
-        const row = Math.floor(i / GRID_SIZE);
-        const col = i % GRID_SIZE;
-        const x = 30 + col * 90;
-        const y = 200 + row * 60;
-        ctx.fillStyle = COLORS[grid[i]];
-        ctx.fillRect(x, y, 80, 50);
-        ctx.strokeStyle = '#00e5ff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, 80, 50);
-      }
     }
 
     function endGame() {
       gameActive = false;
-      clearInterval(timer);
-      statusTextEl.textContent = '게임 종료!';
-      saveScore(score);
-    }
+      clearInterval(timerInterval);
+      startBtn.disabled = false;
 
-    function saveScore(finalScore) {
-      if (window.GameStats) {
-        window.GameStats.saveScore(PAGE_ID, finalScore, () => {
-          loadTopScores();
-        });
-      }
-    }
+      gameStatus.textContent = `게임 종료! 최종 점수: ${totalScore}`;
 
-    function loadTopScores() {
-      if (window.GameStats) {
-        window.GameStats.listenTopScores(PAGE_ID, 5, (scores) => {
-          rankList.innerHTML = scores.map((s, i) =>
-            `<li>${i + 1}. ${s.score}점</li>`
-          ).join('') || '<li>기록 없음</li>';
-        });
-      }
-    }
-
-    canvas.addEventListener('click', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left - 30;
-      const y = e.clientY - rect.top - 200;
-
-      if (y >= 0) {
-        const row = Math.floor(y / 60);
-        const col = Math.floor(x / 90);
-        if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
-          rotateCell(row * GRID_SIZE + col);
+      setTimeout(() => {
+        if (window.GameStats) {
+          GameStats.saveScore(PAGE_ID, playerName, totalScore);
         }
+
+        setTimeout(() => {
+          totalScore = 0;
+          currentCombo = [];
+          maxCombo = 0;
+          timeLeft = GAME_DURATION;
+          timerValue.textContent = GAME_DURATION;
+          comboValue.textContent = '0';
+          scoreValue.textContent = '0';
+          comboDisplay.textContent = '준비 중...';
+          nextPunch.textContent = '-';
+          gameStatus.textContent = '게임 시작을 누르세요';
+        }, 1000);
+      }, 1000);
+    }
+
+    function updateDisplay() {
+      comboDisplay.textContent = targetCombo.map(p => PUNCH_LABELS[p]).join(' → ');
+      nextPunch.textContent = currentCombo.length < targetCombo.length ? PUNCH_LABELS[targetCombo[currentCombo.length]] : '완료!';
+      comboValue.textContent = currentCombo.length;
+      scoreValue.textContent = totalScore;
+    }
+
+    function handlePunch(punchType) {
+      if (!gameActive) return;
+
+      if (currentCombo.length < targetCombo.length && targetCombo[currentCombo.length] === punchType) {
+        currentCombo.push(punchType);
+        totalScore += 10;
+
+        if (currentCombo.length === targetCombo.length) {
+          // Combo complete
+          totalScore += currentCombo.length * 5;
+          if (currentCombo.length > maxCombo) {
+            maxCombo = currentCombo.length;
+          }
+          currentCombo = [];
+          generateCombo();
+        }
+      } else {
+        // Wrong punch
+        currentCombo = [];
+        generateCombo();
       }
+
+      updateDisplay();
+    }
+
+    punchLeftBtn.addEventListener('click', () => handlePunch('L'));
+    punchRightBtn.addEventListener('click', () => handlePunch('R'));
+    punchUpperBtn.addEventListener('click', () => handlePunch('U'));
+    punchLowerBtn.addEventListener('click', () => handlePunch('D'));
+
+    document.addEventListener('keydown', (e) => {
+      if (!gameActive) return;
+      const key = e.key.toUpperCase();
+      if (key === 'L') handlePunch('L');
+      else if (key === 'R') handlePunch('R');
+      else if (key === 'U') handlePunch('U');
+      else if (key === 'D') handlePunch('D');
     });
 
-    // Touch support
-    canvas.addEventListener('touchstart', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const touch = e.touches[0];
-      const x = touch.clientX - rect.left - 30;
-      const y = touch.clientY - rect.top - 200;
-
-      if (y >= 0) {
-        const row = Math.floor(y / 60);
-        const col = Math.floor(x / 90);
-        if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
-          rotateCell(row * GRID_SIZE + col);
-        }
-      }
-    });
-
-    restartBtn.addEventListener('click', initializeGame);
-
-    // Initialize
-    initializeGame();
-    loadTopScores();
+    startBtn.addEventListener('click', startGame);
   </script>
 </body>
-
 </html>

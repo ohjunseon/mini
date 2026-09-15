@@ -1,300 +1,293 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>갈지자 피하기 (mini53)</title>
-    <link rel="stylesheet" href="../shared/style.css">
-    <style>
-        canvas {
-            border: 2px solid var(--accent);
-            border-radius: 8px;
-            background: linear-gradient(180deg, #1a3a5c, #0f1f3c);
-            display: block;
-            margin: 20px auto;
-            max-width: 100%;
-            touch-action: none;
-        }
-
-        .game-info {
-            display: flex;
-            justify-content: space-around;
-            margin: 20px 0;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .info-item {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 12px 20px;
-            border-radius: 8px;
-            border: 1px solid var(--panel-border);
-        }
-
-        .info-label {
-            font-size: 0.85rem;
-            color: var(--muted);
-            margin-bottom: 4px;
-        }
-
-        .info-value {
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: var(--accent);
-        }
-    </style>
-  <meta name="description" content="좌우 이동으로 3개 레인의 블록을 피하세요! 20초 - 미니게임">
-  <meta name="keywords" content="러너, 미니게임, 게임">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>리듬 클릭</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    canvas {
+      display: block;
+      margin: 20px auto;
+      background: var(--panel);
+      border: 2px solid var(--panel-border);
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-item {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+  </style>
+  <meta name="description" content="Batch 5 - 미니게임">
+  <meta name="keywords" content="보관, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="➡️ 갈지자 피하기">
-  <meta property="og:description" content="좌우 이동으로 3개 레인의 블록을 피하세요! 20초">
+  <meta property="og:title" content="🎯 리듬 클릭">
+  <meta property="og:description" content="Batch 5">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini53/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="➡️ 갈지자 피하기">
-  <meta property="twitter:description" content="좌우 이동으로 3개 레인의 블록을 피하세요! 20초">
+  <meta property="twitter:title" content="🎯 리듬 클릭">
+  <meta property="twitter:description" content="Batch 5">
 </head>
-
 <body>
-    <div class="container">
-        <div class="game-container">
-            <div class="card">
-                <header class="mb-4">
-                    <h1>➡️ 갈지자 피하기</h1>
-                    <p>좌우 이동으로 떨어지는 블록을 피하세요! A/D 또는 좌우 화살표로 조작!</p>
-                </header>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🎯 리듬 클릭</h1>
+          <p>중앙의 원이 확대될 때 클릭하세요!</p>
+        </header>
 
-                <canvas id="gameCanvas" width="320" height="480"></canvas>
+        <canvas id="gameCanvas" width="320" height="480"></canvas>
 
-                <div class="game-info">
-                    <div class="info-item">
-                        <div class="info-label">시간</div>
-                        <div class="info-value" id="timeValue">20.0</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">점수</div>
-                        <div class="info-value" id="scoreValue">0.0</div>
-                    </div>
-                </div>
-
-                <div class="controls mt-4">
-                    <button id="btnStart" class="btn">게임 시작</button>
-                </div>
-
-                <div class="panel mt-4" style="text-align: left;">
-                    <h3>🏆 랭킹</h3>
-                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
-                        <li>...</li>
-                    </ul>
-                </div>
-              <div class="mt-4">
-                <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
-              </div>
-            </div>
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">점수</span>
+            <span class="stat-value" id="scoreValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">정확도</span>
+            <span class="stat-value" id="accuracyValue">0%</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">콤보</span>
+            <span class="stat-value" id="comboValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Miss</span>
+            <span class="stat-value" id="missValue">0</span>
+          </div>
         </div>
+
+        <button class="btn" id="startBtn" style="width: 100%; margin: 10px 0;">게임 시작</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <script src="../shared/ranking.js"></script>
+  <script src="../shared/ranking.js"></script>
     <script src="../shared/juice.js"></script>
-    <script>
-        const PAGE_ID = "mini53";
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
+  <script>
+    const PAGE_ID = "mini53";
+    const GAME_DURATION = 30;
+    const CENTER_X = 160;
+    const CENTER_Y = 240;
+    const TARGET_RADIUS = 60;
+    const MAX_RADIUS = 100;
 
-        const CANVAS_W = 320;
-        const CANVAS_H = 480;
-        const LANE_W = CANVAS_W / 3;
-        const PLAYER_SIZE = 30;
-        const PLAYER_Y = CANVAS_H - 50;
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('startBtn');
+    const scoreValue = document.getElementById('scoreValue');
+    const accuracyValue = document.getElementById('accuracyValue');
+    const comboValue = document.getElementById('comboValue');
+    const missValue = document.getElementById('missValue');
+    const rankList = document.getElementById('rankList');
 
-        let gameState = "idle";
-        let score = 0;
-        let timeLeft = 20;
-        let gameTime = 0;
-        let playerLane = 1; // 0=left, 1=center, 2=right
-        let playerX = CANVAS_W / 2;
+    let gameActive = false;
+    let score = 0;
+    let totalClicks = 0;
+    let correctClicks = 0;
+    let combo = 0;
+    let miss = 0;
+    let circles = [];
+    let gameStartTime = 0;
+    let animationId = null;
 
-        let blocks = [];
-        let spawnRate = 0.02;
-        let fallSpeed = 5;
+    // Load visit count
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      loadRanking();
+    }
 
-        let keysPressed = {};
+    function loadRanking() {
+      if (window.GameStats && window.GameStats.listenForTopScores) {
+        GameStats.listenForTopScores(PAGE_ID, 5, (rows) => {
+          rankList.innerHTML = rows.map((r, i) =>
+            `<li>${i+1}. ${r.name} - ${r.score} 점</li>`
+          ).join('') || '<li>기록이 없습니다</li>';
+        });
+      }
+    }
 
-        if (window.GameStats) {
-            const rl = document.getElementById('rankList');
-            GameStats.listenTopScores(PAGE_ID, 5, arr => {
-                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${Math.floor(d.score)})</li>`).join('');
+    function startGame() {
+      gameActive = true;
+      score = 0;
+      totalClicks = 0;
+      correctClicks = 0;
+      combo = 0;
+      miss = 0;
+      circles = [];
+      gameStartTime = Date.now();
+      startBtn.disabled = true;
+
+      // Generate circles at intervals
+      for (let i = 0; i < 8; i++) {
+        setTimeout(() => {
+          if (gameActive) {
+            circles.push({
+              spawnTime: Date.now(),
+              maxRadius: MAX_RADIUS,
+              hit: false
             });
-        }
+          }
+        }, i * 3500);
+      }
 
-        class FallingBlock {
-            constructor(lane) {
-                this.lane = lane;
-                this.x = (lane + 0.5) * LANE_W;
-                this.y = 0;
-                this.w = LANE_W - 10;
-                this.h = 40;
-            }
+      gameLoop();
+    }
 
-            update() {
-                this.y += fallSpeed;
-            }
+    function gameLoop() {
+      const elapsed = Date.now() - gameStartTime;
 
-            draw() {
-                ctx.fillStyle = "#ff4444";
-                ctx.fillRect(this.x - this.w / 2, this.y, this.w, this.h);
-                ctx.strokeStyle = "#ff0000";
-                ctx.lineWidth = 2;
-                ctx.strokeRect(this.x - this.w / 2, this.y, this.w, this.h);
-            }
+      if (elapsed >= GAME_DURATION * 1000) {
+        endGame();
+        return;
+      }
 
-            isOutOfBounds() {
-                return this.y > CANVAS_H;
-            }
+      ctx.fillStyle = 'var(--panel)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            checkCollision(lane, playerX, py, ps) {
-                return this.lane === lane &&
-                    playerX > this.x - this.w / 2 &&
-                    playerX < this.x + this.w / 2 &&
-                    py + ps / 2 > this.y &&
-                    py - ps / 2 < this.y + this.h;
-            }
-        }
+      // Draw background circles
+      ctx.strokeStyle = 'var(--panel-border)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(CENTER_X, CENTER_Y, 80, 0, Math.PI * 2);
+      ctx.stroke();
 
-        function updateGame() {
-            if (gameState !== "running") return;
+      // Update and draw circles
+      for (let i = circles.length - 1; i >= 0; i--) {
+        const circle = circles[i];
+        const age = Date.now() - circle.spawnTime;
+        const progress = age / 2000; // 2 seconds to expand
 
-            gameTime += 1 / 60;
-            timeLeft = Math.max(0, 20 - gameTime);
-            document.getElementById('timeValue').textContent = timeLeft.toFixed(1);
-            document.getElementById('scoreValue').textContent = gameTime.toFixed(1);
+        if (progress < 1) {
+          const radius = progress * MAX_RADIUS;
 
-            if (timeLeft <= 0) {
-                endGame();
-                return;
-            }
+          // Draw expanding circle
+          ctx.strokeStyle = circle.hit ? 'var(--good)' : 'var(--accent)';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(CENTER_X, CENTER_Y, radius, 0, Math.PI * 2);
+          ctx.stroke();
 
-            // 플레이어 이동
-            if (keysPressed['a'] || keysPressed['A'] || keysPressed['ArrowLeft']) {
-                playerLane = 0;
-            } else if (keysPressed['d'] || keysPressed['D'] || keysPressed['ArrowRight']) {
-                playerLane = 2;
-            } else {
-                playerLane = 1;
-            }
-            playerX = (playerLane + 0.5) * LANE_W;
-
-            // 블록 생성
-            if (Math.random() < spawnRate) {
-                blocks.push(new FallingBlock(Math.floor(Math.random() * 3)));
-            }
-
-            // 블록 업데이트
-            for (let i = blocks.length - 1; i >= 0; i--) {
-                blocks[i].update();
-
-                if (blocks[i].checkCollision(playerLane, playerX, PLAYER_Y, PLAYER_SIZE)) {
-                    endGame();
-                    return;
-                }
-
-                if (blocks[i].isOutOfBounds()) {
-                    blocks.splice(i, 1);
-                }
-            }
-        }
-
-        function drawGame() {
-            // 배경
-            ctx.fillStyle = "#0a1a35";
-            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-            // 레인 구분선
-            ctx.strokeStyle = "#333366";
+          // Draw hit zone indicator
+          if (!circle.hit) {
+            ctx.strokeStyle = 'rgba(91, 156, 255, 0.3)';
             ctx.lineWidth = 1;
-            ctx.setLineDash([3, 3]);
-            for (let i = 1; i < 3; i++) {
-                ctx.beginPath();
-                ctx.moveTo(i * LANE_W, 0);
-                ctx.lineTo(i * LANE_W, CANVAS_H);
-                ctx.stroke();
-            }
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(CENTER_X, CENTER_Y, TARGET_RADIUS, 0, Math.PI * 2);
+            ctx.stroke();
             ctx.setLineDash([]);
-
-            // 플레이어
-            ctx.fillStyle = "#00ff88";
-            ctx.fillRect(playerX - PLAYER_SIZE / 2, PLAYER_Y - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
-            ctx.strokeStyle = "#00cc66";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(playerX - PLAYER_SIZE / 2, PLAYER_Y - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
-
-            // 블록
-            blocks.forEach(block => block.draw());
-
-            // UI
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "11px Arial";
-            ctx.textAlign = "left";
-            ctx.fillText("A/D 또는 ← → 이동", 10, 20);
+          }
+        } else if (!circle.hit) {
+          miss++;
+          circle.hit = true;
+          missValue.textContent = miss;
+        } else if (progress > 1.2) {
+          circles.splice(i, 1);
         }
+      }
 
-        function gameLoop() {
-            updateGame();
-            drawGame();
-            requestAnimationFrame(gameLoop);
+      // Draw center dot
+      ctx.fillStyle = 'var(--accent)';
+      ctx.beginPath();
+      ctx.arc(CENTER_X, CENTER_Y, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      animationId = requestAnimationFrame(gameLoop);
+    }
+
+    function endGame() {
+      gameActive = false;
+      cancelAnimationFrame(animationId);
+      startBtn.disabled = false;
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'var(--accent)';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('게임 종료!', CENTER_X, CENTER_Y - 20);
+      ctx.font = '18px sans-serif';
+      ctx.fillText(`점수: ${score}`, CENTER_X, CENTER_Y + 20);
+
+      setTimeout(() => {
+        if (window.GameStats) {
+          GameStats.saveScore(PAGE_ID, playerName, score);
         }
+      }, 500);
+    }
 
-        function startGame() {
-            gameState = "running";
-            score = 0;
-            timeLeft = 20;
-            gameTime = 0;
-            playerLane = 1;
-            playerX = CANVAS_W / 2;
-            blocks = [];
-            document.getElementById('scoreValue').textContent = "0.0";
-            document.getElementById('timeValue').textContent = "20.0";
-            document.getElementById('btnStart').disabled = true;
+    canvas.addEventListener('click', (e) => {
+      if (!gameActive) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const dist = Math.sqrt((x - CENTER_X) ** 2 + (y - CENTER_Y) ** 2);
+
+      totalClicks++;
+
+      // Check if click is close to any circle in hit zone
+      for (const circle of circles) {
+        if (!circle.hit) {
+          const age = Date.now() - circle.spawnTime;
+          const progress = age / 2000;
+          const radius = progress * MAX_RADIUS;
+
+          if (Math.abs(radius - TARGET_RADIUS) < 20) {
+            circle.hit = true;
+            score += 100;
+            combo++;
+            correctClicks++;
+            scoreValue.textContent = score;
+            comboValue.textContent = combo;
+            break;
+          }
         }
+      }
 
-        function endGame() {
-            gameState = "idle";
-            document.getElementById('btnStart').disabled = false;
+      if (totalClicks > 0) {
+        const accuracy = Math.round((correctClicks / totalClicks) * 100);
+        accuracyValue.textContent = accuracy + '%';
+      }
+    });
 
-            const finalScore = Math.floor(gameTime * 100);
-            if (window.GameStats) {
-                GameStats.saveScore(PAGE_ID, name, finalScore);
-            }
-        }
-
-        document.getElementById('btnStart').addEventListener('click', startGame);
-
-        document.addEventListener('keydown', (e) => {
-            keysPressed[e.key] = true;
-        });
-
-        document.addEventListener('keyup', (e) => {
-            keysPressed[e.key] = false;
-        });
-
-        canvas.addEventListener('touchstart', (e) => {
-            if (gameState === "running") {
-                const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                const x = touch.clientX - rect.left;
-                if (x < LANE_W) {
-                    playerLane = 0;
-                } else if (x > 2 * LANE_W) {
-                    playerLane = 2;
-                } else {
-                    playerLane = 1;
-                }
-            }
-        }, { passive: true });
-
-        gameLoop();
-    </script>
+    startBtn.addEventListener('click', startGame);
+  </script>
 </body>
-
 </html>

@@ -2,267 +2,400 @@
 <html lang="ko">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>퍼즐 조각 게임</title>
-  <link rel="stylesheet" href="../shared/style.css">
-  <meta name="description" content="떨어지는 블록을 배치하여 줄을 완성하세요! (25초) - 미니게임">
-  <meta name="keywords" content="두뇌, 미니게임, 게임">
-  <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🧩 퍼즐 조각">
-  <meta property="og:description" content="떨어지는 블록을 배치하여 줄을 완성하세요! (25초)">
-  <meta property="og:type" content="website">
-  <meta property="og:image" content="/mini65/cover.png">
-  <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🧩 퍼즐 조각">
-  <meta property="twitter:description" content="떨어지는 블록을 배치하여 줄을 완성하세요! (25초)">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>오셀로 (mini65)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 4px;
+            width: min(400px, 92vw);
+            aspect-ratio: 1/1;
+            margin: 0 auto;
+            background: #05020e;
+            padding: 8px;
+            border-radius: 12px;
+            border: 1px solid var(--panel-border);
+            box-shadow: inset 0 0 30px rgba(0, 229, 255, .08);
+        }
+
+        .cell {
+            position: relative;
+            background: #0d0724;
+            border: 1px solid rgba(122, 90, 220, .25);
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .cell.hint::after {
+            content: "";
+            width: 22%;
+            height: 22%;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .35);
+            box-shadow: 0 0 8px rgba(255, 255, 255, .4);
+        }
+
+        .disc {
+            width: 82%;
+            height: 82%;
+            border-radius: 50%;
+            transform: scale(0);
+            animation: pop .22s ease-out forwards;
+        }
+
+        @keyframes pop {
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .disc.p {
+            background: radial-gradient(circle at 35% 30%, #bffcff, var(--accent) 55%, #007a8f 100%);
+            box-shadow: 0 0 10px rgba(0, 229, 255, .7), 0 2px 4px rgba(0, 0, 0, .4);
+        }
+
+        .disc.a {
+            background: radial-gradient(circle at 35% 30%, #ffd6f7, var(--accent2) 55%, #8a0f6e 100%);
+            box-shadow: 0 0 10px rgba(255, 43, 214, .7), 0 2px 4px rgba(0, 0, 0, .4);
+        }
+
+        .turn-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .turn-dot.p {
+            background: var(--accent);
+            box-shadow: 0 0 6px var(--accent);
+        }
+
+        .turn-dot.a {
+            background: var(--accent2);
+            box-shadow: 0 0 6px var(--accent2);
+        }
+
+        @media (max-width: 600px) {
+            .board {
+                gap: 3px;
+                padding: 6px;
+            }
+        }
+    </style>
+    <meta name="description" content="돌을 뒤집어 더 많은 영역을 차지하세요 - 미니게임">
+    <meta name="keywords" content="보드게임, 오셀로, 리버시, 미니게임, 게임">
+    <meta name="theme-color" content="#00e5ff">
+    <meta property="og:title" content="🔵 오셀로 🟣">
+    <meta property="og:description" content="돌을 뒤집어 더 많은 영역을 차지하세요">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/mini65/cover.png">
+    <meta property="twitter:card" content="summary">
+    <meta property="twitter:title" content="🔵 오셀로 🟣">
+    <meta property="twitter:description" content="돌을 뒤집어 더 많은 영역을 차지하세요">
 </head>
 
 <body>
-  <div class="container">
-    <div class="game-container">
-      <div class="card">
-        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
-          <h1>🧩 퍼즐 조각</h1>
-          <p>떨어지는 블록을 배치하여 줄을 완성하세요! (25초)</p>
-        </header>
+    <div class="container">
+        <div class="game-container">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🔵 오셀로 🟣</h1>
+                    <p>돌을 뒤집어 AI보다 많은 영역을 차지하세요! (8x8 리버시)</p>
+                </header>
 
-        <div class="stats-bar">
-          <div class="stat-item">
-            <span class="stat-label">시간</span>
-            <span class="stat-value" id="timeLeft">25</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">점수</span>
-            <span class="stat-value" id="scoreValue">0</span>
-          </div>
+                <div class="stats-bar mt-4">
+                    <div class="stat-item"><span class="turn-dot p"></span>나 <span id="pCount">2</span></div>
+                    <div class="stat-item"><span class="turn-dot a"></span>AI <span id="aCount">2</span></div>
+                    <div class="stat-item">연승: <span id="streak">0</span></div>
+                </div>
+
+                <div class="board" id="board"></div>
+
+                <div id="msg" class="mt-4" style="font-weight:bold; height: 24px;">당신의 차례입니다 (🔵)</div>
+
+                <div class="controls mt-4">
+                    <button id="btnReset" class="btn">다시 하기</button>
+                </div>
+
+                <div class="panel mt-4" style="text-align: left;">
+                    <h3>🏆 랭킹 (최대 연승)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+                <div class="mt-4">
+                    <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+                </div>
+            </div>
         </div>
-
-        <canvas id="gameCanvas" width="320" height="480" style="
-          display: block;
-          margin: 20px auto;
-          background: var(--panel);
-          border-radius: 12px;
-          cursor: pointer;
-          border: 1px solid var(--panel-border);
-        "></canvas>
-
-        <div class="stats-bar">
-          <div class="stat-item">
-            <span class="stat-label">상태</span>
-            <span class="stat-value" id="statusText">게임 중...</span>
-          </div>
-        </div>
-
-        <button class="btn btn-primary" id="restartBtn">🔄 새로운 게임</button>
-
-        <div class="panel mt-4" style="text-align: left;">
-          <h3>🏆 Top 5 (높은 점수)</h3>
-          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
-            <li>로딩 중...</li>
-          </ul>
-        </div>
-
-        <div class="mt-4">
-          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
-        </div>
-      </div>
     </div>
-  </div>
 
-  <script src="../shared/ranking.js"></script>
+    <script src="../shared/ranking.js"></script>
     <script src="../shared/juice.js"></script>
-  <script>
-    const PAGE_ID = "mini65";
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const timeLeftEl = document.getElementById('timeLeft');
-    const scoreValueEl = document.getElementById('scoreValue');
-    const statusTextEl = document.getElementById('statusText');
-    const restartBtn = document.getElementById('restartBtn');
-    const rankList = document.getElementById('rankList');
 
-    const BLOCK_SIZE = 40;
-    const COLS = 8;
-    const ROWS = 12;
-    const COLORS = ['#00e5ff', '#ff9a5b', '#2ecc71', '#ffd166'];
-
-    let grid = Array(ROWS).fill(0).map(() => Array(COLS).fill(0));
-    let currentBlock = null;
-    let nextBlock = null;
-    let timeLeft = 25;
-    let score = 0;
-    let gameActive = true;
-    let timer = null;
-    let selectedCol = -1;
-
-    function initializeGame() {
-      grid = Array(ROWS).fill(0).map(() => Array(COLS).fill(0));
-      timeLeft = 25;
-      score = 0;
-      gameActive = true;
-      selectedCol = -1;
-      statusTextEl.textContent = '게임 중...';
-      generateNextBlock();
-      generateNextBlock();
-      draw();
-
-      clearInterval(timer);
-      timer = setInterval(() => {
-        timeLeft--;
-        timeLeftEl.textContent = timeLeft;
-        if (timeLeft <= 0) {
-          endGame();
-        }
-      }, 1000);
-    }
-
-    function generateNextBlock() {
-      currentBlock = nextBlock || {
-        type: Math.floor(Math.random() * 4),
-        col: Math.floor(Math.random() * (COLS - 1))
-      };
-      nextBlock = {
-        type: Math.floor(Math.random() * 4),
-        col: Math.floor(Math.random() * (COLS - 1))
-      };
-    }
-
-    function dropBlock() {
-      if (!currentBlock || !gameActive) return;
-
-      const col = selectedCol >= 0 ? selectedCol : currentBlock.col;
-      if (col >= 0 && col < COLS) {
-        // Find row
-        for (let row = ROWS - 1; row >= 0; row--) {
-          if (grid[row][col] === 0) {
-            grid[row][col] = currentBlock.type + 1;
-            break;
-          }
+    <script>
+        const PAGE_ID = "mini65";
+        if (window.GameStats) {
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                const rl = document.getElementById('rankList');
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}연승)</li>`).join('');
+            });
         }
 
-        checkRows();
-        generateNextBlock();
-        selectedCol = -1;
-        draw();
-      }
-    }
+        const SIZE = 8;
+        const DIRS = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
+        const WEIGHTS = [
+            [120, -20, 20, 5, 5, 20, -20, 120],
+            [-20, -40, -5, -5, -5, -5, -40, -20],
+            [20, -5, 15, 3, 3, 15, -5, 20],
+            [5, -5, 3, 3, 3, 3, -5, 5],
+            [5, -5, 3, 3, 3, 3, -5, 5],
+            [20, -5, 15, 3, 3, 15, -5, 20],
+            [-20, -40, -5, -5, -5, -5, -40, -20],
+            [120, -20, 20, 5, 5, 20, -20, 120]
+        ];
+        const DEPTH = 4;
+        const P = 'P', A = 'A';
 
-    function checkRows() {
-      let clearedRows = 0;
-      for (let row = ROWS - 1; row >= 0; row--) {
-        if (grid[row].every(cell => cell !== 0)) {
-          grid.splice(row, 1);
-          grid.unshift(Array(COLS).fill(0));
-          clearedRows++;
-          row++; // Recheck this row
+        const boardEl = document.getElementById('board');
+        const msg = document.getElementById('msg');
+        const streakEl = document.getElementById('streak');
+        const pCountEl = document.getElementById('pCount');
+        const aCountEl = document.getElementById('aCount');
+
+        let board, current, gameActive, streak = 0;
+
+        function newBoard() {
+            const b = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
+            b[3][3] = A; b[4][4] = A;
+            b[3][4] = P; b[4][3] = P;
+            return b;
         }
-      }
-      if (clearedRows > 0) {
-        score += clearedRows * 20;
-        scoreValueEl.textContent = score;
-      }
-    }
 
-    function draw() {
-      ctx.fillStyle = '#150a30';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+        function cloneBoard(b) { return b.map(row => row.slice()); }
 
-      // Draw grid
-      for (let row = 0; row < ROWS; row++) {
-        for (let col = 0; col < COLS; col++) {
-          const x = col * BLOCK_SIZE;
-          const y = row * BLOCK_SIZE;
-          ctx.strokeStyle = '#2a2f3a';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+        function inBounds(r, c) { return r >= 0 && r < SIZE && c >= 0 && c < SIZE; }
 
-          if (grid[row][col] > 0) {
-            ctx.fillStyle = COLORS[grid[row][col] - 1];
-            ctx.fillRect(x + 2, y + 2, BLOCK_SIZE - 4, BLOCK_SIZE - 4);
-          }
+        function getFlips(b, row, col, player) {
+            if (b[row][col] !== null) return [];
+            const opp = player === P ? A : P;
+            let allFlips = [];
+            for (const [dr, dc] of DIRS) {
+                let r = row + dr, c = col + dc;
+                const line = [];
+                while (inBounds(r, c) && b[r][c] === opp) {
+                    line.push([r, c]);
+                    r += dr; c += dc;
+                }
+                if (line.length && inBounds(r, c) && b[r][c] === player) {
+                    allFlips = allFlips.concat(line);
+                }
+            }
+            return allFlips;
         }
-      }
 
-      // Draw next block indicator
-      ctx.fillStyle = '#2a2f3a';
-      ctx.fillRect(0, 0, canvas.width, 40);
-      ctx.fillStyle = '#a9b4e0';
-      ctx.font = '12px sans-serif';
-      ctx.fillText('다음:', 10, 25);
-      ctx.fillStyle = COLORS[nextBlock.type];
-      ctx.fillRect(50, 10, 30, 20);
+        function validMoves(b, player) {
+            const moves = [];
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const flips = getFlips(b, r, c, player);
+                    if (flips.length) moves.push({ row: r, col: c, flips });
+                }
+            }
+            return moves;
+        }
 
-      // Draw hover effect
-      if (selectedCol >= 0) {
-        ctx.strokeStyle = '#00e5ff';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(selectedCol * BLOCK_SIZE, 0, BLOCK_SIZE, BLOCK_SIZE);
-      }
-    }
+        function applyMove(b, row, col, player, flips) {
+            b[row][col] = player;
+            for (const [r, c] of flips) b[r][c] = player;
+        }
 
-    function endGame() {
-      gameActive = false;
-      clearInterval(timer);
-      statusTextEl.textContent = '게임 종료!';
-      saveScore(score);
-    }
+        function countDiscs(b, player) {
+            let n = 0;
+            for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (b[r][c] === player) n++;
+            return n;
+        }
 
-    function saveScore(finalScore) {
-      if (window.GameStats) {
-        window.GameStats.saveScore(PAGE_ID, finalScore, () => {
-          loadTopScores();
-        });
-      }
-    }
+        function evaluate(b) {
+            let score = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (b[r][c] === A) score += WEIGHTS[r][c];
+                    else if (b[r][c] === P) score -= WEIGHTS[r][c];
+                }
+            }
+            const aMoves = validMoves(b, A).length;
+            const pMoves = validMoves(b, P).length;
+            score += (aMoves - pMoves) * 8;
 
-    function loadTopScores() {
-      if (window.GameStats) {
-        window.GameStats.listenTopScores(PAGE_ID, 5, (scores) => {
-          rankList.innerHTML = scores.map((s, i) =>
-            `<li>${i + 1}. ${s.score}점</li>`
-          ).join('') || '<li>기록 없음</li>';
-        });
-      }
-    }
+            let empty = 0;
+            for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (!b[r][c]) empty++;
+            if (empty < 12) {
+                score += (countDiscs(b, A) - countDiscs(b, P)) * 15;
+            }
+            return score;
+        }
 
-    canvas.addEventListener('mousemove', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const col = Math.floor(x / BLOCK_SIZE);
-      selectedCol = col >= 0 && col < COLS ? col : -1;
-      draw();
-    });
+        function minimax(b, depth, alpha, beta, isMax) {
+            const player = isMax ? A : P;
+            const other = isMax ? P : A;
+            const moves = validMoves(b, player);
 
-    canvas.addEventListener('click', () => {
-      dropBlock();
-    });
+            if (depth === 0) return evaluate(b);
+            if (moves.length === 0) {
+                if (validMoves(b, other).length === 0) return evaluate(b);
+                return minimax(b, depth - 1, alpha, beta, !isMax);
+            }
 
-    canvas.addEventListener('touchmove', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const touch = e.touches[0];
-      const x = touch.clientX - rect.left;
-      const col = Math.floor(x / BLOCK_SIZE);
-      selectedCol = col >= 0 && col < COLS ? col : -1;
-      draw();
-    });
+            if (isMax) {
+                let value = -Infinity;
+                for (const m of moves) {
+                    const nb = cloneBoard(b);
+                    applyMove(nb, m.row, m.col, A, m.flips);
+                    value = Math.max(value, minimax(nb, depth - 1, alpha, beta, false));
+                    alpha = Math.max(alpha, value);
+                    if (alpha >= beta) break;
+                }
+                return value;
+            } else {
+                let value = Infinity;
+                for (const m of moves) {
+                    const nb = cloneBoard(b);
+                    applyMove(nb, m.row, m.col, P, m.flips);
+                    value = Math.min(value, minimax(nb, depth - 1, alpha, beta, true));
+                    beta = Math.min(beta, value);
+                    if (beta <= alpha) break;
+                }
+                return value;
+            }
+        }
 
-    canvas.addEventListener('touchstart', () => {
-      dropBlock();
-    });
+        function render() {
+            boardEl.innerHTML = '';
+            const hints = (gameActive && current === P) ? validMoves(board, P) : [];
+            const hintSet = new Set(hints.map(m => m.row + '_' + m.col));
 
-    restartBtn.addEventListener('click', initializeGame);
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.r = r;
+                    cell.dataset.c = c;
+                    if (board[r][c]) {
+                        const disc = document.createElement('div');
+                        disc.className = 'disc ' + (board[r][c] === P ? 'p' : 'a');
+                        cell.appendChild(disc);
+                    } else if (hintSet.has(r + '_' + c)) {
+                        cell.classList.add('hint');
+                    }
+                    cell.onclick = () => onCellClick(r, c);
+                    boardEl.appendChild(cell);
+                }
+            }
+            pCountEl.textContent = countDiscs(board, P);
+            aCountEl.textContent = countDiscs(board, A);
+        }
 
-    // Auto-drop blocks
-    setInterval(() => {
-      if (gameActive) {
-        dropBlock();
-      }
-    }, 2000);
+        function onCellClick(r, c) {
+            if (!gameActive || current !== P) return;
+            const flips = getFlips(board, r, c, P);
+            if (!flips.length) return;
+            applyMove(board, r, c, P, flips);
+            current = A;
+            processTurn();
+        }
 
-    initializeGame();
-    loadTopScores();
-  </script>
+        function aiTurn() {
+            if (!gameActive) return;
+            const moves = validMoves(board, A);
+            let best = null, bestScore = -Infinity;
+            for (const m of moves) {
+                const nb = cloneBoard(board);
+                applyMove(nb, m.row, m.col, A, m.flips);
+                const score = minimax(nb, DEPTH - 1, -Infinity, Infinity, false);
+                if (score > bestScore) { bestScore = score; best = m; }
+            }
+            applyMove(board, best.row, best.col, A, best.flips);
+            current = P;
+            processTurn();
+        }
+
+        function processTurn() {
+            if (!gameActive) return;
+            const moves = validMoves(board, current);
+
+            if (moves.length === 0) {
+                const other = current === P ? A : P;
+                const otherMoves = validMoves(board, other);
+                if (otherMoves.length === 0) { render(); endGame(); return; }
+                msg.textContent = (current === P ? '당신이' : 'AI가') + ' 둘 곳이 없어 패스합니다.';
+                current = other;
+                render();
+                if (current === A) setTimeout(aiTurn, 700);
+                else msg.textContent = '당신의 차례입니다 (🔵) — 상대가 패스했어요!';
+                return;
+            }
+
+            render();
+            if (current === A) {
+                msg.textContent = 'AI 생각 중...';
+                setTimeout(aiTurn, 600);
+            } else {
+                msg.textContent = '당신의 차례입니다 (🔵)';
+            }
+        }
+
+        function endGame() {
+            gameActive = false;
+            const pCount = countDiscs(board, P);
+            const aCount = countDiscs(board, A);
+            if (pCount > aCount) {
+                streak++;
+                msg.textContent = `승리! 🎉 (나 ${pCount} : ${aCount} AI)`;
+                msg.style.color = "var(--good)";
+            } else if (pCount < aCount) {
+                if (streak > 0) save(streak);
+                streak = 0;
+                msg.textContent = `패배... 😢 (나 ${pCount} : ${aCount} AI)`;
+                msg.style.color = "var(--bad)";
+            } else {
+                msg.textContent = `무승부 (${pCount} : ${aCount})`;
+                msg.style.color = "var(--text)";
+            }
+            streakEl.textContent = streak;
+        }
+
+        function save(s) {
+            Juice.submit(PAGE_ID, s);
+        }
+
+        function reset() {
+            board = newBoard();
+            current = P;
+            gameActive = true;
+            msg.textContent = "당신의 차례입니다 (🔵)";
+            msg.style.color = "var(--text)";
+            render();
+        }
+
+        document.getElementById('btnReset').onclick = () => {
+            if (gameActive) streak = 0; // forfeit
+            streakEl.textContent = streak;
+            reset();
+        };
+
+        reset();
+    </script>
 </body>
 
 </html>

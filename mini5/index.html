@@ -1,53 +1,158 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
-  <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>벽돌깨기 Lite (mini5)</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>같은 색 찾기 게임</title>
   <link rel="stylesheet" href="../shared/style.css">
-  <meta name="description" content="벽돌 깨기 - 미니게임">
-  <meta name="keywords" content="블록, 미니게임, 게임">
+  <style>
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Pretendard,Apple SD Gothic Neo,Helvetica,Arial,sans-serif;
+      color:var(--text); background:linear-gradient(180deg,var(--bg),#0d0620 40%, #05010c);
+      display:flex; align-items:center; justify-content:center; padding:16px;
+    }
+    .wrap{width:min(100%, 980px);}
+    .card{
+      background:radial-gradient(1200px 400px at 50% -200px, #241454 0%, #150a30 60%, #0a0518 100%);
+      border:1px solid var(--panel-border); border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,.35);
+      overflow:hidden;
+    }
+    header{
+      display:grid; grid-template-columns: 1fr auto; gap:16px; align-items:center; padding:16px 20px; border-bottom:1px solid #2a1f5e;
+    }
+    .title{font-weight:800; letter-spacing:.2px;}
+    .pill{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#1f1245; color:var(--muted); font-size:12px}
+    .row{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+    .stat{background:#170a35; padding:8px 12px; border-radius:12px; border:1px solid var(--panel-border); font-weight:700;}
+    .stat small{display:block; font-weight:600; color:var(--muted);}
+
+    .controls{display:flex; flex-wrap:wrap; gap:10px; padding:12px 20px; border-bottom:1px solid #2a1f5e;}
+    select,button,input[type="checkbox"]{accent-color:var(--accent)}
+    .btn{background:linear-gradient(135deg,#0077b3,#7c3aed); color:white; border:none; padding:10px 14px; border-radius:12px; font-weight:800; letter-spacing:.3px; cursor:pointer; box-shadow:0 6px 16px rgba(0,229,255,.35);}
+    .btn.secondary{background:#1a0f3d; color:#c9d4ff; border:1px solid var(--panel-border); box-shadow:none}
+    .btn.ghost{background:transparent; border:1px dashed #4a2f8e; color:var(--muted)}
+    .btn:disabled{opacity:.6; cursor:not-allowed}
+
+    .swatch{width:34px; height:34px; border-radius:10px; border:2px solid rgba(255,255,255,.25)}
+
+    .board-wrap{padding:16px;}
+    .board{display:grid; gap:10px; width:100%; aspect-ratio:1/1; background:#120826; border:1px solid var(--panel-border); border-radius:18px; padding:10px}
+    .cell{
+      border-radius:12px; position:relative; cursor:pointer; outline: none; border:1px solid rgba(255,255,255,.06);
+      transition: transform .06s ease, box-shadow .2s ease;
+    }
+    .cell:active{transform:scale(.98)}
+    .cell.correct{box-shadow:0 0 0 3px rgba(46,204,113,.45) inset, 0 8px 20px rgba(46,204,113,.25)}
+    .cell.wrong{box-shadow:0 0 0 3px rgba(255,91,91,.45) inset, 0 8px 20px rgba(255,91,91,.25)}
+    .cell .mark{position:absolute; inset:auto 6px 6px auto; width:18px; height:18px; border-radius:50%; background:rgba(255,255,255,.9); mix-blend:overlay; display:none}
+    .cell.pattern::after{content:""; position:absolute; inset:0; background: repeating-linear-gradient(45deg, rgba(255,255,255,.25) 0 6px, transparent 6px 12px); border-radius:inherit;}
+
+    .status-bar{display:flex; gap:10px; padding:0 20px 16px; align-items:center}
+    .progress{flex:1; height:10px; border-radius:999px; background:#170a35; border:1px solid var(--panel-border); position:relative; overflow:hidden}
+    .progress>i{position:absolute; inset:0; width:50%; background:linear-gradient(90deg, var(--accent), #61e3ff); border-radius:999px}
+
+    .footer{padding:10px 20px 20px; color:#b3bdea; font-size:12px}
+
+    .hidden{display:none !important}
+    .tag{padding:6px 10px; background:#170a35; border:1px solid var(--panel-border); border-radius:999px; color:#b3bdea; font-size:12px}
+    .target-chip{display:flex; align-items:center; gap:10px; padding:8px 12px; background:#170a35; border:1px solid var(--panel-border); border-radius:12px}
+    .kbd{padding:2px 6px; border:1px solid #4a2f8e; border-radius:6px; font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace; font-size:12px; color:#eafcff}
+
+    @media (max-width:520px){
+      header{grid-template-columns:1fr; gap:8px}
+    }
+  </style>
+  <meta name="description" content="색각 능력 테스트 - 미니게임">
+  <meta name="keywords" content="트레이닝, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🧱 벽돌 깨기">
-  <meta property="og:description" content="벽돌 깨기">
+  <meta property="og:title" content="같은 색 찾기 게임">
+  <meta property="og:description" content="색각 능력 테스트">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini5/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🧱 벽돌 깨기">
-  <meta property="twitter:description" content="벽돌 깨기">
+  <meta property="twitter:title" content="같은 색 찾기 게임">
+  <meta property="twitter:description" content="색각 능력 테스트">
 </head>
-
 <body>
-  <div class="container">
-    <div class="game-container">
-      <div class="card">
-        <header class="mb-4">
-          <h1>🧱 벽돌 깨기</h1>
-          <p>공을 튀겨 모든 벽돌을 제거하세요. (← → 키 또는 화면 터치·드래그로 패들 이동)</p>
-        </header>
-
-        <canvas id="gameCanvas" width="480" height="320"
-          style="background:#eee; display:block; margin:0 auto; border-radius:4px; max-width:100%;"></canvas>
-
-        <div class="controls mt-4">
-          <button id="btnStart" class="btn">게임 시작</button>
+  <div class="wrap">
+    <div class="card">
+      <header>
+        <div class="title">
+          <div class="row" style="gap:8px">
+            <span class="pill">미니게임</span>
+            <span style="font-size:22px">같은 색 찾기</span>
+          </div>
+          <div style="margin-top:8px; color:var(--muted); font-weight:600;">
+            목표 색과 <u>완전히 같은</u> 칸을 모두 찾아 터치/클릭하세요.
+          </div>
         </div>
+        <div class="row">
+          <div class="stat"><small>점수</small><span id="score">0</span></div>
+          <div class="stat"><small>최고</small><span id="best">0</span></div>
+          <div class="stat"><small>라운드</small><span id="round">1</span></div>
+          <div class="target-chip">
+            <div class="swatch" id="targetSwatch"></div>
+            <div style="display:grid; line-height:1.1">
+              <small style="color:var(--muted)">목표 색</small>
+              <strong id="targetText">#000000</strong>
+            </div>
+          </div>
+        </div>
+      </header>
 
-        <div class="stats-bar mt-4">
-          <div class="stat-item">점수: <span id="score">0</span></div>
-          <div class="stat-item">목숨: <span id="lives">3</span></div>
-        </div>
+      <div class="controls">
+        <button class="btn" id="startBtn">시작 / 다음 라운드</button>
+        <button class="btn secondary" id="restartBtn">처음부터</button>
+        <label class="tag">난이도
+          <select id="difficulty" style="margin-left:8px">
+            <option value="easy">쉬움</option>
+            <option value="normal" selected>보통</option>
+            <option value="hard">어려움</option>
+          </select>
+        </label>
+        <label class="tag">격자
+          <select id="gridSize" style="margin-left:8px">
+            <option value="3">3 × 3</option>
+            <option value="4" selected>4 × 4</option>
+            <option value="5">5 × 5</option>
+            <option value="6">6 × 6</option>
+            <option value="7">7 × 7</option>
+            <option value="8">8 × 8</option>
+          </select>
+        </label>
+        <label class="tag"><input type="checkbox" id="cbAssist" /> 색약 보조</label>
+        <label class="tag"><input type="checkbox" id="cbSound" checked/> 효과음</label>
+      </div>
 
-        <div class="panel mt-4" style="text-align: left;">
-          <h3>🏆 랭킹</h3>
-          <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
-            <li>로딩 중...</li>
-          </ul>
+      <div class="board-wrap">
+        <div id="board" class="board" aria-label="게임 보드" role="grid"></div>
+      </div>
+
+      <div class="status-bar">
+        <div class="progress" aria-label="남은 시간"><i id="bar"></i></div>
+        <span class="stat" style="min-width:92px; text-align:center"><small>남은 시간</small><span id="time">0.0s</span></span>
+      </div>
+
+      <div class="footer">
+        팁: 같은 색을 모두 찾으면 즉시 다음 라운드로 넘어갑니다. 잘못 누르면 시간이 <b>-1초</b> 감소합니다.
+        <span class="kbd">R</span> 키로 재시작, <span class="kbd">N</span> 키로 다음 라운드.
+      </div>
+
+      <div class="panel mt-4" style="text-align: left; border-top: 1px solid var(--panel-border); padding-top: 16px;">
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; color: var(--muted); font-size: 12px; margin-bottom: 6px;">닉네임 (점수 등록용)</label>
+          <input id="nicknameInput" type="text" placeholder="닉네임을 입력하세요" style="width: 100%; padding: 8px 12px; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--panel); color: var(--text); font-family: inherit;">
         </div>
-        <div class="mt-4">
-          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
-        </div>
+        <h3>🏆 Top 5 (높은 점수 순)</h3>
+        <ul id="rankList" style="padding-left: 20px; color: var(--muted); margin: 0;">
+          <li>로딩 중...</li>
+        </ul>
+      </div>
+
+      <div class="mt-4" style="text-align: center; border-top: 1px solid var(--panel-border); padding-top: 16px;">
+        <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
       </div>
     </div>
   </div>
@@ -56,201 +161,241 @@
     <script src="../shared/juice.js"></script>
 
   <script>
-    // Firebase 랭킹 연동
     const PAGE_ID = "mini5";
+    const elBoard = document.getElementById('board');
+    const elScore = document.getElementById('score');
+    const elBest = document.getElementById('best');
+    const elRound = document.getElementById('round');
+    const elTargetSwatch = document.getElementById('targetSwatch');
+    const elTargetText = document.getElementById('targetText');
+    const elTime = document.getElementById('time');
+    const bar = document.getElementById('bar');
+    const cbAssist = document.getElementById('cbAssist');
+    const cbSound = document.getElementById('cbSound');
+
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const selDiff = document.getElementById('difficulty');
+    const selGrid = document.getElementById('gridSize');
+    const nicknameInput = document.getElementById('nicknameInput');
     const rankList = document.getElementById('rankList');
+
+    let state = {
+      score:0, best: Number(localStorage.getItem('sameColorBest')||0), round:1,
+      grid:4, matchesLeft:0, target:'#000000', timer:null, remain:0, duration:0,
+      running:false
+    };
+
+    elBest.textContent = state.best;
+
+    // Initialize nickname from localStorage
+    const savedNickname = localStorage.getItem('nickname_mini6');
+    if (savedNickname) {
+      nicknameInput.value = savedNickname;
+    }
+
+    // GameStats: Visit count and rankings
     if (window.GameStats) {
-      GameStats.listenTopScores(PAGE_ID, 5, arr => {
+      GameStats.incrementVisitCount(PAGE_ID, (val) => {
+        // Optional: display visit count if needed
+      });
+
+      // Listen for top scores
+      GameStats.listenTopScores(PAGE_ID, 5, (arr) => {
         rankList.innerHTML = "";
-        if (!arr || !arr.length) { rankList.innerHTML = "<li>기록 없음</li>"; return; }
-        arr.forEach((d, i) => rankList.innerHTML += `<li>${i + 1}위 ${d.name} (${d.score})</li>`);
+        if (!arr || arr.length === 0) {
+          rankList.innerHTML = "<li>기록이 없습니다.</li>";
+          return;
+        }
+        arr.forEach((item, idx) => {
+          const li = document.createElement('li');
+          li.textContent = `${idx + 1}위: ${item.name} - ${item.score}점`;
+          rankList.appendChild(li);
+        });
       });
     }
 
-    // Canvas & Game Variables
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    const btnStart = document.getElementById('btnStart');
-    const scoreEl = document.getElementById('score');
-    const livesEl = document.getElementById('lives');
+    const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    function beep(freq=880,ms=120,gain=0.04){
+      if(!cbSound.checked) return;
+      const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
+      o.frequency.value=freq; o.type='sine'; g.gain.value=gain; o.connect(g); g.connect(audioCtx.destination);
+      o.start(); setTimeout(()=>{o.stop();},ms);
+    }
 
-    let x, y, dx, dy;
-    let paddleH = 10, paddleW = 75, paddleX;
-    let rightPressed = false, leftPressed = false;
-    let score = 0, lives = 3;
-    let bricks = [];
-    const ballRadius = 10;
-    const brickRowCount = 5; // 좀 더 많게
-    const brickColumnCount = 5;
-    const brickW = 75;
-    const brickH = 20;
-    const brickPadding = 10;
-    const brickOffsetTop = 30;
-    const brickOffsetLeft = 30;
+    function hslToHex(h,s,l){
+      s/=100; l/=100;
+      const c=(1-Math.abs(2*l-1))*s; const x=c*(1-Math.abs((h/60)%2-1)); const m=l-c/2;
+      let [r,g,b]=[0,0,0];
+      if(0<=h&&h<60){[r,g,b]=[c,x,0]} else if(60<=h&&h<120){[r,g,b]=[x,c,0]}
+      else if(120<=h&&h<180){[r,g,b]=[0,c,x]} else if(180<=h&&h<240){[r,g,b]=[0,x,c]}
+      else if(240<=h&&h<300){[r,g,b]=[x,0,c]} else {[r,g,b]=[c,0,x]}
+      const R=Math.round((r+m)*255).toString(16).padStart(2,'0');
+      const G=Math.round((g+m)*255).toString(16).padStart(2,'0');
+      const B=Math.round((b+m)*255).toString(16).padStart(2,'0');
+      return `#${R}${G}${B}`;
+    }
 
-    let interval = null;
+    function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min}
 
-    function init() {
-      x = canvas.width / 2;
-      y = canvas.height - 30;
-      dx = 3; dy = -3;
-      paddleX = (canvas.width - paddleW) / 2;
-      score = 0; lives = 3;
+    function newRound({advance=true}={}){
+      if(advance) state.round++;
+      const grid = Number(selGrid.value);
+      state.grid = grid;
+      const diff = selDiff.value; // easy/normal/hard
+      const total = grid*grid;
+      const matches = Math.max(1, Math.round(grid/2));
+      state.matchesLeft = matches;
 
-      bricks = [];
-      for (let c = 0; c < brickColumnCount; c++) {
-        bricks[c] = [];
-        for (let r = 0; r < brickRowCount; r++) {
-          bricks[c][r] = { x: 0, y: 0, status: 1 };
+      // difficulty knobs
+      const delta = diff==='easy'? 16 : diff==='normal'? 10 : 6; // H or L delta
+      const baseTime = diff==='easy'? 22 : diff==='normal'? 18 : 14; // seconds base
+      const roundBonus = Math.max(0, (grid-3))*1.2; // bigger grid → more time
+      state.duration = Math.max(8, baseTime - (state.round*0.4) + roundBonus);
+      state.remain = state.duration;
+
+      // pick target color
+      const H = rand(0,359), S = rand(70,95), L = rand(40,60);
+      const target = hslToHex(H,S,L);
+      state.target = target;
+      elTargetSwatch.style.background = target; elTargetText.textContent = `${target}`;
+
+      // build cells
+      elBoard.innerHTML='';
+      elBoard.style.gridTemplateColumns = `repeat(${grid}, 1fr)`;
+
+      // choose positions for exact matches
+      const pos = new Set();
+      while(pos.size<matches){ pos.add(rand(0,total-1)); }
+
+      for(let i=0;i<total;i++){
+        const cell = document.createElement('button');
+        cell.className='cell'; cell.setAttribute('role','gridcell'); cell.setAttribute('aria-label','색 칸');
+
+        let color;
+        if(pos.has(i)){
+          color = target;
+          cell.dataset.answer = '1';
+        }else{
+          // generate a near-miss color
+          const mode = Math.random()<0.5? 'H':'L';
+          const d = rand(delta, delta+6)*(Math.random()<0.5?-1:1);
+          const h2 = (H + (mode==='H'? d: 0) + 360)%360;
+          const l2 = Math.max(20, Math.min(80, L + (mode==='L'? d: 0)));
+          color = hslToHex(h2,S,l2);
         }
+        cell.style.background = color;
+        if(cbAssist.checked) cell.classList.add('pattern');
+        const dot = document.createElement('i'); dot.className='mark'; cell.appendChild(dot);
+
+        cell.addEventListener('click', ()=> onPick(cell));
+        elBoard.appendChild(cell);
       }
-      updateUI();
+
+      startTimer();
     }
 
-    function drawBall() {
-      ctx.beginPath();
-      ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
-      ctx.fillStyle = "#0095DD";
-      ctx.fill();
-      ctx.closePath();
-    }
-
-    function drawPaddle() {
-      ctx.beginPath();
-      ctx.rect(paddleX, canvas.height - paddleH, paddleW, paddleH);
-      ctx.fillStyle = "#0095DD";
-      ctx.fill();
-      ctx.closePath();
-    }
-
-    function drawBricks() {
-      for (let c = 0; c < brickColumnCount; c++) {
-        for (let r = 0; r < brickRowCount; r++) {
-          if (bricks[c][r].status === 1) {
-            const brickX = (c * (brickW + brickPadding)) + brickOffsetLeft;
-            const brickY = (r * (brickH + brickPadding)) + brickOffsetTop;
-            bricks[c][r].x = brickX;
-            bricks[c][r].y = brickY;
-            ctx.beginPath();
-            ctx.rect(brickX, brickY, brickW, brickH);
-            ctx.fillStyle = "#0095DD";
-            ctx.fill();
-            ctx.closePath();
-          }
+    function onPick(cell){
+      if(!state.running) return;
+      if(cell.dataset.done) return;
+      const correct = cell.dataset.answer==='1';
+      if(correct){
+        cell.dataset.done='1';
+        state.score += 100; elScore.textContent = state.score;
+        state.matchesLeft--; cell.classList.add('correct');
+        if(cbAssist.checked) cell.querySelector('.mark').style.display='block';
+        beep(880,90,0.05);
+        if(state.matchesLeft<=0){
+          // round clear → small time bonus & next round
+          state.remain = Math.min(state.remain+2.5, state.duration+5);
+          stopTimer();
+          setTimeout(()=>{ newRound({advance:true}); }, 350);
         }
+      } else {
+        cell.classList.add('wrong');
+        setTimeout(()=>cell.classList.remove('wrong'), 250);
+        state.remain = Math.max(0, state.remain-1);
+        state.score = Math.max(0, state.score-30); elScore.textContent = state.score;
+        beep(220,120,0.04);
       }
     }
 
-    function collisionDetection() {
-      for (let c = 0; c < brickColumnCount; c++) {
-        for (let r = 0; r < brickRowCount; r++) {
-          const b = bricks[c][r];
-          if (b.status === 1) {
-            if (x > b.x && x < b.x + brickW && y > b.y && y < b.y + brickH) {
-              dy = -dy;
-              b.status = 0;
-              score++;
-              updateUI();
-              if (score === brickRowCount * brickColumnCount) {
-                endGame("YOU WIN! 점수: " + score);
-              }
-            }
-          }
-        }
+    function startTimer(){
+      stopTimer(); state.running=true; const start = performance.now();
+      const totalMs = state.remain*1000;
+      const tick = (now)=>{
+        if(!state.running) return;
+        const elapsed = now - start;
+        const left = Math.max(0, totalMs - elapsed)/1000;
+        state.remain = left;
+        renderTime();
+        if(left<=0){ gameOver(); return; }
+        state.timer = requestAnimationFrame(tick);
+      }
+      state.timer = requestAnimationFrame(tick);
+    }
+
+    function renderTime(){
+      elTime.textContent = `${state.remain.toFixed(1)}s`;
+      const ratio = Math.max(0, Math.min(1, state.remain / state.duration));
+      bar.style.width = `${ratio*100}%`;
+      bar.style.filter = `saturate(${0.6 + 0.6*ratio})`;
+    }
+
+    function stopTimer(){ if(state.timer){ cancelAnimationFrame(state.timer); state.timer=null; } }
+
+    function gameOver(){
+      state.running=false; beep(140,240,0.06);
+      elBoard.querySelectorAll('.cell').forEach(c=>c.style.filter='grayscale(40%)');
+      // update best
+      if(state.score>state.best){ state.best=state.score; localStorage.setItem('sameColorBest', String(state.best)); }
+      elBest.textContent = state.best;
+      startBtn.disabled=false; startBtn.textContent='다시 도전 (다음 라운드)';
+
+      // Save score to ranking system
+      let nick = nicknameInput.value.trim();
+      if (!nick) {
+        nick = localStorage.getItem('nickname_mini6') || "익명";
+      }
+      nicknameInput.value = nick;
+      localStorage.setItem('nickname_mini6', nick);
+      if (window.GameStats) {
+        GameStats.saveScore(PAGE_ID, nick, Math.round(state.score));
       }
     }
 
-    function updateUI() {
-      scoreEl.textContent = score;
-      livesEl.textContent = lives;
+    function restart(){
+      state.score=0; elScore.textContent='0'; state.round=0; elRound.textContent='1';
+      state.running=false; stopTimer();
+      elBoard.innerHTML='';
+      newRound({advance:true});
     }
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawBricks();
-      drawBall();
-      drawPaddle();
-      collisionDetection();
+    // UI events
+    startBtn.addEventListener('click', ()=>{ if(!state.running){ newRound({advance:true}); startBtn.disabled=true; } });
+    restartBtn.addEventListener('click', ()=>{ restart(); });
+    selDiff.addEventListener('change', ()=>{ if(state.running) newRound({advance:false}); });
+    selGrid.addEventListener('change', ()=>{ if(state.running) newRound({advance:false}); });
+    cbAssist.addEventListener('change', ()=>{
+      document.querySelectorAll('.cell').forEach(c=> c.classList.toggle('pattern', cbAssist.checked));
+    });
 
-      if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
-        dx = -dx;
-      }
-      if (y + dy < ballRadius) {
-        dy = -dy;
-      } else if (y + dy > canvas.height - ballRadius) {
-        if (x > paddleX && x < paddleX + paddleW) {
-          dy = -dy;
-        } else {
-          lives--;
-          updateUI();
-          if (!lives) {
-            endGame("GAME OVER");
-          } else {
-            x = canvas.width / 2;
-            y = canvas.height - 30;
-            dx = 3; dy = -3;
-            paddleX = (canvas.width - paddleW) / 2;
-          }
-        }
-      }
+    // keyboard
+    window.addEventListener('keydown', (e)=>{
+      if(e.key==='r' || e.key==='R'){ restart(); }
+      if(e.key==='n' || e.key==='N'){ newRound({advance:true}); }
+    });
 
-      if (rightPressed && paddleX < canvas.width - paddleW) {
-        paddleX += 7;
-      }
-      else if (leftPressed && paddleX > 0) {
-        paddleX -= 7;
-      }
+    // initial
+    (function init(){
+      elRound.textContent = state.round;
+      elTargetSwatch.style.background = state.target; elTargetText.textContent = state.target;
+      renderTime();
+    })();
 
-      x += dx;
-      y += dy;
-    }
-
-    function endGame(msg) {
-      clearInterval(interval);
-      interval = null;
-      Juice.toast(msg, "info");
-
-      // Save
-      if (score > 0) {
-        Juice.submit(PAGE_ID, score);
-      }
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      btnStart.style.display = 'inline-block';
-    }
-
-    function startGame() {
-      if (interval) return;
-      init();
-      btnStart.style.display = 'none';
-      interval = setInterval(draw, 10);
-    }
-
-    document.addEventListener("keydown", keyDownHandler, false);
-    document.addEventListener("keyup", keyUpHandler, false);
-
-    // 모바일: 캔버스를 터치/드래그해 패들 이동
-    function movePaddleToTouch(e) {
-      const rect = canvas.getBoundingClientRect();
-      const t = e.touches[0] || e.changedTouches[0];
-      const relX = (t.clientX - rect.left) * (canvas.width / rect.width);
-      paddleX = Math.max(0, Math.min(canvas.width - paddleW, relX - paddleW / 2));
-    }
-    canvas.addEventListener("touchstart", (e) => { e.preventDefault(); movePaddleToTouch(e); }, { passive: false });
-    canvas.addEventListener("touchmove", (e) => { e.preventDefault(); movePaddleToTouch(e); }, { passive: false });
-
-    function keyDownHandler(e) {
-      if (e.key == "Right" || e.key == "ArrowRight") rightPressed = true;
-      else if (e.key == "Left" || e.key == "ArrowLeft") leftPressed = true;
-    }
-
-    function keyUpHandler(e) {
-      if (e.key == "Right" || e.key == "ArrowRight") rightPressed = false;
-      else if (e.key == "Left" || e.key == "ArrowLeft") leftPressed = false;
-    }
-
-    btnStart.onclick = startGame;
+    // update round label continuously
+    const obs = new MutationObserver(()=>{ elRound.textContent = state.round; });
+    obs.observe(elBoard, {childList:true});
   </script>
 </body>
-
 </html>

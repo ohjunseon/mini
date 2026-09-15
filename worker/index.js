@@ -1,35 +1,31 @@
-// Per-game score ceiling validation (Phase 4)
+// Per-game score ceiling validation (renumbered after mini1~65 cleanup)
 const GAME_SCORE_LIMITS = {
-  mini1: 5000,    // ms (reaction)
+  mini1: 5000,
   mini2: 999,
   mini3: 100,
-  mini4: 100,
-  mini5: 25,      // bricks
-  mini6: 999,
-  mini7: 1000,    // snake
-  mini8: 100000,  // tetris
-  mini9: 131072,  // 2048
-  mini10: 10000,
+  mini4: 25,
+  mini5: 999,
+  mini6: 1000,
+  mini7: 100000,
+  mini8: 131072,
+  mini9: 10000,
+  mini10: 999,
   mini11: 999,
-  mini12: 999,
-  mini13: 1,
+  mini12: 1,
+  mini13: 100,
   mini14: 100,
-  mini15: 100,
+  mini15: 999,
   mini16: 999,
   mini17: 999,
-  mini18: 999,
-  mini19: 999,
-  mini20: 100,
-  mini21: 100,
-  mini22: 999,
-  mini23: 999,
+  mini18: 100,
+  mini19: 100,
+  mini20: 999,
+  mini21: 999,
+  mini22: 999999,
+  mini23: 100,
   mini24: 999,
-  mini25: 999999,
-  mini26: 100,
-  mini27: 999,
-  mini28: 10000,
-  mini29: 1,
-  mini30: 9999,
+  mini25: 10000,
+  mini26: 1,
 };
 
 // Regex for name filtering - allow basic chars, block emoji/control

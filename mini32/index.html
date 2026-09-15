@@ -4,64 +4,56 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>색상 매칭 (mini32)</title>
+    <title>멀티 바구니 (mini32)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        .color-target {
-            width: 100px;
-            height: 100px;
-            border-radius: 10px;
+        canvas {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #2d5a2d, #1a3a1a);
+            display: block;
             margin: 20px auto;
-            border: 4px solid #fff;
+            max-width: 100%;
+            touch-action: none;
         }
 
-        .color-buttons {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin: 30px auto;
-            max-width: 400px;
-        }
-
-        .color-btn {
-            width: 100%;
-            aspect-ratio: 1;
-            border-radius: 10px;
-            border: 3px solid #fff;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: bold;
-            transition: all 0.1s;
-            color: #fff;
-        }
-
-        .color-btn:active {
-            transform: scale(0.92);
-        }
-
-        .color-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .timer {
-            font-size: 3rem;
-            font-weight: bold;
-            text-align: center;
-            color: var(--accent);
+        .game-info {
+            display: flex;
+            justify-content: space-around;
             margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
         }
     </style>
-  <meta name="description" content="목표 색상과 버튼 매칭 - 미니게임">
-  <meta name="keywords" content="반응, 미니게임, 게임">
+  <meta name="description" content="3개 바구니로 과일 캐치 - 미니게임">
+  <meta name="keywords" content="캐치, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🎨 색상 매칭">
-  <meta property="og:description" content="목표 색상과 버튼 매칭">
+  <meta property="og:title" content="🧺 멀티 바구니">
+  <meta property="og:description" content="3개 바구니로 과일 캐치">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini32/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🎨 색상 매칭">
-  <meta property="twitter:description" content="목표 색상과 버튼 매칭">
+  <meta property="twitter:title" content="🧺 멀티 바구니">
+  <meta property="twitter:description" content="3개 바구니로 과일 캐치">
 </head>
 
 <body>
@@ -69,18 +61,21 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>🎨 색상 매칭</h1>
-                    <p>30초 동안 목표 색상과 같은 버튼을 클릭하세요!</p>
+                    <h1>🧺 멀티 바구니</h1>
+                    <p>3개의 바구니를 선택 후 움직여 과일을 캐치하세요! (A, S, D로 선택)</p>
                 </header>
 
-                <div class="timer" id="timer">30.0</div>
-                <p style="text-align: center; color: var(--muted); margin: 10px 0;">목표 색상:</p>
-                <div class="color-target" id="colorTarget"></div>
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
 
-                <div class="color-buttons" id="colorButtons"></div>
-
-                <div class="stats-bar mb-4">
-                    <div class="stat-item">점수: <span id="score">0</span></div>
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">시간</div>
+                        <div class="info-value" id="timeValue">20.0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">점수</div>
+                        <div class="info-value" id="scoreValue">0</div>
+                    </div>
                 </div>
 
                 <div class="controls mt-4">
@@ -102,9 +97,33 @@
 
     <script src="../shared/ranking.js"></script>
     <script src="../shared/juice.js"></script>
-
     <script>
         const PAGE_ID = "mini32";
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const CANVAS_W = 320;
+        const CANVAS_H = 480;
+        const BASKET_Y = CANVAS_H - 40;
+        const BASKET_W = 40;
+        const BASKET_H = 20;
+        const COL_LEFT_X = 40;
+        const COL_MID_X = 160 - BASKET_W / 2;
+        const COL_RIGHT_X = 280 - BASKET_W;
+
+        let gameState = "idle";
+        let score = 0;
+        let timeLeft = 20;
+        let gameTime = 0;
+        let selectedBasket = -1; // -1: none, 0: left, 1: mid, 2: right
+        let basketPositions = [COL_LEFT_X, COL_MID_X, COL_RIGHT_X];
+        let basketOffsets = [0, 0, 0];
+        let mouseX = 160;
+
+        let fruits = [];
+        let fallSpeed = 2;
+
+        // Load ranking
         if (window.GameStats) {
             const rl = document.getElementById('rankList');
             GameStats.listenTopScores(PAGE_ID, 5, arr => {
@@ -112,90 +131,169 @@
             });
         }
 
-        const colorTarget = document.getElementById('colorTarget');
-        const colorButtons = document.getElementById('colorButtons');
-        const timerEl = document.getElementById('timer');
-        const scoreEl = document.getElementById('score');
-        const btnStart = document.getElementById('btnStart');
+        class Fruit {
+            constructor(column) {
+                this.column = column;
+                this.x = basketPositions[column] + BASKET_W / 2;
+                this.y = -15;
+                this.r = 8;
+                const colors = ["#ff0000", "#00ff00", "#0000ff"];
+                this.color = colors[column];
+            }
 
-        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B88B'];
-        let score = 0;
-        let time = 30.0;
-        let running = false;
-        let timer = null;
-        let targetColor = '';
+            update() {
+                this.y += fallSpeed;
+            }
 
-        function generateColorButtons() {
-            colorButtons.innerHTML = '';
-            const shuffled = colors.sort(() => Math.random() - 0.5).slice(0, 3);
-            targetColor = shuffled[Math.floor(Math.random() * shuffled.length)];
-            colorTarget.style.backgroundColor = targetColor;
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = "white";
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
 
-            shuffled.forEach(color => {
-                const btn = document.createElement('button');
-                btn.className = 'color-btn';
-                btn.style.backgroundColor = color;
-                btn.style.borderColor = '#fff';
-                btn.disabled = !running;
-                btn.addEventListener('click', () => {
-                    if (running && color === targetColor) {
-                        score++;
-                        scoreEl.textContent = score;
-                        generateColorButtons();
-                    }
-                });
-                btn.addEventListener('touchstart', (e) => {
-                    if (running && color === targetColor) {
-                        e.preventDefault();
-                        score++;
-                        scoreEl.textContent = score;
-                        generateColorButtons();
-                    }
-                }, { passive: false });
-                colorButtons.appendChild(btn);
-            });
-        }
+            isOutOfBounds() {
+                return this.y > CANVAS_H;
+            }
 
-        function tick() {
-            time -= 0.1;
-            timerEl.textContent = time.toFixed(1);
-            if (time <= 0) {
-                time = 0;
-                gameOver();
+            checkCollision(col, bx, bw) {
+                if (this.column !== col) return false;
+                return this.x > bx && this.x < bx + bw &&
+                    this.y + this.r > BASKET_Y && this.y - this.r < BASKET_Y + BASKET_H;
             }
         }
 
-        function gameOver() {
-            running = false;
-            clearInterval(timer);
-            Array.from(colorButtons.querySelectorAll('button')).forEach(btn => btn.disabled = true);
-            btnStart.disabled = false;
-            btnStart.textContent = '다시 시작';
+        function updateGame() {
+            if (gameState !== "running") return;
+
+            gameTime += 0.016;
+            timeLeft = Math.max(0, 20 - gameTime);
+            document.getElementById("timeValue").textContent = timeLeft.toFixed(1);
+
+            // Spawn fruits randomly in columns
+            if (Math.random() < 0.03) {
+                const col = Math.floor(Math.random() * 3);
+                fruits.push(new Fruit(col));
+            }
+
+            // Update basket position
+            if (selectedBasket >= 0) {
+                const targetX = mouseX - BASKET_W / 2;
+                basketOffsets[selectedBasket] = Math.max(-40, Math.min(40, targetX - basketPositions[selectedBasket]));
+            }
+
+            // Update and check collisions
+            for (let i = fruits.length - 1; i >= 0; i--) {
+                fruits[i].update();
+
+                let caught = false;
+                for (let col = 0; col < 3; col++) {
+                    const bx = basketPositions[col] + basketOffsets[col];
+                    if (fruits[i].checkCollision(col, bx, BASKET_W)) {
+                        score++;
+                        caught = true;
+                        break;
+                    }
+                }
+
+                if (caught) {
+                    document.getElementById("scoreValue").textContent = score;
+                    fruits.splice(i, 1);
+                } else if (fruits[i].isOutOfBounds()) {
+                    fruits.splice(i, 1);
+                }
+            }
+
+            if (timeLeft <= 0) {
+                gameState = "over";
+                gameEnd();
+            }
+        }
+
+        function drawGame() {
+            ctx.fillStyle = "rgba(45, 90, 45, 0.8)";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // Draw fruits
+            fruits.forEach(fruit => fruit.draw());
+
+            // Draw baskets
+            const colors = ["#ff0000", "#00ff00", "#0000ff"];
+            for (let i = 0; i < 3; i++) {
+                const bx = basketPositions[i] + basketOffsets[i];
+                ctx.fillStyle = selectedBasket === i ? colors[i] : "rgba(" + parseInt(colors[i].slice(1,3), 16) + "," + parseInt(colors[i].slice(3,5), 16) + "," + parseInt(colors[i].slice(5,7), 16) + ", 0.5)";
+                ctx.fillRect(bx, BASKET_Y, BASKET_W, BASKET_H);
+                ctx.strokeStyle = colors[i];
+                ctx.lineWidth = 2;
+                ctx.strokeRect(bx, BASKET_Y, BASKET_W, BASKET_H);
+
+                // Draw label
+                ctx.fillStyle = "white";
+                ctx.font = "12px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(["A", "S", "D"][i], bx + BASKET_W / 2, BASKET_Y - 5);
+            }
+        }
+
+        function gameEnd() {
+            document.getElementById("btnStart").disabled = false;
+            document.getElementById("btnStart").textContent = "다시 시작";
             if (window.GameStats) {
                 GameStats.saveScore(PAGE_ID, name, score, () => {
-                    scoreEl.textContent = '0';
-                    score = 0;
-                    time = 30.0;
-                    timerEl.textContent = time.toFixed(1);
+                    resetGame();
                 });
             }
         }
 
-        btnStart.addEventListener('click', () => {
-            if (running) return;
-            running = true;
+        function resetGame() {
             score = 0;
-            time = 30.0;
-            scoreEl.textContent = '0';
-            timerEl.textContent = '30.0';
-            btnStart.disabled = true;
-            generateColorButtons();
-            Array.from(colorButtons.querySelectorAll('button')).forEach(btn => btn.disabled = false);
+            timeLeft = 20;
+            gameTime = 0;
+            fruits = [];
+            selectedBasket = -1;
+            basketOffsets = [0, 0, 0];
+            document.getElementById("scoreValue").textContent = "0";
+            document.getElementById("timeValue").textContent = "20.0";
+        }
 
-            timer = setInterval(tick, 100);
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.getElementById("btnStart").addEventListener("click", () => {
+            gameState = "running";
+            resetGame();
+            document.getElementById("btnStart").disabled = true;
         });
 
-        generateColorButtons();
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "a" || e.key === "A") selectedBasket = 0;
+            else if (e.key === "s" || e.key === "S") selectedBasket = 1;
+            else if (e.key === "d" || e.key === "D") selectedBasket = 2;
+        });
+
+        document.addEventListener("keyup", () => {
+            selectedBasket = -1;
+        });
+
+        document.addEventListener("mousemove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+        });
+
+        document.addEventListener("touchmove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches.length > 0) {
+                mouseX = e.touches[0].clientX - rect.left;
+            }
+        }, { passive: true });
+
+        gameLoop();
     </script>
 </body>
 

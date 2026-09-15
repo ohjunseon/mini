@@ -4,44 +4,28 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>에임 트레이너 (mini20)</title>
+    <title>점프 런 (mini20)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        .aim-area {
-            width: 300px;
-            height: 300px;
+        canvas {
             background: #222;
-            border: 2px solid var(--panel-border);
-            position: relative;
+            border-bottom: 2px solid #fff;
+            display: block;
             margin: 0 auto;
-            border-radius: 12px;
-            overflow: hidden;
-            cursor: crosshair;
-        }
-
-        .target {
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            background: radial-gradient(circle, red 40%, white 40%, white 60%, red 60%);
-            border-radius: 50%;
-            transition: transform 0.1s;
-        }
-
-        .target:active {
-            transform: scale(0.9);
+            max-width: 100%;
+            border-radius: 8px;
         }
     </style>
-  <meta name="description" content="정확도 훈련 - 미니게임">
-  <meta name="keywords" content="트레이닝, 미니게임, 게임">
+  <meta name="description" content="러닝 액션 - 미니게임">
+  <meta name="keywords" content="액션, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🎯 에임 트레이너">
-  <meta property="og:description" content="정확도 훈련">
+  <meta property="og:title" content="🦖 점프 런">
+  <meta property="og:description" content="러닝 액션">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini20/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🎯 에임 트레이너">
-  <meta property="twitter:description" content="정확도 훈련">
+  <meta property="twitter:title" content="🦖 점프 런">
+  <meta property="twitter:description" content="러닝 액션">
 </head>
 
 <body>
@@ -49,19 +33,18 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>🎯 에임 트레이너</h1>
-                    <p>30초 동안 최대한 많은 타겟을 맞추세요!</p>
+                    <h1>🦖 점프 런</h1>
+                    <p>장애물을 점프해서 피하세요! (스페이스바 / 터치)</p>
                 </header>
 
-                <div class="stats-bar mb-4">
-                    <div class="stat-item">남은 시간: <span id="time">30</span>s</div>
-                    <div class="stat-item">점수: <span id="score">0</span></div>
-                </div>
-
-                <div class="aim-area" id="area"></div>
+                <canvas id="game" width="600" height="200"></canvas>
 
                 <div class="controls mt-4">
-                    <button id="btnStart" class="btn">훈련 시작</button>
+                    <button id="btnStart" class="btn">달리기 시작</button>
+                </div>
+
+                <div class="stats-bar mt-4">
+                    <div class="stat-item">거리: <span id="score">0</span>m</div>
                 </div>
 
                 <div class="panel mt-4" style="text-align: left;">
@@ -84,60 +67,124 @@
         const PAGE_ID = "mini20";
         if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
             const rl = document.getElementById('rankList');
-            rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}점)</li>`).join('');
+            rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}m)</li>`).join('');
         });
 
-        const area = document.getElementById('area');
-        const timeEl = document.getElementById('time');
-        const scoreEl = document.getElementById('score');
+        const cvs = document.getElementById('game');
+        const ctx = cvs.getContext('2d');
         const btn = document.getElementById('btnStart');
+        const sEl = document.getElementById('score');
 
+        let dino = { x: 50, y: 150, w: 30, h: 50, vy: 0, grounded: true };
+        let obstacles = [];
+        let frame = 0;
         let score = 0;
-        let time = 30;
-        let timer = null;
         let running = false;
+        let speed = 5;
 
-        function spawn() {
-            if (!running) return;
-            area.innerHTML = '';
-            const t = document.createElement('div');
-            t.className = 'target';
-            // Random pos (300 - 30 = 270 max)
-            t.style.left = Math.floor(Math.random() * 270) + 'px';
-            t.style.top = Math.floor(Math.random() * 270) + 'px';
-            t.onmousedown = hit;
-            t.ontouchstart = (e) => { e.preventDefault(); hit(); };
-            area.appendChild(t);
+        function jump() {
+            if (dino.grounded) {
+                dino.vy = -12;
+                dino.grounded = false;
+            }
         }
 
-        function hit() {
+        function update() {
             if (!running) return;
-            score++;
-            scoreEl.textContent = score;
-            spawn();
+            frame++;
+            score = Math.floor(frame / 10);
+            sEl.textContent = score;
+
+            // Dino Physics
+            dino.vy += 0.8; // Gravity
+            dino.y += dino.vy;
+
+            if (dino.y >= 150) {
+                dino.y = 150;
+                dino.grounded = true;
+                dino.vy = 0;
+            }
+
+            // Spawn
+            if (frame % Math.max(60, 100 - speed * 2) === 0) {
+                if (Math.random() < 0.7) obstacles.push({ x: 600, y: 160, w: 20, h: 40 }); // Cactus
+                else obstacles.push({ x: 600, y: 130, w: 30, h: 30 }); // Bird/Box
+            }
+
+            // Update Obs
+            for (let i = 0; i < obstacles.length; i++) {
+                obstacles[i].x -= speed;
+                if (obstacles[i].x < -30) {
+                    obstacles.splice(i, 1); i--;
+                    speed += 0.05; // Accel
+                }
+                // Collision
+                let o = obstacles[i];
+                if (
+                    dino.x < o.x + o.w &&
+                    dino.x + dino.w > o.x &&
+                    dino.y < o.y + o.h &&
+                    dino.y + dino.h > o.y
+                ) {
+                    gameOver();
+                    return;
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = "#222";
+            ctx.fillRect(0, 0, 600, 200);
+
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0, 195, 600, 2); // Ground line
+
+            // Dino
+            ctx.fillStyle = "var(--good)";
+            ctx.fillRect(dino.x, dino.y, dino.w, dino.h);
+
+            // Obs
+            ctx.fillStyle = "var(--bad)";
+            for (let o of obstacles) {
+                ctx.fillRect(o.x, o.y, o.w, o.h);
+            }
+        }
+
+        function loop() {
+            if (running) {
+                update();
+                draw();
+                requestAnimationFrame(loop);
+            }
+        }
+
+        function gameOver() {
+            running = false;
+            Juice.toast("게임 오버! 기록: ${score}m", "info");
+            const nick = localStorage.getItem('nickname') || '익명';
+            Juice.submit(PAGE_ID, score);
+            btn.style.display = 'inline-block';
         }
 
         function start() {
+            dino.y = 150; dino.vy = 0;
+            obstacles = [];
+            score = 0; frame = 0; speed = 5;
             running = true;
-            score = 0; scoreEl.textContent = 0;
-            time = 30; timeEl.textContent = 30;
             btn.style.display = 'none';
-            spawn();
-
-            timer = setInterval(() => {
-                time--;
-                timeEl.textContent = time;
-                if (time <= 0) {
-                    running = false;
-                    clearInterval(timer);
-                    Juice.toast("훈련 종료! 점수: ${score}", "info");
-                    const nick = localStorage.getItem('nickname') || '익명';
-                    Juice.submit(PAGE_ID, score);
-                    btn.style.display = 'inline-block';
-                    area.innerHTML = '';
-                }
-            }, 1000);
+            loop();
         }
+
+        document.addEventListener('keydown', e => {
+            if (e.code === 'Space' || e.key === 'ArrowUp') jump();
+        });
+        cvs.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            jump();
+        });
+        cvs.addEventListener('mousedown', () => {
+            jump();
+        });
 
         btn.onclick = start;
     </script>

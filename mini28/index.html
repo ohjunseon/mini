@@ -4,35 +4,64 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>절대 시간 (mini28)</title>
+    <title>색상 매칭 (mini28)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        .timer-disp {
-            font-size: 4rem;
+        .color-target {
+            width: 100px;
+            height: 100px;
+            border-radius: 10px;
+            margin: 20px auto;
+            border: 4px solid #fff;
+        }
+
+        .color-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 30px auto;
+            max-width: 400px;
+        }
+
+        .color-btn {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 10px;
+            border: 3px solid #fff;
+            cursor: pointer;
+            font-size: 0.9rem;
             font-weight: bold;
-            margin: 40px 0;
-            font-variant-numeric: tabular-nums;
+            transition: all 0.1s;
+            color: #fff;
         }
 
-        .target {
+        .color-btn:active {
+            transform: scale(0.92);
+        }
+
+        .color-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .timer {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
             color: var(--accent);
-        }
-
-        .hidden {
-            color: #222;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+            margin: 20px 0;
         }
     </style>
-  <meta name="description" content="10.00초 맞추기 - 미니게임">
-  <meta name="keywords" content="트레이닝, 미니게임, 게임">
+  <meta name="description" content="목표 색상과 버튼 매칭 - 미니게임">
+  <meta name="keywords" content="반응, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="⏱️ 10.00초 맞추기">
-  <meta property="og:description" content="10.00초 맞추기">
+  <meta property="og:title" content="🎨 색상 매칭">
+  <meta property="og:description" content="목표 색상과 버튼 매칭">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini28/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="⏱️ 10.00초 맞추기">
-  <meta property="twitter:description" content="10.00초 맞추기">
+  <meta property="twitter:title" content="🎨 색상 매칭">
+  <meta property="twitter:description" content="목표 색상과 버튼 매칭">
 </head>
 
 <body>
@@ -40,18 +69,26 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>⏱️ 10.00초 맞추기</h1>
-                    <p>정확히 10.00초에 멈추세요! (3초 뒤 화면 가려짐)</p>
+                    <h1>🎨 색상 매칭</h1>
+                    <p>30초 동안 목표 색상과 같은 버튼을 클릭하세요!</p>
                 </header>
 
-                <div class="timer-disp" id="disp">0.00</div>
+                <div class="timer" id="timer">30.0</div>
+                <p style="text-align: center; color: var(--muted); margin: 10px 0;">목표 색상:</p>
+                <div class="color-target" id="colorTarget"></div>
+
+                <div class="color-buttons" id="colorButtons"></div>
+
+                <div class="stats-bar mb-4">
+                    <div class="stat-item">점수: <span id="score">0</span></div>
+                </div>
 
                 <div class="controls mt-4">
-                    <button id="btnAction" class="btn" style="padding: 20px 40px; font-size: 1.5rem;">START</button>
+                    <button id="btnStart" class="btn">게임 시작</button>
                 </div>
 
                 <div class="panel mt-4" style="text-align: left;">
-                    <h3>🏆 랭킹 (오차 적은 순)</h3>
+                    <h3>🏆 랭킹</h3>
                     <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
                         <li>...</li>
                     </ul>
@@ -68,61 +105,97 @@
 
     <script>
         const PAGE_ID = "mini28";
-        if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
-            // Sort by smallest abs(score) manually if needed, but assuming saveScore logic for mini28 is customized or we store negative error
-            // Simplest: Store score as (100 - abs_error)*100 ?
-            // Let's store -abs_error. then max is best. -0.01 > -0.05
+        if (window.GameStats) {
             const rl = document.getElementById('rankList');
-            rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${Math.abs(d.score).toFixed(2)}s 오차)</li>`).join('');
-        });
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
+        }
 
-        const disp = document.getElementById('disp');
-        const btn = document.getElementById('btnAction');
+        const colorTarget = document.getElementById('colorTarget');
+        const colorButtons = document.getElementById('colorButtons');
+        const timerEl = document.getElementById('timer');
+        const scoreEl = document.getElementById('score');
+        const btnStart = document.getElementById('btnStart');
 
-        let startTime;
-        let timer;
+        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B88B'];
+        let score = 0;
+        let time = 30.0;
         let running = false;
+        let timer = null;
+        let targetColor = '';
 
-        btn.onclick = () => {
-            if (!running) {
-                // Start
-                running = true;
-                btn.textContent = "STOP";
-                btn.style.background = "var(--accent)";
-                startTime = Date.now();
-                disp.classList.remove('hidden');
+        function generateColorButtons() {
+            colorButtons.innerHTML = '';
+            const shuffled = colors.sort(() => Math.random() - 0.5).slice(0, 3);
+            targetColor = shuffled[Math.floor(Math.random() * shuffled.length)];
+            colorTarget.style.backgroundColor = targetColor;
 
-                timer = requestAnimationFrame(loop);
-            } else {
-                // Stop
-                running = false;
-                cancelAnimationFrame(timer);
-                const diff = (Date.now() - startTime) / 1000;
-                disp.textContent = diff.toFixed(2);
-                disp.classList.remove('hidden');
+            shuffled.forEach(color => {
+                const btn = document.createElement('button');
+                btn.className = 'color-btn';
+                btn.style.backgroundColor = color;
+                btn.style.borderColor = '#fff';
+                btn.disabled = !running;
+                btn.addEventListener('click', () => {
+                    if (running && color === targetColor) {
+                        score++;
+                        scoreEl.textContent = score;
+                        generateColorButtons();
+                    }
+                });
+                btn.addEventListener('touchstart', (e) => {
+                    if (running && color === targetColor) {
+                        e.preventDefault();
+                        score++;
+                        scoreEl.textContent = score;
+                        generateColorButtons();
+                    }
+                }, { passive: false });
+                colorButtons.appendChild(btn);
+            });
+        }
 
-                const error = Math.abs(10.00 - diff);
-                // Save as negative error
-                const score = -error;
-
-                Juice.toast("기록: ${diff.toFixed(2)}초 (오차 ${error.toFixed(2)}초)", "info");
-
-                const nick = localStorage.getItem('nickname') || '익명';
-                Juice.submit(PAGE_ID, score);
-
-                btn.textContent = "START";
-                btn.style.background = "";
-            }
-        };
-
-        function loop() {
-            if (running) {
-                const cur = (Date.now() - startTime) / 1000;
-                disp.textContent = cur.toFixed(2);
-                if (cur > 3.0) disp.classList.add('hidden');
-                requestAnimationFrame(loop);
+        function tick() {
+            time -= 0.1;
+            timerEl.textContent = time.toFixed(1);
+            if (time <= 0) {
+                time = 0;
+                gameOver();
             }
         }
+
+        function gameOver() {
+            running = false;
+            clearInterval(timer);
+            Array.from(colorButtons.querySelectorAll('button')).forEach(btn => btn.disabled = true);
+            btnStart.disabled = false;
+            btnStart.textContent = '다시 시작';
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, score, () => {
+                    scoreEl.textContent = '0';
+                    score = 0;
+                    time = 30.0;
+                    timerEl.textContent = time.toFixed(1);
+                });
+            }
+        }
+
+        btnStart.addEventListener('click', () => {
+            if (running) return;
+            running = true;
+            score = 0;
+            time = 30.0;
+            scoreEl.textContent = '0';
+            timerEl.textContent = '30.0';
+            btnStart.disabled = true;
+            generateColorButtons();
+            Array.from(colorButtons.querySelectorAll('button')).forEach(btn => btn.disabled = false);
+
+            timer = setInterval(tick, 100);
+        });
+
+        generateColorButtons();
     </script>
 </body>
 

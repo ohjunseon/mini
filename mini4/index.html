@@ -2,113 +2,51 @@
 <html lang="ko">
 
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>산수 퀴즈 (mini4)</title>
+  <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>벽돌깨기 Lite (mini4)</title>
   <link rel="stylesheet" href="../shared/style.css">
-  <style>
-    .question {
-      font-size: 3rem;
-      font-weight: 800;
-      color: var(--text);
-      margin: 30px 0;
-      min-height: 80px;
-    }
-
-    .choices {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .choice-btn {
-      padding: 20px;
-      font-size: 1.5rem;
-      font-weight: bold;
-      background: var(--panel);
-      border: 1px solid var(--panel-border);
-      border-radius: 12px;
-      color: var(--text);
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    .choice-btn:hover {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
-    }
-
-    .progress-wrap {
-      height: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 5px;
-      overflow: hidden;
-      margin: 20px 0;
-    }
-
-    .bar {
-      height: 100%;
-      background: var(--good);
-      width: 100%;
-      transition: width 0.2s linear;
-    }
-  </style>
-  <meta name="description" content="산수 퀴즈 - 미니게임">
-  <meta name="keywords" content="트레이닝, 미니게임, 게임">
+  <meta name="description" content="벽돌 깨기 - 미니게임">
+  <meta name="keywords" content="블록, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🧮 산수 퀴즈">
-  <meta property="og:description" content="산수 퀴즈">
+  <meta property="og:title" content="🧱 벽돌 깨기">
+  <meta property="og:description" content="벽돌 깨기">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini4/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🧮 산수 퀴즈">
-  <meta property="twitter:description" content="산수 퀴즈">
+  <meta property="twitter:title" content="🧱 벽돌 깨기">
+  <meta property="twitter:description" content="벽돌 깨기">
 </head>
 
 <body>
   <div class="container">
     <div class="game-container">
       <div class="card">
-        <header>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1 style="font-size: 1.5rem; margin:0;">🧮 산수 퀴즈</h1>
-            <div class="stats-bar" style="margin:0; gap: 10px;">
-              <span class="stat-item" id="timeLabel">60.0s</span>
-              <span class="stat-item" id="score">0점</span>
-            </div>
-          </div>
-          <div class="progress-wrap">
-            <div class="bar" id="bar"></div>
-          </div>
+        <header class="mb-4">
+          <h1>🧱 벽돌 깨기</h1>
+          <p>공을 튀겨 모든 벽돌을 제거하세요. (← → 키 또는 화면 터치·드래그로 패들 이동)</p>
         </header>
 
-        <main>
-          <div id="status" style="height: 24px; color: var(--warn); font-weight: bold;"></div>
-          <div class="question" id="question">Ready?</div>
+        <canvas id="gameCanvas" width="480" height="320"
+          style="background:#eee; display:block; margin:0 auto; border-radius:4px; max-width:100%;"></canvas>
 
-          <div class="choices" id="choices">
-            <!-- Buttons injected by JS -->
-          </div>
-
-          <div class="controls mt-4">
-            <button id="btnStart" class="btn">시작</button>
-            <div style="margin-top: 10px;">
-              <span style="font-size: 0.9rem; color: var(--muted);">Space: 시작/일시정지</span>
-            </div>
-          </div>
-        </main>
-
-        <div class="mt-4">
-          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        <div class="controls mt-4">
+          <button id="btnStart" class="btn">게임 시작</button>
         </div>
 
-        <!-- Leaderboard -->
+        <div class="stats-bar mt-4">
+          <div class="stat-item">점수: <span id="score">0</span></div>
+          <div class="stat-item">목숨: <span id="lives">3</span></div>
+        </div>
+
         <div class="panel mt-4" style="text-align: left;">
           <h3>🏆 랭킹</h3>
           <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
-            <li>...</li>
+            <li>로딩 중...</li>
           </ul>
+        </div>
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
         </div>
       </div>
     </div>
@@ -118,129 +56,200 @@
     <script src="../shared/juice.js"></script>
 
   <script>
+    // Firebase 랭킹 연동
     const PAGE_ID = "mini4";
     const rankList = document.getElementById('rankList');
     if (window.GameStats) {
       GameStats.listenTopScores(PAGE_ID, 5, arr => {
         rankList.innerHTML = "";
         if (!arr || !arr.length) { rankList.innerHTML = "<li>기록 없음</li>"; return; }
-        arr.forEach((d, i) => {
-          const li = document.createElement('li');
-          li.textContent = `${i + 1}위 ${d.name} (${d.score}점)`;
-          rankList.appendChild(li);
-        });
+        arr.forEach((d, i) => rankList.innerHTML += `<li>${i + 1}위 ${d.name} (${d.score})</li>`);
       });
     }
 
-    // Logic
-    const qEl = document.getElementById('question');
-    const cBox = document.getElementById('choices');
-    const bar = document.getElementById('bar');
-    const tLabel = document.getElementById('timeLabel');
-    const sLabel = document.getElementById('score');
-    const stEl = document.getElementById('status');
+    // Canvas & Game Variables
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
     const btnStart = document.getElementById('btnStart');
+    const scoreEl = document.getElementById('score');
+    const livesEl = document.getElementById('lives');
 
-    let running = false;
-    let score = 0;
-    let time = 60;
-    let timer = null;
-    let ans = 0;
+    let x, y, dx, dy;
+    let paddleH = 10, paddleW = 75, paddleX;
+    let rightPressed = false, leftPressed = false;
+    let score = 0, lives = 3;
+    let bricks = [];
+    const ballRadius = 10;
+    const brickRowCount = 5; // 좀 더 많게
+    const brickColumnCount = 5;
+    const brickW = 75;
+    const brickH = 20;
+    const brickPadding = 10;
+    const brickOffsetTop = 30;
+    const brickOffsetLeft = 30;
 
-    function setStatus(msg) {
-      stEl.textContent = msg;
-      setTimeout(() => stEl.textContent = '', 1000);
-    }
+    let interval = null;
 
-    function diff() {
-      if (score < 20) return { max: 10, ops: ['+', '-'] };
-      if (score < 50) return { max: 30, ops: ['+', '-', '*'] };
-      return { max: 99, ops: ['+', '-', '*', '/'] };
-    }
+    function init() {
+      x = canvas.width / 2;
+      y = canvas.height - 30;
+      dx = 3; dy = -3;
+      paddleX = (canvas.width - paddleW) / 2;
+      score = 0; lives = 3;
 
-    function makeProb() {
-      if (!running) return;
-      const { max, ops } = diff();
-      const op = ops[Math.floor(Math.random() * ops.length)];
-      let a, b;
-      if (op === '+') { a = r(0, max); b = r(0, max); ans = a + b; }
-      else if (op === '-') { a = r(0, max); b = r(0, max); if (a < b) [a, b] = [b, a]; ans = a - b; }
-      else if (op === '*') { a = r(1, Math.floor(max / 2) + 1); b = r(1, 9); ans = a * b; }
-      else { b = r(2, 9); ans = r(1, 20); a = b * ans; } // /
-
-      qEl.textContent = `${a} ${op === '*' ? '×' : op === '/' ? '÷' : op} ${b} = ?`;
-
-      // Choices
-      const s = new Set([ans]);
-      while (s.size < 4) {
-        let fal = ans + r(-10, 10);
-        if (fal < 0) fal = Math.abs(fal);
-        s.add(fal);
+      bricks = [];
+      for (let c = 0; c < brickColumnCount; c++) {
+        bricks[c] = [];
+        for (let r = 0; r < brickRowCount; r++) {
+          bricks[c][r] = { x: 0, y: 0, status: 1 };
+        }
       }
-      const arr = [...s].sort(() => Math.random() - 0.5);
-
-      cBox.innerHTML = '';
-      arr.forEach(v => {
-        const btn = document.createElement('button');
-        btn.className = 'choice-btn';
-        btn.textContent = v;
-        btn.onclick = () => check(v);
-        cBox.appendChild(btn);
-      });
+      updateUI();
     }
 
-    function r(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+      ctx.fillStyle = "#0095DD";
+      ctx.fill();
+      ctx.closePath();
+    }
 
-    function check(v) {
-      if (!running) return;
-      if (v === ans) {
-        score += 10;
-        time = Math.min(60, time + 2);
-        setStatus("정답! +2s");
-        sLabel.textContent = `${score}점`;
-        makeProb();
-      } else {
-        time = Math.max(0, time - 5);
-        setStatus("오답! -5s");
-        updateTime();
+    function drawPaddle() {
+      ctx.beginPath();
+      ctx.rect(paddleX, canvas.height - paddleH, paddleW, paddleH);
+      ctx.fillStyle = "#0095DD";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawBricks() {
+      for (let c = 0; c < brickColumnCount; c++) {
+        for (let r = 0; r < brickRowCount; r++) {
+          if (bricks[c][r].status === 1) {
+            const brickX = (c * (brickW + brickPadding)) + brickOffsetLeft;
+            const brickY = (r * (brickH + brickPadding)) + brickOffsetTop;
+            bricks[c][r].x = brickX;
+            bricks[c][r].y = brickY;
+            ctx.beginPath();
+            ctx.rect(brickX, brickY, brickW, brickH);
+            ctx.fillStyle = "#0095DD";
+            ctx.fill();
+            ctx.closePath();
+          }
+        }
       }
     }
 
-    function updateTime() {
-      tLabel.textContent = time.toFixed(1) + 's';
-      bar.style.width = (time / 60 * 100) + '%';
-      if (time <= 0) end();
+    function collisionDetection() {
+      for (let c = 0; c < brickColumnCount; c++) {
+        for (let r = 0; r < brickRowCount; r++) {
+          const b = bricks[c][r];
+          if (b.status === 1) {
+            if (x > b.x && x < b.x + brickW && y > b.y && y < b.y + brickH) {
+              dy = -dy;
+              b.status = 0;
+              score++;
+              updateUI();
+              if (score === brickRowCount * brickColumnCount) {
+                endGame("YOU WIN! 점수: " + score);
+              }
+            }
+          }
+        }
+      }
     }
 
-    function tick() {
-      time -= 0.1;
-      updateTime();
+    function updateUI() {
+      scoreEl.textContent = score;
+      livesEl.textContent = lives;
     }
 
-    function start() {
-      if (running) return;
-      running = true; score = 0; time = 60;
-      sLabel.textContent = '0점';
-      btnStart.style.display = 'none';
-      timer = setInterval(tick, 100);
-      makeProb();
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBricks();
+      drawBall();
+      drawPaddle();
+      collisionDetection();
+
+      if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
+        dx = -dx;
+      }
+      if (y + dy < ballRadius) {
+        dy = -dy;
+      } else if (y + dy > canvas.height - ballRadius) {
+        if (x > paddleX && x < paddleX + paddleW) {
+          dy = -dy;
+        } else {
+          lives--;
+          updateUI();
+          if (!lives) {
+            endGame("GAME OVER");
+          } else {
+            x = canvas.width / 2;
+            y = canvas.height - 30;
+            dx = 3; dy = -3;
+            paddleX = (canvas.width - paddleW) / 2;
+          }
+        }
+      }
+
+      if (rightPressed && paddleX < canvas.width - paddleW) {
+        paddleX += 7;
+      }
+      else if (leftPressed && paddleX > 0) {
+        paddleX -= 7;
+      }
+
+      x += dx;
+      y += dy;
     }
 
-    function end() {
-      running = false; clearInterval(timer);
-      qEl.textContent = "Time Over!";
-      cBox.innerHTML = `<h3>최종 점수: ${score}</h3>`;
+    function endGame(msg) {
+      clearInterval(interval);
+      interval = null;
+      Juice.toast(msg, "info");
+
+      // Save
+      if (score > 0) {
+        Juice.submit(PAGE_ID, score);
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       btnStart.style.display = 'inline-block';
-      btnStart.textContent = "다시 하기";
-
-      Juice.submit(PAGE_ID, score);
     }
 
-    btnStart.onclick = start;
+    function startGame() {
+      if (interval) return;
+      init();
+      btnStart.style.display = 'none';
+      interval = setInterval(draw, 10);
+    }
 
-    document.addEventListener('keydown', e => {
-      if (e.key === ' ') start();
-    });
+    document.addEventListener("keydown", keyDownHandler, false);
+    document.addEventListener("keyup", keyUpHandler, false);
+
+    // 모바일: 캔버스를 터치/드래그해 패들 이동
+    function movePaddleToTouch(e) {
+      const rect = canvas.getBoundingClientRect();
+      const t = e.touches[0] || e.changedTouches[0];
+      const relX = (t.clientX - rect.left) * (canvas.width / rect.width);
+      paddleX = Math.max(0, Math.min(canvas.width - paddleW, relX - paddleW / 2));
+    }
+    canvas.addEventListener("touchstart", (e) => { e.preventDefault(); movePaddleToTouch(e); }, { passive: false });
+    canvas.addEventListener("touchmove", (e) => { e.preventDefault(); movePaddleToTouch(e); }, { passive: false });
+
+    function keyDownHandler(e) {
+      if (e.key == "Right" || e.key == "ArrowRight") rightPressed = true;
+      else if (e.key == "Left" || e.key == "ArrowLeft") leftPressed = true;
+    }
+
+    function keyUpHandler(e) {
+      if (e.key == "Right" || e.key == "ArrowRight") rightPressed = false;
+      else if (e.key == "Left" || e.key == "ArrowLeft") leftPressed = false;
+    }
+
+    btnStart.onclick = startGame;
   </script>
 </body>
 

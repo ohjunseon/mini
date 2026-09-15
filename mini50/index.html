@@ -1,280 +1,384 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>무한 낙하 (mini50)</title>
-    <link rel="stylesheet" href="../shared/style.css">
-    <style>
-        canvas {
-            border: 2px solid var(--accent);
-            border-radius: 8px;
-            background: linear-gradient(180deg, #000000, #1a1a2e);
-            display: block;
-            margin: 20px auto;
-            max-width: 100%;
-            touch-action: none;
-        }
-
-        .game-info {
-            display: flex;
-            justify-content: space-around;
-            margin: 20px 0;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .info-item {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 12px 20px;
-            border-radius: 8px;
-            border: 1px solid var(--panel-border);
-        }
-
-        .info-label {
-            font-size: 0.85rem;
-            color: var(--muted);
-            margin-bottom: 4px;
-        }
-
-        .info-value {
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: var(--accent);
-        }
-    </style>
-  <meta name="description" content="무한히 떨어지는 블록 생존 - 미니게임">
-  <meta name="keywords" content="생존, 미니게임, 게임">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>음성 발음</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    #wordDisplay {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--accent);
+      padding: 30px;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(91, 156, 255, 0.1);
+      border-radius: 12px;
+      margin: 20px 0;
+    }
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    .btn {
+      padding: 15px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+    .btn-primary:disabled {
+      background: var(--muted);
+      cursor: not-allowed;
+    }
+    .btn-danger {
+      background: var(--bad);
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #e04646;
+    }
+    .btn-success {
+      background: var(--good);
+      color: white;
+    }
+    .btn-success:hover {
+      background: #26b560;
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-item {
+      background: rgba(91, 156, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+    .stat-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      display: block;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+    #recordingStatus {
+      text-align: center;
+      color: var(--accent);
+      font-weight: bold;
+      min-height: 24px;
+      margin: 10px 0;
+    }
+    .record-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      background: var(--bad);
+      border-radius: 50%;
+      animation: pulse 1s infinite;
+      margin-right: 8px;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+  </style>
+  <meta name="description" content="Batch 2 - 미니게임">
+  <meta name="keywords" content="보관, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="♾️ 무한 낙하">
-  <meta property="og:description" content="무한히 떨어지는 블록 생존">
+  <meta property="og:title" content="🎤 음성 발음">
+  <meta property="og:description" content="Batch 2">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini50/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="♾️ 무한 낙하">
-  <meta property="twitter:description" content="무한히 떨어지는 블록 생존">
+  <meta property="twitter:title" content="🎤 음성 발음">
+  <meta property="twitter:description" content="Batch 2">
 </head>
-
 <body>
-    <div class="container">
-        <div class="game-container">
-            <div class="card">
-                <header class="mb-4">
-                    <h1>♾️ 무한 낙하</h1>
-                    <p>계속 떨어지는 블록을 받아내세요! 한 번 미스하면 게임 오버!</p>
-                </header>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🎤 음성 발음</h1>
+          <p>주어진 단어를 정확히 발음하세요!</p>
+        </header>
 
-                <canvas id="gameCanvas" width="320" height="480"></canvas>
+        <div id="gameArea">
+          <div id="wordDisplay">준비 중...</div>
+          <div id="recordingStatus"></div>
 
-                <div class="game-info">
-                    <div class="info-item">
-                        <div class="info-label">생존 시간</div>
-                        <div class="info-value" id="timeValue">0.0</div>
-                    </div>
-                </div>
+          <div class="button-group">
+            <button class="btn btn-primary" id="playBtn">🔊 재생</button>
+            <button class="btn btn-primary" id="recordBtn">🎙️ 녹음</button>
+          </div>
 
-                <div class="controls mt-4">
-                    <button id="btnStart" class="btn">게임 시작</button>
-                </div>
-
-                <div class="panel mt-4" style="text-align: left;">
-                    <h3>🏆 랭킹</h3>
-                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
-                        <li>...</li>
-                    </ul>
-                </div>
-              <div class="mt-4">
-                <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
-              </div>
-            </div>
+          <div style="font-size: 0.9rem; color: var(--muted); margin: 10px 0;">
+            스페이스바: 재생 / 녹음
+          </div>
         </div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">현재 단어</span>
+            <span class="stat-value" id="wordCountValue">1/5</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">평균 점수</span>
+            <span class="stat-value" id="avgScoreValue">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">총 점수</span>
+            <span class="stat-value" id="totalScoreValue">0</span>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button class="btn btn-success" id="nextBtn">✓ 다음</button>
+          <button class="btn btn-danger" id="skipBtn">✕ 건너뛰기</button>
+        </div>
+
+        <button class="btn" id="startBtn" style="width: 100%; margin: 10px 0;">게임 시작</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <script src="../shared/ranking.js"></script>
+  <script src="../shared/ranking.js"></script>
     <script src="../shared/juice.js"></script>
-    <script>
-        const PAGE_ID = "mini50";
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
+  <script>
+    const PAGE_ID = "mini50";
+    const WORDS = [
+      { word: 'Apple', ko: '사과' },
+      { word: 'Beautiful', ko: '아름다운' },
+      { word: 'Computer', ko: '컴퓨터' },
+      { word: 'Develop', ko: '개발하다' },
+      { word: 'Excellent', ko: '뛰어난' },
+      { word: 'Forget', ko: '잊다' },
+      { word: 'Growth', ko: '성장' },
+      { word: 'Happy', ko: '행복한' },
+      { word: 'Improve', ko: '개선하다' },
+      { word: 'Journey', ko: '여행' }
+    ];
 
-        const CANVAS_W = 320;
-        const CANVAS_H = 480;
-        const BASKET_Y = CANVAS_H - 40;
-        const BASKET_W = 60;
-        const BASKET_H = 20;
+    const wordDisplay = document.getElementById('wordDisplay');
+    const recordingStatus = document.getElementById('recordingStatus');
+    const playBtn = document.getElementById('playBtn');
+    const recordBtn = document.getElementById('recordBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const skipBtn = document.getElementById('skipBtn');
+    const startBtn = document.getElementById('startBtn');
+    const wordCountValue = document.getElementById('wordCountValue');
+    const avgScoreValue = document.getElementById('avgScoreValue');
+    const totalScoreValue = document.getElementById('totalScoreValue');
+    const rankList = document.getElementById('rankList');
 
-        let gameState = "idle";
-        let score = 0; // Time survived in seconds
-        let gameTime = 0;
-        let basketX = CANVAS_W / 2 - BASKET_W / 2;
-        let mouseX = CANVAS_W / 2;
+    let gameActive = false;
+    let currentWordIndex = 0;
+    let currentScore = 50; // Default score 0-100
+    let totalScore = 0;
+    let selectedWords = [];
+    let audioContext = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecording = false;
 
-        let blocks = [];
-        let baseFallSpeed = 2;
-        let speedMultiplier = 1;
-        let blocksCaught = 0;
+    // Load visit count
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      loadRanking();
+    }
 
-        // Load ranking
+    function loadRanking() {
+      if (window.GameStats && window.GameStats.listenForTopScores) {
+        GameStats.listenForTopScores(PAGE_ID, 5, (rows) => {
+          rankList.innerHTML = rows.map((r, i) =>
+            `<li>${i+1}. ${r.name} - ${r.score} 점</li>`
+          ).join('') || '<li>기록이 없습니다</li>';
+        });
+      }
+    }
+
+    async function initAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = (e) => {
+        recordedChunks.push(e.data);
+      };
+    }
+
+    function playWord() {
+      const utterance = new SpeechSynthesisUtterance(selectedWords[currentWordIndex].word);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.8;
+      speechSynthesis.speak(utterance);
+    }
+
+    async function startRecording() {
+      try {
+        if (!mediaRecorder) {
+          await initAudio();
+        }
+        recordedChunks = [];
+        mediaRecorder.start();
+        isRecording = true;
+        recordingStatus.innerHTML = '<span class="record-indicator"></span> 녹음 중...';
+        recordBtn.textContent = '⏹️ 녹음 중지';
+      } catch (err) {
+        console.warn('Microphone access denied');
+        recordingStatus.textContent = '마이크 접근 권한이 필요합니다';
+      }
+    }
+
+    function stopRecording() {
+      if (isRecording && mediaRecorder) {
+        mediaRecorder.stop();
+        isRecording = false;
+        recordingStatus.textContent = '✓ 녹음 완료';
+        recordBtn.textContent = '🎙️ 녹음';
+
+        // Simulate pronunciation scoring
+        currentScore = 50 + Math.floor(Math.random() * 51);
+      }
+    }
+
+    function nextWord() {
+      totalScore += currentScore;
+      currentWordIndex++;
+
+      if (currentWordIndex >= selectedWords.length) {
+        endGame();
+        return;
+      }
+
+      currentScore = 50;
+      recordingStatus.textContent = '';
+      wordDisplay.textContent = selectedWords[currentWordIndex].word + ' (' + selectedWords[currentWordIndex].ko + ')';
+      wordCountValue.textContent = (currentWordIndex + 1) + '/5';
+      avgScoreValue.textContent = Math.round(totalScore / (currentWordIndex + 1));
+    }
+
+    function skipWord() {
+      currentScore = 0;
+      nextWord();
+    }
+
+    function startGame() {
+      gameActive = true;
+      currentWordIndex = 0;
+      totalScore = 0;
+      currentScore = 50;
+
+      // Select 5 random words
+      selectedWords = [];
+      const indices = [];
+      while (selectedWords.length < 5) {
+        const idx = Math.floor(Math.random() * WORDS.length);
+        if (!indices.includes(idx)) {
+          indices.push(idx);
+          selectedWords.push(WORDS[idx]);
+        }
+      }
+
+      startBtn.disabled = true;
+      nextBtn.disabled = false;
+      skipBtn.disabled = false;
+      playBtn.disabled = false;
+      recordBtn.disabled = false;
+
+      wordDisplay.textContent = selectedWords[0].word + ' (' + selectedWords[0].ko + ')';
+      wordCountValue.textContent = '1/5';
+      avgScoreValue.textContent = '0';
+    }
+
+    function endGame() {
+      gameActive = false;
+      startBtn.disabled = false;
+      nextBtn.disabled = true;
+      skipBtn.disabled = true;
+      playBtn.disabled = true;
+      recordBtn.disabled = true;
+
+      const finalScore = Math.round(totalScore / selectedWords.length);
+      wordDisplay.textContent = `게임 종료! 최종 점수: ${finalScore}`;
+      recordingStatus.textContent = '';
+
+      setTimeout(() => {
         if (window.GameStats) {
-            const rl = document.getElementById('rankList');
-            GameStats.listenTopScores(PAGE_ID, 5, arr => {
-                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score.toFixed(1)}초)</li>`).join('');
-            });
+          GameStats.saveScore(PAGE_ID, playerName, finalScore);
         }
 
-        class Block {
-            constructor() {
-                this.x = Math.random() * (CANVAS_W - 30) + 15;
-                this.y = -20;
-                this.w = 30;
-                this.h = 20;
-                this.speed = baseFallSpeed * speedMultiplier;
-            }
+        setTimeout(() => {
+          totalScoreValue.textContent = '0';
+          avgScoreValue.textContent = '0';
+          wordCountValue.textContent = '0/5';
+          wordDisplay.textContent = '준비 중...';
+        }, 1000);
+      }, 1000);
+    }
 
-            update() {
-                this.y += this.speed;
-            }
+    playBtn.addEventListener('click', () => {
+      if (gameActive) playWord();
+    });
 
-            draw() {
-                ctx.fillStyle = "#00ff00";
-                ctx.fillRect(this.x - this.w / 2, this.y, this.w, this.h);
-                ctx.strokeStyle = "#00aa00";
-                ctx.lineWidth = 2;
-                ctx.strokeRect(this.x - this.w / 2, this.y, this.w, this.h);
-            }
-
-            isOutOfBounds() {
-                return this.y > CANVAS_H;
-            }
-
-            checkCollision(bx, bw) {
-                return this.x > bx && this.x < bx + bw &&
-                    this.y + this.h > BASKET_Y && this.y - this.h < BASKET_Y + BASKET_H;
-            }
+    recordBtn.addEventListener('click', () => {
+      if (gameActive) {
+        if (isRecording) {
+          stopRecording();
+        } else {
+          startRecording();
         }
+      }
+    });
 
-        function updateGame() {
-            if (gameState !== "running") return;
+    nextBtn.addEventListener('click', nextWord);
+    skipBtn.addEventListener('click', skipWord);
+    startBtn.addEventListener('click', startGame);
 
-            gameTime += 0.016;
-            score = gameTime;
-            document.getElementById("timeValue").textContent = gameTime.toFixed(1);
-
-            // Increase difficulty every 10 seconds
-            if (Math.floor(gameTime) % 10 === 0 && gameTime > 0) {
-                speedMultiplier = 1 + Math.floor(gameTime / 10) * 0.3;
-            }
-
-            // Spawn blocks continuously (faster as time goes on)
-            const spawnRate = 0.025 + (gameTime * 0.002);
-            if (Math.random() < spawnRate) {
-                blocks.push(new Block());
-            }
-
-            // Update basket position
-            basketX = Math.max(0, Math.min(CANVAS_W - BASKET_W, mouseX - BASKET_W / 2));
-
-            // Update and check collisions
-            let missed = false;
-            for (let i = blocks.length - 1; i >= 0; i--) {
-                blocks[i].update();
-
-                if (blocks[i].checkCollision(basketX, BASKET_W)) {
-                    blocksCaught++;
-                    blocks.splice(i, 1);
-                } else if (blocks[i].isOutOfBounds()) {
-                    // ONE MISS = GAME OVER!
-                    missed = true;
-                    gameState = "over";
-                    gameEnd();
-                }
-            }
+    document.addEventListener('keydown', (e) => {
+      if (!gameActive) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (isRecording) {
+          stopRecording();
+        } else {
+          startRecording();
         }
-
-        function drawGame() {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
-            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-            // Draw difficulty indicator
-            const level = Math.floor(gameTime / 10) + 1;
-            ctx.fillStyle = "#00ff00";
-            ctx.font = "14px Arial";
-            ctx.textAlign = "right";
-            ctx.fillText(`Lv ${level}`, CANVAS_W - 10, 20);
-
-            // Draw blocks caught
-            ctx.fillStyle = "#00ff00";
-            ctx.textAlign = "left";
-            ctx.fillText(`받은 블록: ${blocksCaught}`, 10, 20);
-
-            // Draw blocks
-            blocks.forEach(block => block.draw());
-
-            // Draw basket
-            ctx.fillStyle = "#ffff00";
-            ctx.fillRect(basketX, BASKET_Y, BASKET_W, BASKET_H);
-            ctx.strokeStyle = "#ffaa00";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(basketX, BASKET_Y, BASKET_W, BASKET_H);
-
-            // Draw warning if blocks are too many
-            if (blocks.length > 20) {
-                ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
-                ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-                ctx.fillStyle = "#ff0000";
-                ctx.font = "bold 20px Arial";
-                ctx.textAlign = "center";
-                ctx.fillText("위험!", CANVAS_W / 2, CANVAS_H / 2);
-            }
-        }
-
-        function gameEnd() {
-            document.getElementById("btnStart").disabled = false;
-            document.getElementById("btnStart").textContent = "다시 시작";
-            if (window.GameStats) {
-                GameStats.saveScore(PAGE_ID, name, score, () => {
-                    resetGame();
-                });
-            }
-        }
-
-        function resetGame() {
-            score = 0;
-            gameTime = 0;
-            blocks = [];
-            blocksCaught = 0;
-            speedMultiplier = 1;
-            basketX = CANVAS_W / 2 - BASKET_W / 2;
-            document.getElementById("timeValue").textContent = "0.0";
-        }
-
-        function gameLoop() {
-            updateGame();
-            drawGame();
-            requestAnimationFrame(gameLoop);
-        }
-
-        document.getElementById("btnStart").addEventListener("click", () => {
-            gameState = "running";
-            resetGame();
-            document.getElementById("btnStart").disabled = true;
-        });
-
-        document.addEventListener("mousemove", (e) => {
-            const rect = canvas.getBoundingClientRect();
-            mouseX = e.clientX - rect.left;
-        });
-
-        document.addEventListener("touchmove", (e) => {
-            const rect = canvas.getBoundingClientRect();
-            if (e.touches.length > 0) {
-                mouseX = e.touches[0].clientX - rect.left;
-            }
-        }, { passive: true });
-
-        gameLoop();
-    </script>
+      }
+    });
+  </script>
 </body>
-
 </html>

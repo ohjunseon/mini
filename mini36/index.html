@@ -4,83 +4,56 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>번개 타격 (mini36)</title>
+    <title>점프 콤보 (mini36)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        .grid-area {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin: 20px 0;
-            width: 100%;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
+        canvas {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #1a3a5c, #0f1f3c);
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            touch-action: none;
         }
 
-        .grid-cell {
-            aspect-ratio: 1;
-            background: #333;
-            border-radius: 10px;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-        }
-
-        .target-btn {
-            position: absolute;
-            width: 60%;
-            height: 60%;
-            border-radius: 50%;
-            background: var(--accent);
-            border: 3px solid #fff;
-            cursor: pointer;
+        .game-info {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.5rem;
-            color: #fff;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            opacity: 0;
-            animation: appear 0.2s forwards;
-            user-select: none;
-        }
-
-        @keyframes appear {
-            from {
-                opacity: 0;
-                transform: translate(-50%, -50%) scale(0.5);
-            }
-            to {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(1);
-            }
-        }
-
-        .target-btn:active {
-            transform: translate(-50%, -50%) scale(0.85);
-        }
-
-        .timer {
-            font-size: 3rem;
-            font-weight: bold;
-            text-align: center;
-            color: var(--accent);
+            justify-content: space-around;
             margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
         }
     </style>
-  <meta name="description" content="격자에서 스폰되는 요소 클릭 - 미니게임">
-  <meta name="keywords" content="반응, 미니게임, 게임">
+  <meta name="description" content="코인을 캐치해 콤보 보너스 획득! 연속 캐치로 점수 배수 증가 20초 - 미니게임">
+  <meta name="keywords" content="러너, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="⚡ 번개 타격">
-  <meta property="og:description" content="격자에서 스폰되는 요소 클릭">
+  <meta property="og:title" content="🏆 점프 콤보">
+  <meta property="og:description" content="코인을 캐치해 콤보 보너스 획득! 연속 캐치로 점수 배수 증가 20초">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini36/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="⚡ 번개 타격">
-  <meta property="twitter:description" content="격자에서 스폰되는 요소 클릭">
+  <meta property="twitter:title" content="🏆 점프 콤보">
+  <meta property="twitter:description" content="코인을 캐치해 콤보 보너스 획득! 연속 캐치로 점수 배수 증가 20초">
 </head>
 
 <body>
@@ -88,26 +61,25 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>⚡ 번개 타격</h1>
-                    <p>20초 동안 나타나는 요소를 클릭하세요!</p>
+                    <h1>🏆 점프 콤보</h1>
+                    <p>코인을 캐치하세요! 연속 캐치 = 콤보 보너스! 20초</p>
                 </header>
 
-                <div class="timer" id="timer">20.0</div>
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
 
-                <div class="grid-area" id="gridArea">
-                    <div class="grid-cell"></div>
-                    <div class="grid-cell"></div>
-                    <div class="grid-cell"></div>
-                    <div class="grid-cell"></div>
-                    <div class="grid-cell"></div>
-                    <div class="grid-cell"></div>
-                    <div class="grid-cell"></div>
-                    <div class="grid-cell"></div>
-                    <div class="grid-cell"></div>
-                </div>
-
-                <div class="stats-bar mb-4">
-                    <div class="stat-item">점수: <span id="score">0</span></div>
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">시간</div>
+                        <div class="info-value" id="timeValue">20.0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">점수</div>
+                        <div class="info-value" id="scoreValue">0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">콤보</div>
+                        <div class="info-value" id="comboValue">1x</div>
+                    </div>
                 </div>
 
                 <div class="controls mt-4">
@@ -129,9 +101,31 @@
 
     <script src="../shared/ranking.js"></script>
     <script src="../shared/juice.js"></script>
-
     <script>
         const PAGE_ID = "mini36";
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const CANVAS_W = 320;
+        const CANVAS_H = 480;
+        const PLAYER_SIZE = 25;
+        const PLAYER_Y = CANVAS_H - 50;
+
+        let gameState = "idle";
+        let score = 0;
+        let timeLeft = 20;
+        let gameTime = 0;
+        let playerX = CANVAS_W / 2;
+        let combo = 1;
+        let maxCombo = 1;
+
+        let items = [];
+        let spawnRate = 0.025;
+        let fallSpeed = 4;
+        let lastItemTime = 0;
+
+        let keysPressed = {};
+
         if (window.GameStats) {
             const rl = document.getElementById('rankList');
             GameStats.listenTopScores(PAGE_ID, 5, arr => {
@@ -139,109 +133,180 @@
             });
         }
 
-        const gridArea = document.getElementById('gridArea');
-        const cells = Array.from(gridArea.querySelectorAll('.grid-cell'));
-        const timerEl = document.getElementById('timer');
-        const scoreEl = document.getElementById('score');
-        const btnStart = document.getElementById('btnStart');
+        class Item {
+            constructor() {
+                this.x = Math.random() * (CANVAS_W - 30) + 15;
+                this.y = 0;
+                this.w = 20;
+                this.h = 20;
+                this.type = Math.random() < 0.7 ? 'coin' : 'obstacle';
+            }
 
-        let score = 0;
-        let time = 20.0;
-        let running = false;
-        let timer = null;
-        let spawnTimer = null;
+            update() {
+                this.y += fallSpeed;
+            }
 
-        function spawnTarget() {
-            if (!running) return;
-
-            const cellIdx = Math.floor(Math.random() * cells.length);
-            const cell = cells[cellIdx];
-
-            if (cell.querySelector('.target-btn')) return;
-
-            const btn = document.createElement('button');
-            btn.className = 'target-btn';
-            btn.innerHTML = '⚡';
-
-            let clicked = false;
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (!clicked) {
-                    clicked = true;
-                    score++;
-                    scoreEl.textContent = score;
-                    btn.remove();
+            draw() {
+                if (this.type === 'coin') {
+                    ctx.fillStyle = "#ffdd00";
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.w / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = "#ffaa00";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = "#ff6b6b";
+                    ctx.fillRect(this.x - this.w / 2, this.y - this.h / 2, this.w, this.h);
+                    ctx.strokeStyle = "#ff3333";
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(this.x - this.w / 2, this.y - this.h / 2, this.w, this.h);
                 }
-            });
+            }
 
-            btn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (!clicked) {
-                    clicked = true;
-                    score++;
-                    scoreEl.textContent = score;
-                    btn.remove();
-                }
-            }, { passive: false });
+            isOutOfBounds() {
+                return this.y > CANVAS_H;
+            }
 
-            cell.appendChild(btn);
-
-            setTimeout(() => {
-                if (btn.parentNode && !clicked) {
-                    btn.remove();
-                }
-            }, 1200);
-        }
-
-        function tick() {
-            time -= 0.1;
-            timerEl.textContent = time.toFixed(1);
-            if (time <= 0) {
-                time = 0;
-                gameOver();
+            checkCollision(px, py, ps) {
+                return this.x > px - ps / 2 && this.x < px + ps / 2 &&
+                    this.y > py - ps / 2 && this.y < py + ps / 2;
             }
         }
 
-        function gameOver() {
-            running = false;
-            clearInterval(timer);
-            clearInterval(spawnTimer);
-            btnStart.disabled = false;
-            btnStart.textContent = '다시 시작';
+        function updateGame() {
+            if (gameState !== "running") return;
 
-            cells.forEach(cell => {
-                const btn = cell.querySelector('.target-btn');
-                if (btn) btn.remove();
-            });
-            if (window.GameStats) {
-                GameStats.saveScore(PAGE_ID, name, score, () => {
-                    scoreEl.textContent = '0';
-                    score = 0;
-                    time = 20.0;
-                    timerEl.textContent = time.toFixed(1);
-                });
+            gameTime += 1 / 60;
+            timeLeft = Math.max(0, 20 - gameTime);
+            document.getElementById('timeValue').textContent = timeLeft.toFixed(1);
+
+            if (timeLeft <= 0) {
+                endGame();
+                return;
+            }
+
+            // 플레이어 이동
+            if (keysPressed['a'] || keysPressed['A'] || keysPressed['ArrowLeft']) {
+                playerX -= 4;
+            }
+            if (keysPressed['d'] || keysPressed['D'] || keysPressed['ArrowRight']) {
+                playerX += 4;
+            }
+
+            if (playerX < PLAYER_SIZE / 2) playerX = PLAYER_SIZE / 2;
+            if (playerX > CANVAS_W - PLAYER_SIZE / 2) playerX = CANVAS_W - PLAYER_SIZE / 2;
+
+            // 아이템 생성
+            if (Math.random() < spawnRate) {
+                items.push(new Item());
+            }
+
+            // 아이템 업데이트
+            for (let i = items.length - 1; i >= 0; i--) {
+                items[i].update();
+
+                if (items[i].checkCollision(playerX, PLAYER_Y, PLAYER_SIZE)) {
+                    if (items[i].type === 'coin') {
+                        score += combo;
+                        combo += 1;
+                        maxCombo = Math.max(maxCombo, combo);
+                        lastItemTime = gameTime;
+                    } else {
+                        combo = 1;
+                    }
+                    items.splice(i, 1);
+                    document.getElementById('scoreValue').textContent = score;
+                    document.getElementById('comboValue').textContent = combo + 'x';
+                } else if (items[i].isOutOfBounds()) {
+                    items.splice(i, 1);
+                    combo = 1;
+                    document.getElementById('comboValue').textContent = '1x';
+                }
             }
         }
 
-        btnStart.addEventListener('click', () => {
-            if (running) return;
-            running = true;
+        function drawGame() {
+            // 배경
+            ctx.fillStyle = "#0a1a35";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // 플레이어
+            ctx.fillStyle = "#00ff88";
+            ctx.fillRect(playerX - PLAYER_SIZE / 2, PLAYER_Y - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
+            ctx.strokeStyle = "#00cc66";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(playerX - PLAYER_SIZE / 2, PLAYER_Y - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
+
+            // 아이템
+            items.forEach(item => item.draw());
+
+            // UI
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "11px Arial";
+            ctx.textAlign = "left";
+            ctx.fillText("A/D 또는 ← → 이동", 10, 20);
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            gameState = "running";
             score = 0;
-            time = 20.0;
-            scoreEl.textContent = '0';
-            timerEl.textContent = '20.0';
-            btnStart.disabled = true;
+            combo = 1;
+            maxCombo = 1;
+            timeLeft = 20;
+            gameTime = 0;
+            playerX = CANVAS_W / 2;
+            items = [];
+            lastItemTime = 0;
+            document.getElementById('scoreValue').textContent = "0";
+            document.getElementById('comboValue').textContent = "1x";
+            document.getElementById('timeValue').textContent = "20.0";
+            document.getElementById('btnStart').disabled = true;
+        }
 
-            cells.forEach(cell => {
-                const btn = cell.querySelector('.target-btn');
-                if (btn) btn.remove();
-            });
+        function endGame() {
+            gameState = "idle";
+            document.getElementById('btnStart').disabled = false;
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, score);
+            }
+        }
 
-            timer = setInterval(tick, 100);
-            spawnTimer = setInterval(spawnTarget, 400);
-            spawnTarget();
+        document.getElementById('btnStart').addEventListener('click', startGame);
+
+        document.addEventListener('keydown', (e) => {
+            keysPressed[e.key] = true;
         });
+
+        document.addEventListener('keyup', (e) => {
+            keysPressed[e.key] = false;
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (gameState === "running") {
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                if (x < CANVAS_W / 2) {
+                    keysPressed['ArrowLeft'] = true;
+                } else {
+                    keysPressed['ArrowRight'] = true;
+                }
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('touchend', (e) => {
+            keysPressed['ArrowLeft'] = false;
+            keysPressed['ArrowRight'] = false;
+        }, { passive: true });
+
+        gameLoop();
     </script>
 </body>
 

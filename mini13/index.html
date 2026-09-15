@@ -4,52 +4,56 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>틱택토 (mini13)</title>
+    <title>가위바위보 (mini13)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        .board {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            width: 300px;
-            margin: 0 auto;
-        }
-
-        .cell {
-            aspect-ratio: 1/1;
-            background: var(--panel-border);
-            border-radius: 12px;
+        .rps-choices {
             display: flex;
+            gap: 20px;
             justify-content: center;
-            align-items: center;
+            margin: 30px 0;
+        }
+
+        .choice-btn {
             font-size: 3rem;
-            font-weight: bold;
+            padding: 20px;
+            border-radius: 20px;
+            background: var(--panel-border);
+            border: 2px solid transparent;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: transform 0.2s;
         }
 
-        .cell:hover {
-            background: rgba(255, 255, 255, 0.1);
+        .choice-btn:hover {
+            transform: translateY(-5px);
+            background: #2a355a;
         }
 
-        .cell.x {
-            color: var(--accent);
+        .result-area {
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            font-size: 2rem;
         }
 
-        .cell.o {
-            color: var(--good);
+        .vs {
+            font-size: 1rem;
+            color: var(--muted);
+            font-weight: bold;
         }
     </style>
-  <meta name="description" content="3목 두기 vs AI - 미니게임">
-  <meta name="keywords" content="퍼즐, 미니게임, 게임">
+  <meta name="description" content="연승 도전 - 미니게임">
+  <meta name="keywords" content="격게임, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="⭕ 틱택토 ❌">
-  <meta property="og:description" content="3목 두기 vs AI">
+  <meta property="og:title" content="✌️✊🖐 가위바위보">
+  <meta property="og:description" content="연승 도전">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini13/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="⭕ 틱택토 ❌">
-  <meta property="twitter:description" content="3목 두기 vs AI">
+  <meta property="twitter:title" content="✌️✊🖐 가위바위보">
+  <meta property="twitter:description" content="연승 도전">
 </head>
 
 <body>
@@ -57,34 +61,31 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>⭕ 틱택토 ❌</h1>
-                    <p>AI를 이겨보세요! (3목을 완성하세요)</p>
+                    <h1>✌️✊🖐 가위바위보</h1>
+                    <p>AI를 상대로 연승에 도전하세요!</p>
                 </header>
 
-                <div class="board" id="board">
-                    <div class="cell" data-i="0"></div>
-                    <div class="cell" data-i="1"></div>
-                    <div class="cell" data-i="2"></div>
-                    <div class="cell" data-i="3"></div>
-                    <div class="cell" data-i="4"></div>
-                    <div class="cell" data-i="5"></div>
-                    <div class="cell" data-i="6"></div>
-                    <div class="cell" data-i="7"></div>
-                    <div class="cell" data-i="8"></div>
+                <div class="result-area">
+                    <div id="uChoice">❔</div>
+                    <div class="vs">VS</div>
+                    <div id="cChoice">❔</div>
                 </div>
 
-                <div id="msg" class="mt-4" style="font-weight:bold; height: 24px;">당신의 차례입니다 (⭕)</div>
+                <div id="msg" class="mt-4" style="font-weight:bold; font-size: 1.2rem;">선택하세요!</div>
 
-                <div class="controls mt-4">
-                    <button id="btnReset" class="btn">다시 하기</button>
+                <div class="rps-choices">
+                    <button class="choice-btn" onclick="play('rock')">✊</button>
+                    <button class="choice-btn" onclick="play('scissors')">✌️</button>
+                    <button class="choice-btn" onclick="play('paper')">🖐</button>
                 </div>
 
                 <div class="stats-bar mt-4">
-                    <div class="stat-item">연승: <span id="streak">0</span></div>
+                    <div class="stat-item">현재 연승: <span id="streak">0</span></div>
+                    <div class="stat-item">최고 연승: <span id="maxStreak">0</span></div>
                 </div>
 
                 <div class="panel mt-4" style="text-align: left;">
-                    <h3>🏆 랭킹 (최대 연승)</h3>
+                    <h3>🏆 랭킹 (최다 연승)</h3>
                     <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
                         <li>...</li>
                     </ul>
@@ -108,119 +109,55 @@
             });
         }
 
-        const cells = document.querySelectorAll('.cell');
+        const uEl = document.getElementById('uChoice');
+        const cEl = document.getElementById('cChoice');
         const msg = document.getElementById('msg');
-        const streakEl = document.getElementById('streak');
-        let board = Array(9).fill(null);
+        const sEl = document.getElementById('streak');
+        const mEl = document.getElementById('maxStreak');
+
         let streak = 0;
-        let gameActive = true;
-        let player = 'O'; // Human
-        let ai = 'X'; // Computer
+        let max = 0;
 
-        function checkWin(bd, p) {
-            const wins = [
-                [0, 1, 2], [3, 4, 5], [6, 7, 8],
-                [0, 3, 6], [1, 4, 7], [2, 5, 8],
-                [0, 4, 8], [2, 4, 6]
-            ];
-            return wins.some(c => bd[c[0]] === p && bd[c[1]] === p && bd[c[2]] === p);
-        }
+        const MAP = { rock: '✊', scissors: '✌️', paper: '🖐' };
+        const KEYS = ['rock', 'scissors', 'paper'];
 
-        function checkDraw(bd) {
-            return bd.every(c => c !== null);
-        }
+        function play(user) {
+            const comp = KEYS[Math.floor(Math.random() * 3)];
 
-        function aiMove() {
-            if (!gameActive) return;
+            uEl.textContent = MAP[user];
+            cEl.textContent = MAP[comp];
 
-            // Simple AI: Random empty spot
-            const empty = board.map((v, i) => v === null ? i : null).filter(v => v !== null);
-            if (empty.length === 0) return;
+            let res = ''; // win, lose, draw
 
-            // Try to win or block (Simple enhancement)
-            // Check win
-            for (let i of empty) {
-                let t = [...board]; t[i] = ai;
-                if (checkWin(t, ai)) { move(i, ai); return; }
-            }
-            // Check block
-            for (let i of empty) {
-                let t = [...board]; t[i] = player;
-                if (checkWin(t, player)) { move(i, ai); return; }
-            }
-
-            // Random
-            const idx = empty[Math.floor(Math.random() * empty.length)];
-            move(idx, ai);
-        }
-
-        function move(idx, p) {
-            board[idx] = p;
-            cells[idx].textContent = p === player ? '⭕' : '❌';
-            cells[idx].classList.add(p === player ? 'o' : 'x');
-
-            if (checkWin(board, p)) {
-                endGame(p === player ? 'win' : 'lose');
-            } else if (checkDraw(board)) {
-                endGame('draw');
-            } else {
-                if (p === player) {
-                    msg.textContent = "AI 생각 중...";
-                    setTimeout(aiMove, 500);
-                } else {
-                    msg.textContent = "당신의 차례입니다 (⭕)";
-                }
-            }
-        }
-
-        function endGame(res) {
-            gameActive = false;
-            if (res === 'win') {
+            if (user === comp) {
+                res = 'draw';
+                msg.textContent = "무승부! 연승 유지";
+                msg.style.color = "var(--text)";
+            } else if (
+                (user === 'rock' && comp === 'scissors') ||
+                (user === 'scissors' && comp === 'paper') ||
+                (user === 'paper' && comp === 'rock')
+            ) {
+                res = 'win';
                 streak++;
+                if (streak > max) max = streak;
                 msg.textContent = "승리! 🎉";
                 msg.style.color = "var(--good)";
-            } else if (res === 'lose') {
+            } else {
+                res = 'lose';
                 if (streak > 0) save(streak);
                 streak = 0;
-                msg.textContent = "패배... 😢";
+                msg.textContent = "패배 😭 다시 시작";
                 msg.style.color = "var(--bad)";
-            } else {
-                msg.textContent = "무승부";
-                msg.style.color = "var(--text)";
             }
-            streakEl.textContent = streak;
+
+            sEl.textContent = streak;
+            mEl.textContent = max;
         }
 
         function save(s) {
             Juice.submit(PAGE_ID, s);
         }
-
-        function reset() {
-            board.fill(null);
-            cells.forEach(c => {
-                c.textContent = '';
-                c.className = 'cell';
-            });
-            gameActive = true;
-            msg.textContent = "당신의 차례입니다 (⭕)";
-            msg.style.color = "var(--text)";
-        }
-
-        cells.forEach(c => {
-            c.onclick = () => {
-                const i = +c.dataset.i;
-                if (gameActive && board[i] === null) {
-                    move(i, player);
-                }
-            }
-        });
-
-        document.getElementById('btnReset').onclick = () => {
-            if (gameActive) streak = 0; // forfeit
-            streakEl.textContent = streak;
-            reset();
-        };
-
     </script>
 </body>
 

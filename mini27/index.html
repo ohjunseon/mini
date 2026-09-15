@@ -4,32 +4,54 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>암산 왕 (mini27)</title>
+    <title>버튼 클릭 레이스 (mini27)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        .prob {
-            font-size: 2.5rem;
-            margin: 30px 0;
-            font-weight: bold;
+        .click-btn {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 8px solid #fff;
+            font-size: 2rem;
+            color: #fff;
+            cursor: pointer;
+            margin: 30px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            transition: all 0.05s;
         }
 
-        input.ans {
-            font-size: 1.5rem;
-            padding: 10px;
-            width: 120px;
+        .click-btn:active {
+            transform: scale(0.92);
+            background: #2563eb;
+        }
+
+        .click-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .timer {
+            font-size: 3rem;
+            font-weight: bold;
             text-align: center;
+            color: var(--accent);
+            margin: 20px 0;
         }
     </style>
-  <meta name="description" content="빠른 계산 - 미니게임">
-  <meta name="keywords" content="트레이닝, 미니게임, 게임">
+  <meta name="description" content="10초 동안 최대한 많이 클릭 - 미니게임">
+  <meta name="keywords" content="반응, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🧠 암산 왕">
-  <meta property="og:description" content="빠른 계산">
+  <meta property="og:title" content="⚡ 버튼 클릭 레이스">
+  <meta property="og:description" content="10초 동안 최대한 많이 클릭">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini27/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🧠 암산 왕">
-  <meta property="twitter:description" content="빠른 계산">
+  <meta property="twitter:title" content="⚡ 버튼 클릭 레이스">
+  <meta property="twitter:description" content="10초 동안 최대한 많이 클릭">
 </head>
 
 <body>
@@ -37,25 +59,19 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>🧠 암산 왕</h1>
-                    <p>1분 동안 문제를 푸세요!</p>
+                    <h1>⚡ 버튼 클릭 레이스</h1>
+                    <p>10초 동안 최대한 많이 클릭하세요!</p>
                 </header>
 
+                <div class="timer" id="timer">10.0</div>
+                <div class="click-btn" id="clickBtn">클릭!</div>
+
                 <div class="stats-bar mb-4">
-                    <div class="stat-item">시간: <span id="time">60</span>s</div>
                     <div class="stat-item">점수: <span id="score">0</span></div>
                 </div>
 
-                <div class="prob" id="prob">Ready?</div>
-
-                <div style="display:flex; justify-content:center; gap:10px;">
-                    <input type="number" id="ans" class="ans" placeholder="?" disabled
-                        onkeypress="if(event.key==='Enter') runCheck()">
-                    <button id="btnSub" class="btn" style="width: auto;" onclick="runCheck()" disabled>제출</button>
-                </div>
-
                 <div class="controls mt-4">
-                    <button id="btnStart" class="btn">시작</button>
+                    <button id="btnStart" class="btn">게임 시작</button>
                 </div>
 
                 <div class="panel mt-4" style="text-align: left;">
@@ -76,72 +92,76 @@
 
     <script>
         const PAGE_ID = "mini27";
-        if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
+        if (window.GameStats) {
             const rl = document.getElementById('rankList');
-            rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}점)</li>`).join('');
-        });
-
-        const pEl = document.getElementById('prob');
-        const inp = document.getElementById('ans');
-        const btnSub = document.getElementById('btnSub');
-        const btnS = document.getElementById('btnStart');
-        const tEl = document.getElementById('time');
-        const sEl = document.getElementById('score');
-
-        let score = 0;
-        let time = 60;
-        let answer = 0;
-        let timer = null;
-
-        function gen() {
-            const ops = ['+', '-', '*'];
-            const op = ops[Math.floor(Math.random() * 3)];
-            let a = Math.floor(Math.random() * 50) + 1;
-            let b = Math.floor(Math.random() * 50) + 1;
-
-            if (op === '*') { a = Math.floor(Math.random() * 12) + 1; b = Math.floor(Math.random() * 9) + 1; }
-            if (op === '-') { if (a < b) [a, b] = [b, a]; } // positive result
-
-            if (op === '+') answer = a + b;
-            if (op === '-') answer = a - b;
-            if (op === '*') answer = a * b;
-
-            pEl.textContent = `${a} ${op} ${b}`;
-            inp.value = '';
-            inp.focus();
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
         }
 
-        function runCheck() {
-            if (parseInt(inp.value) === answer) {
-                score++;
-                sEl.textContent = score;
-                gen();
-            } else {
-                inp.value = '';
-                inp.focus();
+        const clickBtn = document.getElementById('clickBtn');
+        const timerEl = document.getElementById('timer');
+        const scoreEl = document.getElementById('score');
+        const btnStart = document.getElementById('btnStart');
+
+        let score = 0;
+        let time = 10.0;
+        let running = false;
+        let timer = null;
+
+        function tick() {
+            time -= 0.1;
+            timerEl.textContent = time.toFixed(1);
+            if (time <= 0) {
+                time = 0;
+                gameOver();
             }
         }
 
-        function start() {
-            score = 0; sEl.textContent = 0; time = 60;
-            inp.disabled = false; btnSub.disabled = false;
-            btnS.style.display = 'none';
-            gen();
-            timer = setInterval(() => {
-                time--;
-                tEl.textContent = time;
-                if (time <= 0) {
-                    clearInterval(timer);
-                    inp.disabled = true; btnSub.disabled = true;
-                    Juice.toast("종료! 점수: ${score}", "info");
-                    const nick = localStorage.getItem('nickname') || '익명';
-                    Juice.submit(PAGE_ID, score);
-                    btnS.style.display = 'inline-block';
-                }
-            }, 1000);
+        function gameOver() {
+            running = false;
+            clearInterval(timer);
+            clickBtn.disabled = true;
+            btnStart.disabled = false;
+            btnStart.textContent = '다시 시작';
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, score, () => {
+                    scoreEl.textContent = '0';
+                    score = 0;
+                    time = 10.0;
+                    timerEl.textContent = time.toFixed(1);
+                    clickBtn.disabled = false;
+                });
+            }
         }
 
-        btnS.onclick = start;
+        clickBtn.addEventListener('click', () => {
+            if (running) {
+                score++;
+                scoreEl.textContent = score;
+            }
+        });
+
+        btnStart.addEventListener('click', () => {
+            if (running) return;
+            running = true;
+            score = 0;
+            time = 10.0;
+            scoreEl.textContent = '0';
+            timerEl.textContent = '10.0';
+            btnStart.disabled = true;
+            clickBtn.disabled = false;
+
+            timer = setInterval(tick, 100);
+        });
+
+        clickBtn.addEventListener('touchstart', (e) => {
+            if (running) {
+                e.preventDefault();
+                score++;
+                scoreEl.textContent = score;
+            }
+        }, { passive: false });
     </script>
 </body>
 

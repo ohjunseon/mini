@@ -1,265 +1,247 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>별 모으기 (mini44)</title>
-    <link rel="stylesheet" href="../shared/style.css">
-    <style>
-        canvas {
-            border: 2px solid var(--accent);
-            border-radius: 8px;
-            background: linear-gradient(180deg, #1a0033, #0d001a);
-            display: block;
-            margin: 20px auto;
-            max-width: 100%;
-            touch-action: none;
-        }
-
-        .game-info {
-            display: flex;
-            justify-content: space-around;
-            margin: 20px 0;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .info-item {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 12px 20px;
-            border-radius: 8px;
-            border: 1px solid var(--panel-border);
-        }
-
-        .info-label {
-            font-size: 0.85rem;
-            color: var(--muted);
-            margin-bottom: 4px;
-        }
-
-        .info-value {
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: var(--accent);
-        }
-    </style>
-  <meta name="description" content="떨어지는 별을 모아 레벨 업 - 미니게임">
-  <meta name="keywords" content="캐치, 미니게임, 게임">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>보드 게임</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .board {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 8px;
+      margin: 20px auto;
+      max-width: 500px;
+      padding: 0 10px;
+    }
+    .square {
+      aspect-ratio: 1;
+      background: linear-gradient(135deg, #1a2555, #2a3f8a);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: var(--muted);
+      position: relative;
+      min-height: 50px;
+    }
+    .square.special {
+      background: linear-gradient(135deg, #ff9a56, #ff7a3d);
+      color: white;
+    }
+    .square.special.negative {
+      background: linear-gradient(135deg, #5b9cff, #3d7ae8);
+      color: white;
+    }
+    .player-marker {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      font-size: 0.8rem;
+      background: var(--good);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .dice-display {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .dice-num {
+      font-size: 3rem;
+      font-weight: bold;
+      color: var(--accent);
+      margin: 10px 0;
+    }
+  </style>
+  <meta name="description" content="전략 보드 게임 - 미니게임">
+  <meta name="keywords" content="카드, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="⭐ 별 모으기">
-  <meta property="og:description" content="떨어지는 별을 모아 레벨 업">
+  <meta property="og:title" content="🎲 보드 게임">
+  <meta property="og:description" content="전략 보드 게임">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini44/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="⭐ 별 모으기">
-  <meta property="twitter:description" content="떨어지는 별을 모아 레벨 업">
+  <meta property="twitter:title" content="🎲 보드 게임">
+  <meta property="twitter:description" content="전략 보드 게임">
 </head>
-
 <body>
-    <div class="container">
-        <div class="game-container">
-            <div class="card">
-                <header class="mb-4">
-                    <h1>⭐ 별 모으기</h1>
-                    <p>떨어지는 별을 모아 레벨을 올려보세요!</p>
-                </header>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🎲 보드 게임</h1>
+          <p>주사위를 굴려 100번 칸까지 도달하세요!</p>
+        </header>
 
-                <canvas id="gameCanvas" width="320" height="480"></canvas>
-
-                <div class="game-info">
-                    <div class="info-item">
-                        <div class="info-label">시간</div>
-                        <div class="info-value" id="timeValue">20.0</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">레벨</div>
-                        <div class="info-value" id="scoreValue">1</div>
-                    </div>
-                </div>
-
-                <div class="controls mt-4">
-                    <button id="btnStart" class="btn">게임 시작</button>
-                </div>
-
-                <div class="panel mt-4" style="text-align: left;">
-                    <h3>🏆 랭킹</h3>
-                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
-                        <li>...</li>
-                    </ul>
-                </div>
-              <div class="mt-4">
-                <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
-              </div>
-            </div>
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">현재 위치</span>
+            <span class="stat-value" id="position">1</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">이동 횟수</span>
+            <span class="stat-value" id="moves">0</span>
+          </div>
         </div>
+
+        <div class="board" id="board"></div>
+
+        <div class="dice-display">
+          <p style="color: var(--muted); margin: 5px 0;">주사위 결과</p>
+          <div class="dice-num" id="diceNum">-</div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="margin: 0; font-size: 1rem; color: var(--muted);" id="message">게임을 시작하세요!</p>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+          <button class="btn" id="rollBtn" onclick="roll()">🎲 주사위 굴리기</button>
+        </div>
+
+        <div style="background: rgba(91, 156, 255, 0.1); padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left;">
+          <h4 style="margin-top: 0;">특수 칸:</h4>
+          <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9rem;">
+            <li><span style="color: #ff9a56;">🔺 +10칸</span>: 해당 칸에서 10칸 추가 진행</li>
+            <li><span style="color: #5b9cff;">🔻 -5칸</span>: 해당 칸에서 5칸 후퇴</li>
+          </ul>
+        </div>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5 (가장 먼 거리)</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <script src="../shared/ranking.js"></script>
+  <script src="../shared/ranking.js"></script>
     <script src="../shared/juice.js"></script>
-    <script>
-        const PAGE_ID = "mini44";
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
+  <script>
+    const PAGE_ID = "mini44";
+    let position = 1;
+    let moves = 0;
+    let gameActive = true;
+    let bestDistance = 1;
 
-        const CANVAS_W = 320;
-        const CANVAS_H = 480;
-        const PLAYER_SIZE = 20;
+    // Board setup: 1-100
+    const SPECIAL_SQUARES = {
+      15: { bonus: 10, type: 'positive' },
+      25: { bonus: 10, type: 'positive' },
+      35: { bonus: 10, type: 'positive' },
+      45: { bonus: 10, type: 'positive' },
+      60: { bonus: 10, type: 'positive' },
+      20: { bonus: -5, type: 'negative' },
+      40: { bonus: -5, type: 'negative' },
+      75: { bonus: -5, type: 'negative' }
+    };
 
-        let gameState = "idle";
-        let level = 1;
-        let starsCaught = 0;
-        let timeLeft = 20;
-        let gameTime = 0;
-        let playerX = CANVAS_W / 2;
-        let playerY = CANVAS_H - 50;
+    function initBoard() {
+      const board = document.getElementById('board');
+      board.innerHTML = "";
+      for (let i = 1; i <= 100; i++) {
+        const square = document.createElement('div');
+        square.className = 'square';
+        square.id = `square${i}`;
 
-        let stars = [];
-        let fallSpeed = 2;
-
-        // Load ranking
-        if (window.GameStats) {
-            const rl = document.getElementById('rankList');
-            GameStats.listenTopScores(PAGE_ID, 5, arr => {
-                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (레벨 ${d.score})</li>`).join('');
-            });
+        if (SPECIAL_SQUARES[i]) {
+          const special = SPECIAL_SQUARES[i];
+          square.classList.add('special');
+          if (special.type === 'negative') square.classList.add('negative');
+          const symbol = special.type === 'positive' ? `+${special.bonus}` : `${special.bonus}`;
+          square.textContent = `${i}\\n${symbol}`;
+        } else {
+          square.textContent = i;
         }
 
-        class Star {
-            constructor() {
-                this.x = Math.random() * (CANVAS_W - 30) + 15;
-                this.y = -20;
-                this.size = 12;
-            }
+        board.appendChild(square);
+      }
+    }
 
-            update() {
-                this.y += fallSpeed * (1 + (level - 1) * 0.15);
-            }
+    function updatePosition() {
+      // Remove old marker
+      document.querySelectorAll('.player-marker').forEach(m => m.remove());
 
-            draw() {
-                drawStar(this.x, this.y, this.size, "#ffff00");
-            }
+      // Add new marker
+      const targetSquare = document.getElementById(`square${Math.min(position, 100)}`);
+      if (targetSquare) {
+        const marker = document.createElement('div');
+        marker.className = 'player-marker';
+        marker.textContent = '🎯';
+        targetSquare.appendChild(marker);
+      }
 
-            isOutOfBounds() {
-                return this.y > CANVAS_H;
-            }
+      document.getElementById('position').textContent = position;
+      bestDistance = Math.max(bestDistance, position);
+    }
 
-            checkCollision(px, py, ps) {
-                const dx = this.x - px;
-                const dy = this.y - py;
-                return Math.sqrt(dx * dx + dy * dy) < ps + this.size;
-            }
+    function roll() {
+      if (!gameActive) return;
+
+      const dice = Math.floor(Math.random() * 6) + 1;
+      document.getElementById('diceNum').textContent = dice;
+      moves++;
+      document.getElementById('moves').textContent = moves;
+
+      position += dice;
+
+      if (SPECIAL_SQUARES[position]) {
+        const special = SPECIAL_SQUARES[position];
+        position += special.bonus;
+        position = Math.max(1, Math.min(position, 100));
+        document.getElementById('message').textContent = `${dice}칸 이동! 특수칸 발동 ${special.type === 'positive' ? '+' : ''}${special.bonus}칸`;
+      } else {
+        document.getElementById('message').textContent = `${dice}칸 이동!`;
+      }
+
+      position = Math.min(position, 100);
+      updatePosition();
+
+      if (position === 100) {
+        gameActive = false;
+        document.getElementById('rollBtn').disabled = true;
+        document.getElementById('message').textContent = `🎉 완료! ${moves}회 만에 도달!`;
+        endGame();
+      }
+    }
+
+    function endGame() {
+      Juice.submit(PAGE_ID, position);
+    }
+
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, () => {});
+      GameStats.listenTopScores(PAGE_ID, 5, (arr) => {
+        const rankList = document.getElementById('rankList');
+        rankList.innerHTML = "";
+        if (!arr || arr.length === 0) {
+          rankList.innerHTML = "<li>기록이 없습니다.</li>";
+          return;
         }
-
-        function drawStar(x, y, size, color) {
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            for (let i = 0; i < 5; i++) {
-                const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
-                const px = x + size * Math.cos(angle);
-                const py = y + size * Math.sin(angle);
-                if (i === 0) ctx.moveTo(px, py);
-                else ctx.lineTo(px, py);
-            }
-            ctx.closePath();
-            ctx.fill();
-        }
-
-        function updateGame() {
-            if (gameState !== "running") return;
-
-            gameTime += 0.016;
-            timeLeft = Math.max(0, 20 - gameTime);
-            document.getElementById("timeValue").textContent = timeLeft.toFixed(1);
-
-            // Spawn stars
-            if (Math.random() < (0.02 + level * 0.01)) {
-                stars.push(new Star());
-            }
-
-            // Update and check collisions
-            for (let i = stars.length - 1; i >= 0; i--) {
-                stars[i].update();
-
-                if (stars[i].checkCollision(playerX, playerY, PLAYER_SIZE)) {
-                    starsCaught++;
-                    if (starsCaught % 3 === 0) {
-                        level++;
-                        document.getElementById("scoreValue").textContent = level;
-                    }
-                    stars.splice(i, 1);
-                } else if (stars[i].isOutOfBounds()) {
-                    stars.splice(i, 1);
-                }
-            }
-
-            if (timeLeft <= 0) {
-                gameState = "over";
-                gameEnd();
-            }
-        }
-
-        function drawGame() {
-            ctx.fillStyle = "rgba(26, 0, 51, 0.8)";
-            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-            // Draw stars
-            stars.forEach(star => star.draw());
-
-            // Draw player (star)
-            drawStar(playerX, playerY, PLAYER_SIZE, "#00ffff");
-        }
-
-        function gameEnd() {
-            document.getElementById("btnStart").disabled = false;
-            document.getElementById("btnStart").textContent = "다시 시작";
-            if (window.GameStats) {
-                GameStats.saveScore(PAGE_ID, name, level, () => {
-                    resetGame();
-                });
-            }
-        }
-
-        function resetGame() {
-            level = 1;
-            starsCaught = 0;
-            timeLeft = 20;
-            gameTime = 0;
-            stars = [];
-            playerX = CANVAS_W / 2;
-            playerY = CANVAS_H - 50;
-            document.getElementById("scoreValue").textContent = "1";
-            document.getElementById("timeValue").textContent = "20.0";
-        }
-
-        function gameLoop() {
-            updateGame();
-            drawGame();
-            requestAnimationFrame(gameLoop);
-        }
-
-        document.getElementById("btnStart").addEventListener("click", () => {
-            gameState = "running";
-            resetGame();
-            document.getElementById("btnStart").disabled = true;
+        arr.forEach((item, idx) => {
+          const li = document.createElement('li');
+          li.textContent = `${idx + 1}위: ${item.name} - ${item.score}칸`;
+          rankList.appendChild(li);
         });
+      });
+    }
 
-        document.addEventListener("mousemove", (e) => {
-            const rect = canvas.getBoundingClientRect();
-            playerX = Math.max(PLAYER_SIZE, Math.min(CANVAS_W - PLAYER_SIZE, e.clientX - rect.left));
-            playerY = Math.max(PLAYER_SIZE, Math.min(CANVAS_H - PLAYER_SIZE, e.clientY - rect.top));
-        });
-
-        document.addEventListener("touchmove", (e) => {
-            const rect = canvas.getBoundingClientRect();
-            if (e.touches.length > 0) {
-                playerX = Math.max(PLAYER_SIZE, Math.min(CANVAS_W - PLAYER_SIZE, e.touches[0].clientX - rect.left));
-                playerY = Math.max(PLAYER_SIZE, Math.min(CANVAS_H - PLAYER_SIZE, e.touches[0].clientY - rect.top));
-            }
-        }, { passive: true });
-
-        gameLoop();
-    </script>
+    initBoard();
+    updatePosition();
+  </script>
 </body>
-
 </html>

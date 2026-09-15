@@ -4,88 +4,27 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>사이먼 게임 (mini15)</title>
+    <title>핑퐁 (mini15)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        .simon-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            width: 300px;
-            margin: 20px auto;
-            position: relative;
-        }
-
-        .simon-btn {
-            aspect-ratio: 1/1;
-            border-radius: 20px;
-            cursor: pointer;
-            opacity: 0.6;
-            transition: opacity 0.1s, transform 0.1s;
-            border: none;
-        }
-
-        .simon-btn:active {
-            transform: scale(0.95);
-        }
-
-        .simon-btn.lit {
-            opacity: 1;
-            box-shadow: 0 0 20px currentColor;
-        }
-
-        .c-0 {
-            background-color: var(--bad);
-            color: var(--bad);
-        }
-
-        /* Red */
-        .c-1 {
-            background-color: #3b82f6;
-            color: #3b82f6;
-        }
-
-        /* Blue */
-        .c-2 {
-            background-color: var(--good);
-            color: var(--good);
-        }
-
-        /* Green */
-        .c-3 {
-            background-color: #eab308;
-            color: #eab308;
-        }
-
-        /* Yellow */
-
-        .center-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--panel);
-            border: 4px solid var(--panel-border);
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-            font-weight: bold;
+        canvas {
+            background: #000;
+            border: 2px solid var(--accent);
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
         }
     </style>
-  <meta name="description" content="기억력 패턴 - 미니게임">
-  <meta name="keywords" content="리듬, 미니게임, 게임">
+  <meta name="description" content="AI 대전 탁구 - 미니게임">
+  <meta name="keywords" content="격게임, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🧠 사이먼 게임">
-  <meta property="og:description" content="기억력 패턴">
+  <meta property="og:title" content="🏓 핑퐁 게임">
+  <meta property="og:description" content="AI 대전 탁구">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini15/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🧠 사이먼 게임">
-  <meta property="twitter:description" content="기억력 패턴">
+  <meta property="twitter:title" content="🏓 핑퐁 게임">
+  <meta property="twitter:description" content="AI 대전 탁구">
 </head>
 
 <body>
@@ -93,26 +32,23 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>🧠 사이먼 게임</h1>
-                    <p>빛나는 순서를 기억하고 따라하세요!</p>
+                    <h1>🏓 핑퐁 게임</h1>
+                    <p>AI(오른쪽)를 이기세요! 5점 내기 (마우스/터치)</p>
                 </header>
 
-                <div class="simon-grid">
-                    <button class="simon-btn c-0" id="b0"></button>
-                    <button class="simon-btn c-1" id="b1"></button>
-                    <button class="simon-btn c-2" id="b2"></button>
-                    <button class="simon-btn c-3" id="b3"></button>
-                    <div class="center-overlay" id="roundDisp">Start</div>
-                </div>
-
-                <div id="msg" class="mt-4" style="height: 24px;">시작 버튼을 누르세요</div>
+                <canvas id="pong" width="600" height="400"></canvas>
 
                 <div class="controls mt-4">
-                    <button id="btnStart" class="btn">게임 시작</button>
+                    <button id="btnStart" class="btn">시작</button>
+                </div>
+
+                <div class="stats-bar mt-4">
+                    <div class="stat-item">나: <span id="pScore">0</span></div>
+                    <div class="stat-item">AI: <span id="cScore">0</span></div>
                 </div>
 
                 <div class="panel mt-4" style="text-align: left;">
-                    <h3>🏆 랭킹 (최고 라운드)</h3>
+                    <h3>🏆 랭킹 (점수 차)</h3>
                     <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
                         <li>...</li>
                     </ul>
@@ -132,108 +68,157 @@
         if (window.GameStats) {
             GameStats.listenTopScores(PAGE_ID, 5, arr => {
                 const rl = document.getElementById('rankList');
-                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}라운드)</li>`).join('');
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}점)</li>`).join('');
             });
         }
 
-        const btns = [
-            document.getElementById('b0'),
-            document.getElementById('b1'),
-            document.getElementById('b2'),
-            document.getElementById('b3')
-        ];
-        const rLabel = document.getElementById('roundDisp');
-        const msg = document.getElementById('msg');
-        const startBtn = document.getElementById('btnStart');
+        const cvs = document.getElementById('pong');
+        const ctx = cvs.getContext('2d');
+        const btn = document.getElementById('btnStart');
+        const pScoreEl = document.getElementById('pScore');
+        const cScoreEl = document.getElementById('cScore');
 
-        let sequence = [];
-        let userSeq = [];
-        let round = 0;
-        let playing = false;
-        let inputLocked = true;
+        const user = { x: 0, y: cvs.height / 2 - 50, w: 10, h: 100, color: "WHITE", score: 0 };
+        const com = { x: cvs.width - 10, y: cvs.height / 2 - 50, w: 10, h: 100, color: "WHITE", score: 0 };
+        const ball = { x: cvs.width / 2, y: cvs.height / 2, r: 10, speed: 7, velocityX: 5, velocityY: 5, color: "WHITE" };
+        const net = { x: (cvs.width - 2) / 2, y: 0, w: 2, h: 10, color: "WHITE" };
 
-        // Sounds (Simple oscillators)
-        const freqs = [300, 400, 500, 600];
-        const ac = new (window.AudioContext || window.webkitAudioContext)();
+        let loopId;
+        let running = false;
 
-        function beep(idx) {
-            const osc = ac.createOscillator();
-            const g = ac.createGain();
-            osc.frequency.value = freqs[idx];
-            osc.connect(g).connect(ac.destination);
-            osc.start();
-            g.gain.exponentialRampToValueAtTime(0.00001, ac.currentTime + 0.3);
-            osc.stop(ac.currentTime + 0.3);
+        function drawRect(x, y, w, h, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, w, h);
         }
-
-        function flash(idx) {
-            const b = btns[idx];
-            b.classList.add('lit');
-            beep(idx);
-            setTimeout(() => b.classList.remove('lit'), 300);
+        function drawCircle(x, y, r, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2, false);
+            ctx.closePath();
+            ctx.fill();
         }
-
-        async function playSequence() {
-            inputLocked = true;
-            msg.textContent = "보세요!";
-
-            await new Promise(r => setTimeout(r, 800));
-
-            for (let idx of sequence) {
-                flash(idx);
-                await new Promise(r => setTimeout(r, 600));
-            }
-
-            inputLocked = false;
-            msg.textContent = "따라하세요!";
-        }
-
-        function nextRound() {
-            round++;
-            rLabel.textContent = round;
-            userSeq = [];
-            sequence.push(Math.floor(Math.random() * 4));
-            playSequence();
-        }
-
-        function gameOver() {
-            playing = false;
-            Juice.toast("게임 오버! 도달 라운드: ${round}", "info");
-            Juice.submit(PAGE_ID, round);
-
-            startBtn.style.display = 'inline-block';
-            startBtn.textContent = "다시 하기";
-            msg.textContent = "게임 오버";
-        }
-
-        function handleInput(idx) {
-            if (!playing || inputLocked) return;
-
-            flash(idx);
-            userSeq.push(idx);
-
-            if (userSeq[userSeq.length - 1] !== sequence[userSeq.length - 1]) {
-                gameOver();
-                return;
-            }
-
-            if (userSeq.length === sequence.length) {
-                inputLocked = true;
-                setTimeout(nextRound, 1000);
+        function drawNet() {
+            for (let i = 0; i <= cvs.height; i += 15) {
+                drawRect(net.x, net.y + i, net.w, net.h, net.color);
             }
         }
 
-        btns.forEach((b, i) => b.onclick = () => handleInput(i));
+        function resetBall() {
+            ball.x = cvs.width / 2;
+            ball.y = cvs.height / 2;
+            ball.velocityX = -ball.velocityX; // Sent to scorer
+            ball.speed = 7;
+        }
 
-        startBtn.onclick = () => {
-            if (ac.state === 'suspended') ac.resume();
-            playing = true;
-            round = 0;
-            sequence = [];
-            startBtn.style.display = 'none';
-            nextRound();
-        };
+        function update() {
+            if (!running) return;
 
+            // Move ball
+            ball.x += ball.velocityX;
+            ball.y += ball.velocityY;
+
+            // AI Move (Simple)
+            let level = 0.1;
+            com.y += (ball.y - (com.y + com.h / 2)) * level;
+
+            // Collision Top/Bottom
+            if (ball.y + ball.r > cvs.height || ball.y - ball.r < 0) {
+                ball.velocityY = -ball.velocityY;
+            }
+
+            // Paddle Hit
+            let player = (ball.x < cvs.width / 2) ? user : com;
+            if (collision(ball, player)) {
+                let collidePoint = (ball.y - (player.y + player.h / 2));
+                collidePoint = collidePoint / (player.h / 2);
+                let angleRad = (Math.PI / 4) * collidePoint;
+                let dir = (ball.x < cvs.width / 2) ? 1 : -1;
+                ball.velocityX = dir * ball.speed * Math.cos(angleRad);
+                ball.velocityY = ball.speed * Math.sin(angleRad);
+                ball.speed += 0.5;
+            }
+
+            // Score
+            if (ball.x - ball.r < 0) {
+                com.score++;
+                cScoreEl.textContent = com.score;
+                resetBall();
+            } else if (ball.x + ball.r > cvs.width) {
+                user.score++;
+                pScoreEl.textContent = user.score;
+                resetBall();
+            }
+
+            if (user.score >= 5 || com.score >= 5) end();
+        }
+
+        function collision(b, p) {
+            p.top = p.y;
+            p.bottom = p.y + p.h;
+            p.left = p.x;
+            p.right = p.x + p.w;
+            b.top = b.y - b.r;
+            b.bottom = b.y + b.r;
+            b.left = b.x - b.r;
+            b.right = b.x + b.r;
+            return p.left < b.right && p.top < b.bottom && p.right > b.left && p.bottom > b.top;
+        }
+
+        function draw() {
+            drawRect(0, 0, cvs.width, cvs.height, "#000");
+            drawNet();
+            drawRect(user.x, user.y, user.w, user.h, user.color);
+            drawRect(com.x, com.y, com.w, com.h, com.color);
+            drawCircle(ball.x, ball.y, ball.r, ball.color);
+        }
+
+        function game() {
+            update();
+            draw();
+            if (running) loopId = requestAnimationFrame(game);
+        }
+
+        function end() {
+            running = false;
+            cancelAnimationFrame(loopId);
+
+            let msg = user.score >= 5 ? "승리! 🎉" : "패배 😢";
+            Juice.toast(msg, "info");
+
+            // Save score if win (e.g. margin of victory or just 1 win)
+            if (user.score > com.score) {
+                // Store points difference as score?
+                const score = user.score - com.score + 5; // offset
+                const nick = localStorage.getItem('nickname') || '익명';
+                Juice.submit(PAGE_ID, score);
+            }
+
+            btn.style.display = 'inline-block';
+            btn.textContent = '다시 하기';
+        }
+
+        function start() {
+            user.score = 0; com.score = 0;
+            pScoreEl.textContent = 0; cScoreEl.textContent = 0;
+            resetBall();
+            running = true;
+            btn.style.display = 'none';
+            game();
+        }
+
+        cvs.addEventListener("mousemove", getMousePos);
+        function getMousePos(evt) {
+            let rect = cvs.getBoundingClientRect();
+            user.y = evt.clientY - rect.top - user.h / 2;
+        }
+        // Touch support simple
+        cvs.addEventListener("touchmove", (e) => {
+            e.preventDefault();
+            let rect = cvs.getBoundingClientRect();
+            user.y = e.touches[0].clientY - rect.top - user.h / 2;
+        }, { passive: false });
+
+        btn.onclick = start;
     </script>
 </body>
 

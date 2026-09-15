@@ -4,28 +4,53 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Flappy Bird Clone (mini10)</title>
+    <title>카드 뒤집기 (mini10)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        canvas {
-            background: #70c5ce;
-            /* Sky blue */
-            border: 2px solid var(--accent);
-            display: block;
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 400px;
             margin: 0 auto;
-            max-width: 100%;
+        }
+
+        .card-item {
+            aspect-ratio: 3/4;
+            background: var(--panel-border);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            user-select: none;
+            transition: transform 0.3s, background 0.3s;
+        }
+
+        .card-item.flipped {
+            background: var(--accent);
+            transform: rotateY(180deg);
+            color: white;
+        }
+
+        .card-item.matched {
+            background: var(--good);
+            cursor: default;
+            opacity: 0.5;
         }
     </style>
-  <meta name="description" content="장애물 피하기 - 미니게임">
-  <meta name="keywords" content="액션, 미니게임, 게임">
+  <meta name="description" content="기억력 테스트 - 미니게임">
+  <meta name="keywords" content="두뇌, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🐦 플래피 버드">
-  <meta property="og:description" content="장애물 피하기">
+  <meta property="og:title" content="🃏 카드 짝 맞추기">
+  <meta property="og:description" content="기억력 테스트">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini10/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🐦 플래피 버드">
-  <meta property="twitter:description" content="장애물 피하기">
+  <meta property="twitter:title" content="🃏 카드 짝 맞추기">
+  <meta property="twitter:description" content="기억력 테스트">
 </head>
 
 <body>
@@ -33,22 +58,23 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>🐦 플래피 버드</h1>
-                    <p>화면을 클릭하여 날아가세요!</p>
+                    <h1>🃏 카드 짝 맞추기</h1>
+                    <p>모든 카드의 쌍을 찾아보세요!</p>
                 </header>
 
-                <canvas id="gameCanvas" width="320" height="480"></canvas>
+                <div class="grid" id="grid"></div>
 
                 <div class="controls mt-4">
                     <button id="btnStart" class="btn">게임 시작</button>
                 </div>
 
                 <div class="stats-bar mt-4">
-                    <div class="stat-item">점수: <span id="score">0</span></div>
+                    <div class="stat-item">클릭 수: <span id="moves">0</span></div>
+                    <div class="stat-item">소요 시간: <span id="time">0s</span></div>
                 </div>
 
                 <div class="panel mt-4" style="text-align: left;">
-                    <h3>🏆 랭킹</h3>
+                    <h3>🏆 랭킹 (최단 시간)</h3>
                     <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
                         <li>...</li>
                     </ul>
@@ -64,193 +90,123 @@
     <script src="../shared/juice.js"></script>
 
     <script>
-        const PAGE_ID = "mini10";
+        const PAGE_ID = "mini10"; // Note: Special case, lower score (time) is better? 
+        // Currently GameStats uses > for better unless ID is "mini1".
+        // We should probably treat 'moves' or 'time' as score. For simplicity let's stick to time.
+        // If we want "lower is better", we might need to patch firebase.js or just invert score (10000 - time).
+        // Let's assume High Score = Better for now, so maybe Score = 10000 / Seconds? Or just use "mini1" logic patch.
+        // *Patch*: I'll reuse "mini1" logic if I can, but I can't easily change shared file right now without breaking others.
+        // Hack: Store score as negative value? Then sort descending works (-10 > -20). 
+        // Display: Math.abs(score).
+
         if (window.GameStats) {
-            const rl = document.getElementById('rankList');
             GameStats.listenTopScores(PAGE_ID, 5, arr => {
-                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+                const rl = document.getElementById('rankList');
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${Math.abs(d.score)}s)</li>`).join('');
             });
         }
 
-        const cvs = document.getElementById('gameCanvas');
-        const ctx = cvs.getContext('2d');
-        const scoreEl = document.getElementById('score');
-        const btnStart = document.getElementById('btnStart');
+        const grid = document.getElementById('grid');
+        const moveEl = document.getElementById('moves');
+        const timeEl = document.getElementById('time');
+        const btn = document.getElementById('btnStart');
 
-        // Game Vars
-        let frames = 0;
-        let score = 0;
+        const icons = ['🍎', '🍌', '🍇', '🍉', '🍒', '🍓', '🍍', '🥝']; // 8 pairs
+        let cards = [];
+        let first = null;
+        let locked = false;
+        let moves = 0;
+        let matches = 0;
+        let startTime = 0;
+        let timer = null;
         let running = false;
-        let requestId = null;
 
-        const DEGREE = Math.PI / 180;
+        function init() {
+            grid.innerHTML = '';
+            moves = 0; matches = 0;
+            moveEl.textContent = 0; timeEl.textContent = '0s';
 
-        const bird = {
-            x: 50, y: 150, w: 20, h: 20, radius: 10,
-            speed: 0, gravity: 0.25, jump: 4.6, rotation: 0,
-            draw() {
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.rotation);
-                ctx.fillStyle = "yellow";
-                ctx.beginPath();
-                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
-                ctx.restore();
-            },
-            update() {
-                this.speed += this.gravity;
-                this.y += this.speed;
+            const deck = [...icons, ...icons].sort(() => Math.random() - 0.5);
+            deck.forEach(icon => {
+                const el = document.createElement('div');
+                el.className = 'card-item';
+                el.dataset.icon = icon;
+                el.innerHTML = '';
+                el.onclick = () => flip(el);
+                grid.appendChild(el);
+            });
+        }
 
-                if (this.y + this.h / 2 >= cvs.height - 20) { // floor
-                    this.y = cvs.height - 20 - this.h / 2;
-                    gameOver();
-                }
-                if (this.speed < this.jump) {
-                    this.rotation = -25 * DEGREE;
+        function flip(el) {
+            if (!running || locked || el.classList.contains('flipped') || el.classList.contains('matched')) return;
+
+            el.classList.add('flipped');
+            el.textContent = el.dataset.icon;
+
+            if (!first) {
+                first = el;
+            } else {
+                moves++;
+                moveEl.textContent = moves;
+                locked = true;
+                if (first.dataset.icon === el.dataset.icon) {
+                    first.classList.add('matched');
+                    el.classList.add('matched');
+                    resetTurn();
+                    matches++;
+                    if (matches === 8) win();
                 } else {
-                    this.rotation += 5 * DEGREE;
-                    this.rotation = this.rotation > 90 * DEGREE ? 90 * DEGREE : this.rotation;
+                    setTimeout(() => {
+                        first.classList.remove('flipped');
+                        first.textContent = '';
+                        el.classList.remove('flipped');
+                        el.textContent = '';
+                        resetTurn();
+                    }, 1000);
                 }
-            },
-            flap() {
-                this.speed = -this.jump;
             }
+        }
+
+        function resetTurn() {
+            first = null; locked = false;
+        }
+
+        function win() {
+            clearInterval(timer);
+            running = false;
+            const finalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+            Juice.toast("완료! 시간: ${finalTime}s, 클릭: ${moves}", "info");
+
+            // Save as negative to exploit "Higher is Better" default sort
+            // -10s > -20s
+            const saveScore = -parseFloat(finalTime);
+
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, nick, saveScore);
+            }
+
+            btn.style.display = 'inline-block';
+            btn.textContent = '다시 하기';
+        }
+
+        btn.onclick = () => {
+            init();
+            running = true;
+            btn.style.display = 'none';
+            startTime = Date.now();
+            timer = setInterval(() => {
+                timeEl.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+            }, 100);
         };
 
-        const pipes = {
-            position: [],
-            w: 40, h: 100, dx: 2, gap: 100, maxYPos: -150,
-            draw() {
-                ctx.fillStyle = "green";
-                for (let i = 0; i < this.position.length; i++) {
-                    let p = this.position[i];
-                    let topY = p.y;
-                    let bottomY = p.y + this.h + this.gap;
-                    ctx.fillRect(p.x, topY, this.w, this.h); // Top Pipe (simplified)
-                    ctx.fillRect(p.x, bottomY, this.w, 400); // Bottom Pipe
-                }
-            },
-            update() {
-                if (frames % 100 === 0) {
-                    this.position.push({
-                        x: cvs.width,
-                        y: Math.max(-200, Math.random() * 200 - 200) // random Y
-                    });
-                }
-                for (let i = 0; i < this.position.length; i++) {
-                    let p = this.position[i];
-                    p.x -= this.dx;
-
-                    // Collision
-                    let bottomPipeY = p.y + this.h + this.gap; // h used as top pipe height
-
-                    // Top pipe logic needed actual height
-                    // Simplified: Top pipe y is absolute. 
-                    // Let's redraw properly
-                    // p.y is top pipe Y position (e.g. -100)
-                    // We draw top pipe from p.y to p.y+this.h? No.
-                    // Let's reimplement similar to classic
-
-                }
-            }
-        }
-
-        // Simplification for reliability
-        let pipeArr = [];
-        const pipeW = 50;
-        const pipeGap = 120;
-
-        function updatePipes() {
-            if (frames % 100 === 0) {
-                let topH = Math.random() * (cvs.height - pipeGap - 50) + 20;
-                pipeArr.push({ x: cvs.width, top: topH });
-            }
-            for (let i = 0; i < pipeArr.length; i++) {
-                let p = pipeArr[i];
-                p.x -= 2;
-
-                // Collision with bird
-                // Bird Circle: bird.x, bird.y, radius 10
-                // Rect 1: p.x, 0, width, p.top
-                // Rect 2: p.x, p.top+pipeGap, width, height...
-
-                if (
-                    bird.x + 10 > p.x &&
-                    bird.x - 10 < p.x + pipeW &&
-                    (bird.y - 10 < p.top || bird.y + 10 > p.top + pipeGap)
-                ) {
-                    gameOver();
-                }
-
-                if (p.x + pipeW < 0) {
-                    pipeArr.shift();
-                    score++;
-                    scoreEl.textContent = score;
-                    i--;
-                }
-            }
-        }
-
-        function drawPipes() {
-            ctx.fillStyle = "#2ecc71";
-            for (let i = 0; i < pipeArr.length; i++) {
-                let p = pipeArr[i];
-                ctx.fillRect(p.x, 0, pipeW, p.top);
-                ctx.fillRect(p.x, p.top + pipeGap, pipeW, cvs.height);
-            }
-        }
-
-        function loop() {
-            if (!running) return;
-            ctx.fillStyle = "#70c5ce";
-            ctx.fillRect(0, 0, cvs.width, cvs.height);
-
-            // Floor
-            ctx.fillStyle = "#ded895";
-            ctx.fillRect(0, cvs.height - 20, cvs.width, 20);
-
-            updatePipes();
-            drawPipes();
-
-            bird.update();
-            bird.draw();
-
-            frames++;
-            requestId = requestAnimationFrame(loop);
-        }
-
-        function gameOver() {
-            running = false;
-            cancelAnimationFrame(requestId);
-            Juice.toast("게임 오버! 점수: ${score}", "info");
-            if (score > 0) {
-                Juice.submit(PAGE_ID, score);
-            }
-            btnStart.style.display = 'inline-block';
-            btnStart.textContent = "다시 시작";
-            score = 0;
-        }
-
-        function start() {
-            if (running) return;
-            running = true;
-            bird.y = 150; bird.speed = 0;
-            pipeArr = []; frames = 0; score = 0;
-            scoreEl.textContent = 0;
-            btnStart.style.display = 'none';
-            loop();
-        }
-
-        window.addEventListener("mousedown", () => {
-            if (running) bird.flap();
+        // Preview
+        const deck = [...icons, ...icons].sort(() => Math.random() - 0.5);
+        deck.forEach(icon => {
+            const el = document.createElement('div');
+            el.className = 'card-item';
+            // el.innerHTML = icon; // Show for visual test but hidden in real game
+            grid.appendChild(el);
         });
-        window.addEventListener("keydown", (e) => {
-            if (e.key === ' ') if (running) bird.flap();
-        });
-
-        btnStart.onclick = start;
 
     </script>
 </body>

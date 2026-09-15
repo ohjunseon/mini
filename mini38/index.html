@@ -2,254 +2,251 @@
 <html lang="ko">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>빠른 계산 (mini38)</title>
-    <link rel="stylesheet" href="../shared/style.css">
-    <style>
-        .math-problem {
-            font-size: 2.5rem;
-            font-weight: bold;
-            text-align: center;
-            color: var(--accent);
-            margin: 30px 0;
-            min-height: 60px;
-        }
-
-        .answer-buttons {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin: 30px auto;
-            max-width: 400px;
-        }
-
-        .answer-btn {
-            padding: 20px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            background: var(--accent);
-            color: #fff;
-            border: 3px solid #fff;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.1s;
-        }
-
-        .answer-btn:active {
-            transform: scale(0.92);
-        }
-
-        .answer-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .timer {
-            font-size: 3rem;
-            font-weight: bold;
-            text-align: center;
-            color: var(--accent);
-            margin: 20px 0;
-        }
-
-        .feedback {
-            text-align: center;
-            font-size: 1.2rem;
-            margin: 10px 0;
-            color: var(--muted);
-            min-height: 30px;
-        }
-    </style>
-  <meta name="description" content="계산 문제의 정답 버튼 클릭 - 미니게임">
-  <meta name="keywords" content="반응, 미니게임, 게임">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>색상 배치 게임</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <meta name="description" content="색상을 회전하여 목표 패턴을 만드세요! (20초) - 미니게임">
+  <meta name="keywords" content="두뇌, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🧮 빠른 계산">
-  <meta property="og:description" content="계산 문제의 정답 버튼 클릭">
+  <meta property="og:title" content="🎨 색상 배치">
+  <meta property="og:description" content="색상을 회전하여 목표 패턴을 만드세요! (20초)">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini38/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🧮 빠른 계산">
-  <meta property="twitter:description" content="계산 문제의 정답 버튼 클릭">
+  <meta property="twitter:title" content="🎨 색상 배치">
+  <meta property="twitter:description" content="색상을 회전하여 목표 패턴을 만드세요! (20초)">
 </head>
 
 <body>
-    <div class="container">
-        <div class="game-container">
-            <div class="card">
-                <header class="mb-4">
-                    <h1>🧮 빠른 계산</h1>
-                    <p>30초 동안 정답을 빨리 선택하세요!</p>
-                </header>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🎨 색상 배치</h1>
+          <p>각 칸의 색상을 회전하여 목표 패턴을 만드세요! (20초)</p>
+        </header>
 
-                <div class="timer" id="timer">30.0</div>
-
-                <div class="math-problem" id="problem">-</div>
-                <div class="feedback" id="feedback"></div>
-
-                <div class="answer-buttons" id="answerButtons"></div>
-
-                <div class="stats-bar mb-4">
-                    <div class="stat-item">정답: <span id="score">0</span></div>
-                    <div class="stat-item">오답: <span id="mistakes">0</span></div>
-                </div>
-
-                <div class="controls mt-4">
-                    <button id="btnStart" class="btn">게임 시작</button>
-                </div>
-
-                <div class="panel mt-4" style="text-align: left;">
-                    <h3>🏆 랭킹</h3>
-                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
-                        <li>...</li>
-                    </ul>
-                </div>
-              <div class="mt-4">
-                <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
-              </div>
-            </div>
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">시간</span>
+            <span class="stat-value" id="timeLeft">20</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">점수</span>
+            <span class="stat-value" id="scoreValue">0</span>
+          </div>
         </div>
+
+        <canvas id="gameCanvas" width="320" height="400" style="
+          display: block;
+          margin: 20px auto;
+          background: var(--panel);
+          border-radius: 12px;
+          cursor: pointer;
+          border: 1px solid var(--panel-border);
+        "></canvas>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">상태</span>
+            <span class="stat-value" id="statusText">게임 중...</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="restartBtn">🔄 새로운 게임</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5 (높은 점수)</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <script src="../shared/ranking.js"></script>
+  <script src="../shared/ranking.js"></script>
     <script src="../shared/juice.js"></script>
+  <script>
+    const PAGE_ID = "mini38";
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const timeLeftEl = document.getElementById('timeLeft');
+    const scoreValueEl = document.getElementById('scoreValue');
+    const statusTextEl = document.getElementById('statusText');
+    const restartBtn = document.getElementById('restartBtn');
+    const rankList = document.getElementById('rankList');
 
-    <script>
-        const PAGE_ID = "mini38";
-        if (window.GameStats) {
-            const rl = document.getElementById('rankList');
-            GameStats.listenTopScores(PAGE_ID, 5, arr => {
-                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
-            });
+    const GRID_SIZE = 3;
+    const CELL_SIZE = 100;
+    const COLORS = ['#00e5ff', '#ff9a5b', '#2ecc71'];
+
+    let grid = [];
+    let targetPattern = [];
+    let timeLeft = 20;
+    let score = 0;
+    let gameActive = true;
+    let matchCount = 0;
+    let timer = null;
+
+    function initializeGame() {
+      grid = Array(GRID_SIZE * GRID_SIZE).fill(0).map(() => Math.floor(Math.random() * 3));
+      generateTargetPattern();
+      matchCount = 0;
+      timeLeft = 20;
+      score = 0;
+      gameActive = true;
+      statusTextEl.textContent = '게임 중...';
+      draw();
+
+      clearInterval(timer);
+      timer = setInterval(() => {
+        timeLeft--;
+        timeLeftEl.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          endGame();
         }
+      }, 1000);
+    }
 
-        const problemEl = document.getElementById('problem');
-        const answerButtons = document.getElementById('answerButtons');
-        const timerEl = document.getElementById('timer');
-        const scoreEl = document.getElementById('score');
-        const mistakesEl = document.getElementById('mistakes');
-        const btnStart = document.getElementById('btnStart');
-        const feedbackEl = document.getElementById('feedback');
+    function generateTargetPattern() {
+      targetPattern = Array(GRID_SIZE * GRID_SIZE).fill(0).map(() => Math.floor(Math.random() * 3));
+    }
 
-        let score = 0;
-        let mistakes = 0;
-        let time = 30.0;
-        let running = false;
-        let timer = null;
-        let currentAnswer = 0;
+    function rotateCell(index) {
+      if (!gameActive) return;
+      grid[index] = (grid[index] + 1) % 3;
+      checkMatches();
+      draw();
+    }
 
-        function generateProblem() {
-            const a = Math.floor(Math.random() * 20) + 1;
-            const b = Math.floor(Math.random() * 20) + 1;
-            const op = Math.random() > 0.5 ? '+' : '-';
-
-            if (op === '+') {
-                currentAnswer = a + b;
-            } else {
-                currentAnswer = a - b;
-            }
-
-            problemEl.textContent = `${a} ${op} ${b}`;
-
-            const answers = [currentAnswer];
-            while (answers.length < 4) {
-                const wrong = currentAnswer + (Math.floor(Math.random() * 5) - 2) * (Math.random() > 0.5 ? 1 : -1);
-                if (!answers.includes(wrong) && wrong !== currentAnswer) {
-                    answers.push(wrong);
-                }
-            }
-
-            const shuffled = answers.sort(() => Math.random() - 0.5);
-
-            answerButtons.innerHTML = '';
-            shuffled.forEach(ans => {
-                const btn = document.createElement('button');
-                btn.className = 'answer-btn';
-                btn.textContent = ans;
-                btn.disabled = !running;
-                btn.addEventListener('click', () => {
-                    if (running) {
-                        if (ans === currentAnswer) {
-                            score++;
-                            scoreEl.textContent = score;
-                            feedbackEl.textContent = '✓ 정답!';
-                        } else {
-                            mistakes++;
-                            mistakesEl.textContent = mistakes;
-                            feedbackEl.textContent = '✗ 틀렸습니다!';
-                        }
-                        setTimeout(() => feedbackEl.textContent = '', 400);
-                        generateProblem();
-                    }
-                });
-                btn.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    if (running) {
-                        if (ans === currentAnswer) {
-                            score++;
-                            scoreEl.textContent = score;
-                            feedbackEl.textContent = '✓ 정답!';
-                        } else {
-                            mistakes++;
-                            mistakesEl.textContent = mistakes;
-                            feedbackEl.textContent = '✗ 틀렸습니다!';
-                        }
-                        setTimeout(() => feedbackEl.textContent = '', 400);
-                        generateProblem();
-                    }
-                }, { passive: false });
-                answerButtons.appendChild(btn);
-            });
+    function checkMatches() {
+      let newMatches = 0;
+      for (let i = 0; i < grid.length; i++) {
+        if (grid[i] === targetPattern[i]) {
+          newMatches++;
         }
-
-        function tick() {
-            time -= 0.1;
-            timerEl.textContent = time.toFixed(1);
-            if (time <= 0) {
-                time = 0;
-                gameOver();
-            }
+      }
+      const diff = newMatches - matchCount;
+      if (diff > 0) {
+        matchCount = newMatches;
+        score += diff * 10;
+        scoreValueEl.textContent = score;
+        if (matchCount === GRID_SIZE * GRID_SIZE) {
+          generateTargetPattern();
+          matchCount = 0;
         }
+      }
+    }
 
-        function gameOver() {
-            running = false;
-            clearInterval(timer);
-            Array.from(answerButtons.querySelectorAll('button')).forEach(btn => btn.disabled = true);
-            btnStart.disabled = false;
-            btnStart.textContent = '다시 시작';
-            feedbackEl.textContent = '';
+    function draw() {
+      ctx.fillStyle = '#150a30';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            const finalScore = Math.max(0, score - Math.floor(mistakes / 2));
-            if (window.GameStats) {
-                GameStats.saveScore(PAGE_ID, name, finalScore, () => {
-                    scoreEl.textContent = '0';
-                    mistakesEl.textContent = '0';
-                    score = 0;
-                    mistakes = 0;
-                    time = 30.0;
-                    timerEl.textContent = time.toFixed(1);
-                    problemEl.textContent = '-';
-                });
-            }
-        }
+      // Draw target pattern (top half)
+      ctx.fillStyle = '#2a2f3a';
+      ctx.fillRect(10, 10, 300, 140);
+      ctx.fillStyle = '#00e5ff';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('목표 패턴:', 20, 30);
 
-        btnStart.addEventListener('click', () => {
-            if (running) return;
-            running = true;
-            score = 0;
-            mistakes = 0;
-            time = 30.0;
-            scoreEl.textContent = '0';
-            mistakesEl.textContent = '0';
-            timerEl.textContent = '30.0';
-            btnStart.disabled = true;
-            feedbackEl.textContent = '';
-            generateProblem();
-            Array.from(answerButtons.querySelectorAll('button')).forEach(btn => btn.disabled = false);
+      for (let i = 0; i < targetPattern.length; i++) {
+        const row = Math.floor(i / GRID_SIZE);
+        const col = i % GRID_SIZE;
+        const x = 30 + col * 90;
+        const y = 50 + row * 40;
+        ctx.fillStyle = COLORS[targetPattern[i]];
+        ctx.fillRect(x, y, 35, 35);
+        ctx.strokeStyle = '#00e5ff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, 35, 35);
+      }
 
-            timer = setInterval(tick, 100);
+      // Draw current grid (bottom half)
+      ctx.fillStyle = '#2a2f3a';
+      ctx.fillRect(10, 160, 300, 230);
+      ctx.fillStyle = '#a9b4e0';
+      ctx.fillText('현재 상태:', 20, 180);
+
+      for (let i = 0; i < grid.length; i++) {
+        const row = Math.floor(i / GRID_SIZE);
+        const col = i % GRID_SIZE;
+        const x = 30 + col * 90;
+        const y = 200 + row * 60;
+        ctx.fillStyle = COLORS[grid[i]];
+        ctx.fillRect(x, y, 80, 50);
+        ctx.strokeStyle = '#00e5ff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, 80, 50);
+      }
+    }
+
+    function endGame() {
+      gameActive = false;
+      clearInterval(timer);
+      statusTextEl.textContent = '게임 종료!';
+      saveScore(score);
+    }
+
+    function saveScore(finalScore) {
+      if (window.GameStats) {
+        window.GameStats.saveScore(PAGE_ID, finalScore, () => {
+          loadTopScores();
         });
-    </script>
+      }
+    }
+
+    function loadTopScores() {
+      if (window.GameStats) {
+        window.GameStats.listenTopScores(PAGE_ID, 5, (scores) => {
+          rankList.innerHTML = scores.map((s, i) =>
+            `<li>${i + 1}. ${s.score}점</li>`
+          ).join('') || '<li>기록 없음</li>';
+        });
+      }
+    }
+
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left - 30;
+      const y = e.clientY - rect.top - 200;
+
+      if (y >= 0) {
+        const row = Math.floor(y / 60);
+        const col = Math.floor(x / 90);
+        if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
+          rotateCell(row * GRID_SIZE + col);
+        }
+      }
+    });
+
+    // Touch support
+    canvas.addEventListener('touchstart', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const x = touch.clientX - rect.left - 30;
+      const y = touch.clientY - rect.top - 200;
+
+      if (y >= 0) {
+        const row = Math.floor(y / 60);
+        const col = Math.floor(x / 90);
+        if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
+          rotateCell(row * GRID_SIZE + col);
+        }
+      }
+    });
+
+    restartBtn.addEventListener('click', initializeGame);
+
+    // Initialize
+    initializeGame();
+    loadTopScores();
+  </script>
 </body>
 
 </html>

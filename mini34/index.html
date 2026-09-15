@@ -4,58 +4,56 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>재빨리 탭하기 (mini34)</title>
+    <title>갈지자 피하기 (mini34)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        .tap-area {
-            width: 100%;
-            height: 400px;
-            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
-            border-radius: 20px;
-            position: relative;
-            overflow: hidden;
-            margin: 20px 0;
+        canvas {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #1a3a5c, #0f1f3c);
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            touch-action: none;
         }
 
-        .tap-btn {
-            position: absolute;
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: var(--accent);
-            border: 3px solid #fff;
-            cursor: pointer;
+        .game-info {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 2rem;
-            color: #fff;
-            transition: all 0.05s;
-            user-select: none;
-        }
-
-        .tap-btn:active {
-            transform: scale(0.85);
-        }
-
-        .timer {
-            font-size: 3rem;
-            font-weight: bold;
-            text-align: center;
-            color: var(--accent);
+            justify-content: space-around;
             margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
         }
     </style>
-  <meta name="description" content="스폰되는 버튼 빠르게 클릭 - 미니게임">
-  <meta name="keywords" content="반응, 미니게임, 게임">
+  <meta name="description" content="좌우 이동으로 3개 레인의 블록을 피하세요! 20초 - 미니게임">
+  <meta name="keywords" content="러너, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="⚡ 재빨리 탭하기">
-  <meta property="og:description" content="스폰되는 버튼 빠르게 클릭">
+  <meta property="og:title" content="➡️ 갈지자 피하기">
+  <meta property="og:description" content="좌우 이동으로 3개 레인의 블록을 피하세요! 20초">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini34/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="⚡ 재빨리 탭하기">
-  <meta property="twitter:description" content="스폰되는 버튼 빠르게 클릭">
+  <meta property="twitter:title" content="➡️ 갈지자 피하기">
+  <meta property="twitter:description" content="좌우 이동으로 3개 레인의 블록을 피하세요! 20초">
 </head>
 
 <body>
@@ -63,16 +61,21 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>⚡ 재빨리 탭하기</h1>
-                    <p>15초 동안 나타나는 버튼을 최대한 빨리 클릭하세요!</p>
+                    <h1>➡️ 갈지자 피하기</h1>
+                    <p>좌우 이동으로 떨어지는 블록을 피하세요! A/D 또는 좌우 화살표로 조작!</p>
                 </header>
 
-                <div class="timer" id="timer">15.0</div>
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
 
-                <div class="tap-area" id="tapArea"></div>
-
-                <div class="stats-bar mb-4">
-                    <div class="stat-item">점수: <span id="score">0</span></div>
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">시간</div>
+                        <div class="info-value" id="timeValue">20.0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">점수</div>
+                        <div class="info-value" id="scoreValue">0.0</div>
+                    </div>
                 </div>
 
                 <div class="controls mt-4">
@@ -94,111 +97,203 @@
 
     <script src="../shared/ranking.js"></script>
     <script src="../shared/juice.js"></script>
-
     <script>
         const PAGE_ID = "mini34";
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const CANVAS_W = 320;
+        const CANVAS_H = 480;
+        const LANE_W = CANVAS_W / 3;
+        const PLAYER_SIZE = 30;
+        const PLAYER_Y = CANVAS_H - 50;
+
+        let gameState = "idle";
+        let score = 0;
+        let timeLeft = 20;
+        let gameTime = 0;
+        let playerLane = 1; // 0=left, 1=center, 2=right
+        let playerX = CANVAS_W / 2;
+
+        let blocks = [];
+        let spawnRate = 0.02;
+        let fallSpeed = 5;
+
+        let keysPressed = {};
+
         if (window.GameStats) {
             const rl = document.getElementById('rankList');
             GameStats.listenTopScores(PAGE_ID, 5, arr => {
-                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${Math.floor(d.score)})</li>`).join('');
             });
         }
 
-        const tapArea = document.getElementById('tapArea');
-        const timerEl = document.getElementById('timer');
-        const scoreEl = document.getElementById('score');
-        const btnStart = document.getElementById('btnStart');
+        class FallingBlock {
+            constructor(lane) {
+                this.lane = lane;
+                this.x = (lane + 0.5) * LANE_W;
+                this.y = 0;
+                this.w = LANE_W - 10;
+                this.h = 40;
+            }
 
-        let score = 0;
-        let time = 15.0;
-        let running = false;
-        let timer = null;
-        let spawnTimer = null;
+            update() {
+                this.y += fallSpeed;
+            }
 
-        function spawnButton() {
-            if (!running) return;
+            draw() {
+                ctx.fillStyle = "#ff4444";
+                ctx.fillRect(this.x - this.w / 2, this.y, this.w, this.h);
+                ctx.strokeStyle = "#ff0000";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x - this.w / 2, this.y, this.w, this.h);
+            }
 
-            const btn = document.createElement('button');
-            btn.className = 'tap-btn';
-            btn.innerHTML = '●';
+            isOutOfBounds() {
+                return this.y > CANVAS_H;
+            }
 
-            const maxX = tapArea.clientWidth - 80;
-            const maxY = tapArea.clientHeight - 80;
-            const x = Math.random() * maxX;
-            const y = Math.random() * maxY;
-
-            btn.style.left = x + 'px';
-            btn.style.top = y + 'px';
-
-            let clicked = false;
-            btn.addEventListener('click', () => {
-                if (!clicked) {
-                    clicked = true;
-                    score++;
-                    scoreEl.textContent = score;
-                    btn.remove();
-                }
-            });
-
-            btn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                if (!clicked) {
-                    clicked = true;
-                    score++;
-                    scoreEl.textContent = score;
-                    btn.remove();
-                }
-            }, { passive: false });
-
-            tapArea.appendChild(btn);
-
-            setTimeout(() => {
-                if (btn.parentNode && !clicked) {
-                    btn.remove();
-                }
-            }, 1500);
-        }
-
-        function tick() {
-            time -= 0.1;
-            timerEl.textContent = time.toFixed(1);
-            if (time <= 0) {
-                time = 0;
-                gameOver();
+            checkCollision(lane, playerX, py, ps) {
+                return this.lane === lane &&
+                    playerX > this.x - this.w / 2 &&
+                    playerX < this.x + this.w / 2 &&
+                    py + ps / 2 > this.y &&
+                    py - ps / 2 < this.y + this.h;
             }
         }
 
-        function gameOver() {
-            running = false;
-            clearInterval(timer);
-            clearInterval(spawnTimer);
-            btnStart.disabled = false;
-            btnStart.textContent = '다시 시작';
-            tapArea.innerHTML = '';
-            if (window.GameStats) {
-                GameStats.saveScore(PAGE_ID, name, score, () => {
-                    scoreEl.textContent = '0';
-                    score = 0;
-                    time = 15.0;
-                    timerEl.textContent = time.toFixed(1);
-                });
+        function updateGame() {
+            if (gameState !== "running") return;
+
+            gameTime += 1 / 60;
+            timeLeft = Math.max(0, 20 - gameTime);
+            document.getElementById('timeValue').textContent = timeLeft.toFixed(1);
+            document.getElementById('scoreValue').textContent = gameTime.toFixed(1);
+
+            if (timeLeft <= 0) {
+                endGame();
+                return;
+            }
+
+            // 플레이어 이동
+            if (keysPressed['a'] || keysPressed['A'] || keysPressed['ArrowLeft']) {
+                playerLane = 0;
+            } else if (keysPressed['d'] || keysPressed['D'] || keysPressed['ArrowRight']) {
+                playerLane = 2;
+            } else {
+                playerLane = 1;
+            }
+            playerX = (playerLane + 0.5) * LANE_W;
+
+            // 블록 생성
+            if (Math.random() < spawnRate) {
+                blocks.push(new FallingBlock(Math.floor(Math.random() * 3)));
+            }
+
+            // 블록 업데이트
+            for (let i = blocks.length - 1; i >= 0; i--) {
+                blocks[i].update();
+
+                if (blocks[i].checkCollision(playerLane, playerX, PLAYER_Y, PLAYER_SIZE)) {
+                    endGame();
+                    return;
+                }
+
+                if (blocks[i].isOutOfBounds()) {
+                    blocks.splice(i, 1);
+                }
             }
         }
 
-        btnStart.addEventListener('click', () => {
-            if (running) return;
-            running = true;
+        function drawGame() {
+            // 배경
+            ctx.fillStyle = "#0a1a35";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // 레인 구분선
+            ctx.strokeStyle = "#333366";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            for (let i = 1; i < 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * LANE_W, 0);
+                ctx.lineTo(i * LANE_W, CANVAS_H);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+
+            // 플레이어
+            ctx.fillStyle = "#00ff88";
+            ctx.fillRect(playerX - PLAYER_SIZE / 2, PLAYER_Y - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
+            ctx.strokeStyle = "#00cc66";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(playerX - PLAYER_SIZE / 2, PLAYER_Y - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
+
+            // 블록
+            blocks.forEach(block => block.draw());
+
+            // UI
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "11px Arial";
+            ctx.textAlign = "left";
+            ctx.fillText("A/D 또는 ← → 이동", 10, 20);
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            gameState = "running";
             score = 0;
-            time = 15.0;
-            scoreEl.textContent = '0';
-            timerEl.textContent = '15.0';
-            btnStart.disabled = true;
-            tapArea.innerHTML = '';
+            timeLeft = 20;
+            gameTime = 0;
+            playerLane = 1;
+            playerX = CANVAS_W / 2;
+            blocks = [];
+            document.getElementById('scoreValue').textContent = "0.0";
+            document.getElementById('timeValue').textContent = "20.0";
+            document.getElementById('btnStart').disabled = true;
+        }
 
-            timer = setInterval(tick, 100);
-            spawnTimer = setInterval(spawnButton, 500);
-            spawnButton();
+        function endGame() {
+            gameState = "idle";
+            document.getElementById('btnStart').disabled = false;
+
+            const finalScore = Math.floor(gameTime * 100);
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, finalScore);
+            }
+        }
+
+        document.getElementById('btnStart').addEventListener('click', startGame);
+
+        document.addEventListener('keydown', (e) => {
+            keysPressed[e.key] = true;
         });
+
+        document.addEventListener('keyup', (e) => {
+            keysPressed[e.key] = false;
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (gameState === "running") {
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                if (x < LANE_W) {
+                    playerLane = 0;
+                } else if (x > 2 * LANE_W) {
+                    playerLane = 2;
+                } else {
+                    playerLane = 1;
+                }
+            }
+        }, { passive: true });
+
+        gameLoop();
     </script>
 </body>
 

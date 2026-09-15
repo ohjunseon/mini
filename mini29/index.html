@@ -4,53 +4,101 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>행운의 로또 (mini29)</title>
+    <title>신호등 게임 (mini29)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        .balls {
+        .traffic-light {
+            width: 150px;
+            height: 380px;
+            background: #333;
+            border-radius: 20px;
+            padding: 20px;
+            margin: 20px auto;
             display: flex;
-            gap: 10px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin: 30px 0;
+            flex-direction: column;
+            justify-content: space-around;
+            gap: 20px;
         }
 
-        .ball {
-            width: 40px;
-            height: 40px;
+        .light {
+            width: 100%;
+            height: 100px;
             border-radius: 50%;
-            background: #fff;
-            color: #000;
+            transition: all 0.2s;
+        }
+
+        .light.red {
+            background: #FF6B6B;
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+        }
+
+        .light.yellow {
+            background: #FFD93D;
+            box-shadow: 0 0 10px rgba(255, 217, 61, 0.5);
+        }
+
+        .light.green {
+            background: #6BCB77;
+            box-shadow: 0 0 20px rgba(107, 203, 119, 0.8);
+        }
+
+        .light.off {
+            background: #555;
+            box-shadow: none;
+        }
+
+        .click-btn {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 8px solid #fff;
+            font-size: 2rem;
+            color: #fff;
+            cursor: pointer;
+            margin: 30px auto;
             display: flex;
             justify-content: center;
             align-items: center;
+            user-select: none;
+            transition: all 0.05s;
+        }
+
+        .click-btn:active {
+            transform: scale(0.92);
+        }
+
+        .click-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .timer {
+            font-size: 3rem;
             font-weight: bold;
-            font-size: 1.2rem;
-        }
-
-        .ball.hit {
-            background: var(--good);
-            color: #fff;
-            box-shadow: 0 0 15px var(--good);
-        }
-
-        .my-nums {
-            font-size: 1.2rem;
-            min-height: 40px;
+            text-align: center;
             color: var(--accent);
-            margin-bottom: 20px;
+            margin: 20px 0;
+        }
+
+        .feedback {
+            text-align: center;
+            font-size: 1.2rem;
+            margin: 10px 0;
+            min-height: 30px;
+            color: var(--accent);
         }
     </style>
-  <meta name="description" content="대박 기원 - 미니게임">
-  <meta name="keywords" content="캐주얼, 미니게임, 게임">
+  <meta name="description" content="초록불에만 클릭 - 미니게임">
+  <meta name="keywords" content="반응, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🍀 행운의 로또">
-  <meta property="og:description" content="대박 기원">
+  <meta property="og:title" content="🚦 신호등 게임">
+  <meta property="og:description" content="초록불에만 클릭">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini29/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🍀 행운의 로또">
-  <meta property="twitter:description" content="대박 기원">
+  <meta property="twitter:title" content="🚦 신호등 게임">
+  <meta property="twitter:description" content="초록불에만 클릭">
 </head>
 
 <body>
@@ -58,32 +106,32 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>🍀 행운의 로또</h1>
-                    <p>1~45 중 6개 숫자를 추첨합니다. 몇 개나 맞을까요?</p>
+                    <h1>🚦 신호등 게임</h1>
+                    <p>30초 동안 초록불에만 클릭하세요!</p>
                 </header>
 
-                <div class="my-nums" id="myDisp">나의 숫자: ?</div>
-
-                <div class="balls" id="resultBalls">
-                    <div class="ball">?</div>
-                    <div class="ball">?</div>
-                    <div class="ball">?</div>
-                    <div class="ball">?</div>
-                    <div class="ball">?</div>
-                    <div class="ball">?</div>
+                <div class="timer" id="timer">30.0</div>
+                <div class="traffic-light">
+                    <div class="light off" id="redLight"></div>
+                    <div class="light off" id="yellowLight"></div>
+                    <div class="light off" id="greenLight"></div>
                 </div>
 
+                <div class="feedback" id="feedback"></div>
+
+                <div class="click-btn" id="clickBtn">클릭!</div>
+
                 <div class="stats-bar mb-4">
-                    <div class="stat-item">맞춘 개수: <span id="hits">0</span></div>
-                    <div class="stat-item">점수: <span id="score">0</span></div>
+                    <div class="stat-item">정확 클릭: <span id="score">0</span></div>
+                    <div class="stat-item">실수: <span id="mistakes">0</span></div>
                 </div>
 
                 <div class="controls mt-4">
-                    <button id="btnStart" class="btn">추첨 시작</button>
+                    <button id="btnStart" class="btn">게임 시작</button>
                 </div>
 
                 <div class="panel mt-4" style="text-align: left;">
-                    <h3>🏆 랭킹 (누적 점수)</h3>
+                    <h3>🏆 랭킹</h3>
                     <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
                         <li>...</li>
                     </ul>
@@ -100,73 +148,123 @@
 
     <script>
         const PAGE_ID = "mini29";
-        if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
-            document.getElementById('rankList').innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}점)</li>`).join('');
-        });
-
-        const myDisp = document.getElementById('myDisp');
-        const box = document.getElementById('resultBalls');
-        const btn = document.getElementById('btnStart');
-        const hEl = document.getElementById('hits');
-        const sEl = document.getElementById('score');
-
-        let totalScore = 0; // Cumulative? Or just one session. Let's make it one lucky try.
-        // Actually High Score is better suited for "Max hits" but that is capped at 6.
-        // Let's make score = 10^hits. 
-
-        function getNums() {
-            let arr = [];
-            while (arr.length < 6) {
-                let n = Math.floor(Math.random() * 45) + 1;
-                if (!arr.includes(n)) arr.push(n);
-            }
-            return arr.sort((a, b) => a - b);
+        if (window.GameStats) {
+            const rl = document.getElementById('rankList');
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            });
         }
 
-        btn.onclick = () => {
-            btn.disabled = true;
+        const clickBtn = document.getElementById('clickBtn');
+        const timerEl = document.getElementById('timer');
+        const scoreEl = document.getElementById('score');
+        const mistakesEl = document.getElementById('mistakes');
+        const btnStart = document.getElementById('btnStart');
+        const feedbackEl = document.getElementById('feedback');
+        const redLight = document.getElementById('redLight');
+        const yellowLight = document.getElementById('yellowLight');
+        const greenLight = document.getElementById('greenLight');
 
-            // 1. Assign My Nums
-            const myParams = getNums();
-            myDisp.textContent = "나의 숫자: " + myParams.join(", ");
+        let score = 0;
+        let mistakes = 0;
+        let time = 30.0;
+        let running = false;
+        let timer = null;
+        let currentLight = 'off';
+        let lightTimer = null;
 
-            // 2. Draw Animation
-            const winNums = getNums();
-            box.innerHTML = '';
-            winNums.forEach((n, i) => {
-                const b = document.createElement('div');
-                b.className = 'ball';
-                b.textContent = '?';
-                box.appendChild(b);
+        function changeLight() {
+            const lights = ['red', 'yellow', 'green'];
+            const prevLight = currentLight;
+            currentLight = lights[Math.floor(Math.random() * lights.length)];
 
-                setTimeout(() => {
-                    b.textContent = n;
-                    if (myParams.includes(n)) {
-                        b.classList.add('hit');
-                    }
-                }, (i + 1) * 500);
-            });
+            redLight.className = 'light ' + (currentLight === 'red' ? 'red' : 'off');
+            yellowLight.className = 'light ' + (currentLight === 'yellow' ? 'yellow' : 'off');
+            greenLight.className = 'light ' + (currentLight === 'green' ? 'green' : 'off');
+        }
 
-            setTimeout(() => {
-                // Check
-                const hits = winNums.filter(x => myParams.includes(x)).length;
-                hEl.textContent = hits;
+        function tick() {
+            time -= 0.1;
+            timerEl.textContent = time.toFixed(1);
+            if (time <= 0) {
+                time = 0;
+                gameOver();
+            }
+        }
 
-                let pts = 0;
-                if (hits === 3) pts = 5000;
-                if (hits === 4) pts = 50000;
-                if (hits === 5) pts = 1000000;
-                if (hits === 6) pts = 100000000;
-                if (hits < 3) pts = hits * 100;
+        function gameOver() {
+            running = false;
+            clearInterval(timer);
+            clearInterval(lightTimer);
+            clickBtn.disabled = true;
+            btnStart.disabled = false;
+            btnStart.textContent = '다시 시작';
+            feedbackEl.textContent = '';
 
-                sEl.textContent = pts;
-                Juice.toast("${hits}개 일치! 점수: ${pts}", "info");
+            const finalScore = Math.max(0, score - mistakes);
+            if (window.GameStats) {
+                GameStats.saveScore(PAGE_ID, name, finalScore, () => {
+                    scoreEl.textContent = '0';
+                    mistakesEl.textContent = '0';
+                    score = 0;
+                    mistakes = 0;
+                    time = 30.0;
+                    timerEl.textContent = time.toFixed(1);
+                    clickBtn.disabled = false;
+                });
+            }
+        }
 
-                const nick = localStorage.getItem('nickname') || '익명';
-                Juice.submit(PAGE_ID, pts);
-                btn.disabled = false;
-            }, 3500);
-        };
+        clickBtn.addEventListener('click', () => {
+            if (running) {
+                if (currentLight === 'green') {
+                    score++;
+                    scoreEl.textContent = score;
+                    feedbackEl.textContent = '✓ 맞았습니다!';
+                    setTimeout(() => feedbackEl.textContent = '', 500);
+                } else {
+                    mistakes++;
+                    mistakesEl.textContent = mistakes;
+                    feedbackEl.textContent = '✗ 잘못된 신호!';
+                    setTimeout(() => feedbackEl.textContent = '', 500);
+                }
+            }
+        });
+
+        clickBtn.addEventListener('touchstart', (e) => {
+            if (running) {
+                e.preventDefault();
+                if (currentLight === 'green') {
+                    score++;
+                    scoreEl.textContent = score;
+                    feedbackEl.textContent = '✓ 맞았습니다!';
+                    setTimeout(() => feedbackEl.textContent = '', 500);
+                } else {
+                    mistakes++;
+                    mistakesEl.textContent = mistakes;
+                    feedbackEl.textContent = '✗ 잘못된 신호!';
+                    setTimeout(() => feedbackEl.textContent = '', 500);
+                }
+            }
+        }, { passive: false });
+
+        btnStart.addEventListener('click', () => {
+            if (running) return;
+            running = true;
+            score = 0;
+            mistakes = 0;
+            time = 30.0;
+            scoreEl.textContent = '0';
+            mistakesEl.textContent = '0';
+            timerEl.textContent = '30.0';
+            btnStart.disabled = true;
+            clickBtn.disabled = false;
+            feedbackEl.textContent = '';
+
+            timer = setInterval(tick, 100);
+            lightTimer = setInterval(changeLight, 800);
+            changeLight();
+        });
     </script>
 </body>
 

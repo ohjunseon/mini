@@ -4,101 +4,56 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>신호등 게임 (mini33)</title>
+    <title>무한 낙하 (mini33)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        .traffic-light {
-            width: 150px;
-            height: 380px;
-            background: #333;
-            border-radius: 20px;
-            padding: 20px;
+        canvas {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #000000, #1a1a2e);
+            display: block;
             margin: 20px auto;
+            max-width: 100%;
+            touch-action: none;
+        }
+
+        .game-info {
             display: flex;
-            flex-direction: column;
             justify-content: space-around;
-            gap: 20px;
-        }
-
-        .light {
-            width: 100%;
-            height: 100px;
-            border-radius: 50%;
-            transition: all 0.2s;
-        }
-
-        .light.red {
-            background: #FF6B6B;
-            box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
-        }
-
-        .light.yellow {
-            background: #FFD93D;
-            box-shadow: 0 0 10px rgba(255, 217, 61, 0.5);
-        }
-
-        .light.green {
-            background: #6BCB77;
-            box-shadow: 0 0 20px rgba(107, 203, 119, 0.8);
-        }
-
-        .light.off {
-            background: #555;
-            box-shadow: none;
-        }
-
-        .click-btn {
-            width: 180px;
-            height: 180px;
-            border-radius: 50%;
-            background: var(--accent);
-            border: 8px solid #fff;
-            font-size: 2rem;
-            color: #fff;
-            cursor: pointer;
-            margin: 30px auto;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            user-select: none;
-            transition: all 0.05s;
-        }
-
-        .click-btn:active {
-            transform: scale(0.92);
-        }
-
-        .click-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .timer {
-            font-size: 3rem;
-            font-weight: bold;
-            text-align: center;
-            color: var(--accent);
             margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
-        .feedback {
-            text-align: center;
-            font-size: 1.2rem;
-            margin: 10px 0;
-            min-height: 30px;
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
             color: var(--accent);
         }
     </style>
-  <meta name="description" content="초록불에만 클릭 - 미니게임">
-  <meta name="keywords" content="반응, 미니게임, 게임">
+  <meta name="description" content="무한히 떨어지는 블록 생존 - 미니게임">
+  <meta name="keywords" content="생존, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🚦 신호등 게임">
-  <meta property="og:description" content="초록불에만 클릭">
+  <meta property="og:title" content="♾️ 무한 낙하">
+  <meta property="og:description" content="무한히 떨어지는 블록 생존">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini33/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🚦 신호등 게임">
-  <meta property="twitter:description" content="초록불에만 클릭">
+  <meta property="twitter:title" content="♾️ 무한 낙하">
+  <meta property="twitter:description" content="무한히 떨어지는 블록 생존">
 </head>
 
 <body>
@@ -106,24 +61,17 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>🚦 신호등 게임</h1>
-                    <p>30초 동안 초록불에만 클릭하세요!</p>
+                    <h1>♾️ 무한 낙하</h1>
+                    <p>계속 떨어지는 블록을 받아내세요! 한 번 미스하면 게임 오버!</p>
                 </header>
 
-                <div class="timer" id="timer">30.0</div>
-                <div class="traffic-light">
-                    <div class="light off" id="redLight"></div>
-                    <div class="light off" id="yellowLight"></div>
-                    <div class="light off" id="greenLight"></div>
-                </div>
+                <canvas id="gameCanvas" width="320" height="480"></canvas>
 
-                <div class="feedback" id="feedback"></div>
-
-                <div class="click-btn" id="clickBtn">클릭!</div>
-
-                <div class="stats-bar mb-4">
-                    <div class="stat-item">정확 클릭: <span id="score">0</span></div>
-                    <div class="stat-item">실수: <span id="mistakes">0</span></div>
+                <div class="game-info">
+                    <div class="info-item">
+                        <div class="info-label">생존 시간</div>
+                        <div class="info-value" id="timeValue">0.0</div>
+                    </div>
                 </div>
 
                 <div class="controls mt-4">
@@ -145,126 +93,187 @@
 
     <script src="../shared/ranking.js"></script>
     <script src="../shared/juice.js"></script>
-
     <script>
         const PAGE_ID = "mini33";
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const CANVAS_W = 320;
+        const CANVAS_H = 480;
+        const BASKET_Y = CANVAS_H - 40;
+        const BASKET_W = 60;
+        const BASKET_H = 20;
+
+        let gameState = "idle";
+        let score = 0; // Time survived in seconds
+        let gameTime = 0;
+        let basketX = CANVAS_W / 2 - BASKET_W / 2;
+        let mouseX = CANVAS_W / 2;
+
+        let blocks = [];
+        let baseFallSpeed = 2;
+        let speedMultiplier = 1;
+        let blocksCaught = 0;
+
+        // Load ranking
         if (window.GameStats) {
             const rl = document.getElementById('rankList');
             GameStats.listenTopScores(PAGE_ID, 5, arr => {
-                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score.toFixed(1)}초)</li>`).join('');
             });
         }
 
-        const clickBtn = document.getElementById('clickBtn');
-        const timerEl = document.getElementById('timer');
-        const scoreEl = document.getElementById('score');
-        const mistakesEl = document.getElementById('mistakes');
-        const btnStart = document.getElementById('btnStart');
-        const feedbackEl = document.getElementById('feedback');
-        const redLight = document.getElementById('redLight');
-        const yellowLight = document.getElementById('yellowLight');
-        const greenLight = document.getElementById('greenLight');
+        class Block {
+            constructor() {
+                this.x = Math.random() * (CANVAS_W - 30) + 15;
+                this.y = -20;
+                this.w = 30;
+                this.h = 20;
+                this.speed = baseFallSpeed * speedMultiplier;
+            }
 
-        let score = 0;
-        let mistakes = 0;
-        let time = 30.0;
-        let running = false;
-        let timer = null;
-        let currentLight = 'off';
-        let lightTimer = null;
+            update() {
+                this.y += this.speed;
+            }
 
-        function changeLight() {
-            const lights = ['red', 'yellow', 'green'];
-            const prevLight = currentLight;
-            currentLight = lights[Math.floor(Math.random() * lights.length)];
+            draw() {
+                ctx.fillStyle = "#00ff00";
+                ctx.fillRect(this.x - this.w / 2, this.y, this.w, this.h);
+                ctx.strokeStyle = "#00aa00";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x - this.w / 2, this.y, this.w, this.h);
+            }
 
-            redLight.className = 'light ' + (currentLight === 'red' ? 'red' : 'off');
-            yellowLight.className = 'light ' + (currentLight === 'yellow' ? 'yellow' : 'off');
-            greenLight.className = 'light ' + (currentLight === 'green' ? 'green' : 'off');
-        }
+            isOutOfBounds() {
+                return this.y > CANVAS_H;
+            }
 
-        function tick() {
-            time -= 0.1;
-            timerEl.textContent = time.toFixed(1);
-            if (time <= 0) {
-                time = 0;
-                gameOver();
+            checkCollision(bx, bw) {
+                return this.x > bx && this.x < bx + bw &&
+                    this.y + this.h > BASKET_Y && this.y - this.h < BASKET_Y + BASKET_H;
             }
         }
 
-        function gameOver() {
-            running = false;
-            clearInterval(timer);
-            clearInterval(lightTimer);
-            clickBtn.disabled = true;
-            btnStart.disabled = false;
-            btnStart.textContent = '다시 시작';
-            feedbackEl.textContent = '';
+        function updateGame() {
+            if (gameState !== "running") return;
 
-            const finalScore = Math.max(0, score - mistakes);
+            gameTime += 0.016;
+            score = gameTime;
+            document.getElementById("timeValue").textContent = gameTime.toFixed(1);
+
+            // Increase difficulty every 10 seconds
+            if (Math.floor(gameTime) % 10 === 0 && gameTime > 0) {
+                speedMultiplier = 1 + Math.floor(gameTime / 10) * 0.3;
+            }
+
+            // Spawn blocks continuously (faster as time goes on)
+            const spawnRate = 0.025 + (gameTime * 0.002);
+            if (Math.random() < spawnRate) {
+                blocks.push(new Block());
+            }
+
+            // Update basket position
+            basketX = Math.max(0, Math.min(CANVAS_W - BASKET_W, mouseX - BASKET_W / 2));
+
+            // Update and check collisions
+            let missed = false;
+            for (let i = blocks.length - 1; i >= 0; i--) {
+                blocks[i].update();
+
+                if (blocks[i].checkCollision(basketX, BASKET_W)) {
+                    blocksCaught++;
+                    blocks.splice(i, 1);
+                } else if (blocks[i].isOutOfBounds()) {
+                    // ONE MISS = GAME OVER!
+                    missed = true;
+                    gameState = "over";
+                    gameEnd();
+                }
+            }
+        }
+
+        function drawGame() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // Draw difficulty indicator
+            const level = Math.floor(gameTime / 10) + 1;
+            ctx.fillStyle = "#00ff00";
+            ctx.font = "14px Arial";
+            ctx.textAlign = "right";
+            ctx.fillText(`Lv ${level}`, CANVAS_W - 10, 20);
+
+            // Draw blocks caught
+            ctx.fillStyle = "#00ff00";
+            ctx.textAlign = "left";
+            ctx.fillText(`받은 블록: ${blocksCaught}`, 10, 20);
+
+            // Draw blocks
+            blocks.forEach(block => block.draw());
+
+            // Draw basket
+            ctx.fillStyle = "#ffff00";
+            ctx.fillRect(basketX, BASKET_Y, BASKET_W, BASKET_H);
+            ctx.strokeStyle = "#ffaa00";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(basketX, BASKET_Y, BASKET_W, BASKET_H);
+
+            // Draw warning if blocks are too many
+            if (blocks.length > 20) {
+                ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
+                ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+                ctx.fillStyle = "#ff0000";
+                ctx.font = "bold 20px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText("위험!", CANVAS_W / 2, CANVAS_H / 2);
+            }
+        }
+
+        function gameEnd() {
+            document.getElementById("btnStart").disabled = false;
+            document.getElementById("btnStart").textContent = "다시 시작";
             if (window.GameStats) {
-                GameStats.saveScore(PAGE_ID, name, finalScore, () => {
-                    scoreEl.textContent = '0';
-                    mistakesEl.textContent = '0';
-                    score = 0;
-                    mistakes = 0;
-                    time = 30.0;
-                    timerEl.textContent = time.toFixed(1);
-                    clickBtn.disabled = false;
+                GameStats.saveScore(PAGE_ID, name, score, () => {
+                    resetGame();
                 });
             }
         }
 
-        clickBtn.addEventListener('click', () => {
-            if (running) {
-                if (currentLight === 'green') {
-                    score++;
-                    scoreEl.textContent = score;
-                    feedbackEl.textContent = '✓ 맞았습니다!';
-                    setTimeout(() => feedbackEl.textContent = '', 500);
-                } else {
-                    mistakes++;
-                    mistakesEl.textContent = mistakes;
-                    feedbackEl.textContent = '✗ 잘못된 신호!';
-                    setTimeout(() => feedbackEl.textContent = '', 500);
-                }
-            }
-        });
-
-        clickBtn.addEventListener('touchstart', (e) => {
-            if (running) {
-                e.preventDefault();
-                if (currentLight === 'green') {
-                    score++;
-                    scoreEl.textContent = score;
-                    feedbackEl.textContent = '✓ 맞았습니다!';
-                    setTimeout(() => feedbackEl.textContent = '', 500);
-                } else {
-                    mistakes++;
-                    mistakesEl.textContent = mistakes;
-                    feedbackEl.textContent = '✗ 잘못된 신호!';
-                    setTimeout(() => feedbackEl.textContent = '', 500);
-                }
-            }
-        }, { passive: false });
-
-        btnStart.addEventListener('click', () => {
-            if (running) return;
-            running = true;
+        function resetGame() {
             score = 0;
-            mistakes = 0;
-            time = 30.0;
-            scoreEl.textContent = '0';
-            mistakesEl.textContent = '0';
-            timerEl.textContent = '30.0';
-            btnStart.disabled = true;
-            clickBtn.disabled = false;
-            feedbackEl.textContent = '';
+            gameTime = 0;
+            blocks = [];
+            blocksCaught = 0;
+            speedMultiplier = 1;
+            basketX = CANVAS_W / 2 - BASKET_W / 2;
+            document.getElementById("timeValue").textContent = "0.0";
+        }
 
-            timer = setInterval(tick, 100);
-            lightTimer = setInterval(changeLight, 800);
-            changeLight();
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.getElementById("btnStart").addEventListener("click", () => {
+            gameState = "running";
+            resetGame();
+            document.getElementById("btnStart").disabled = true;
         });
+
+        document.addEventListener("mousemove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+        });
+
+        document.addEventListener("touchmove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches.length > 0) {
+                mouseX = e.touches[0].clientX - rect.left;
+            }
+        }, { passive: true });
+
+        gameLoop();
     </script>
 </body>
 

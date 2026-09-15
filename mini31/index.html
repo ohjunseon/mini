@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>버튼 클릭 레이스 (mini31)</title>
+    <title>무한 클릭 (mini31)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
         .click-btn {
@@ -20,18 +20,24 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            flex-direction: column;
             user-select: none;
             transition: all 0.05s;
+            position: relative;
         }
 
         .click-btn:active {
             transform: scale(0.92);
-            background: #2563eb;
         }
 
         .click-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        .cooldown-text {
+            font-size: 0.8rem;
+            margin-top: 5px;
         }
 
         .timer {
@@ -41,17 +47,60 @@
             color: var(--accent);
             margin: 20px 0;
         }
+
+        .cooldown-bar {
+            width: 100%;
+            max-width: 400px;
+            height: 30px;
+            background: #333;
+            border-radius: 15px;
+            margin: 20px auto;
+            overflow: hidden;
+            border: 2px solid var(--accent);
+        }
+
+        .cooldown-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #6BCB77);
+            width: 100%;
+            transition: width 0.05s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .stat {
+            font-size: 1rem;
+            color: var(--muted);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
     </style>
-  <meta name="description" content="10초 동안 최대한 많이 클릭 - 미니게임">
+  <meta name="description" content="시간이 지날수록 쿨다운 감소 - 미니게임">
   <meta name="keywords" content="반응, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="⚡ 버튼 클릭 레이스">
-  <meta property="og:description" content="10초 동안 최대한 많이 클릭">
+  <meta property="og:title" content="🚀 무한 클릭">
+  <meta property="og:description" content="시간이 지날수록 쿨다운 감소">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini31/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="⚡ 버튼 클릭 레이스">
-  <meta property="twitter:description" content="10초 동안 최대한 많이 클릭">
+  <meta property="twitter:title" content="🚀 무한 클릭">
+  <meta property="twitter:description" content="시간이 지날수록 쿨다운 감소">
 </head>
 
 <body>
@@ -59,15 +108,31 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>⚡ 버튼 클릭 레이스</h1>
-                    <p>10초 동안 최대한 많이 클릭하세요!</p>
+                    <h1>🚀 무한 클릭</h1>
+                    <p>30초 동안 시간이 지날수록 빨라집니다!</p>
                 </header>
 
-                <div class="timer" id="timer">10.0</div>
-                <div class="click-btn" id="clickBtn">클릭!</div>
+                <div class="timer" id="timer">30.0</div>
 
-                <div class="stats-bar mb-4">
-                    <div class="stat-item">점수: <span id="score">0</span></div>
+                <p style="text-align: center; color: var(--muted); margin: 10px 0;">쿨다운:</p>
+                <div class="cooldown-bar">
+                    <div class="cooldown-fill" id="cooldownFill" style="width: 100%;">0ms</div>
+                </div>
+
+                <div class="click-btn" id="clickBtn">
+                    <span>클릭!</span>
+                    <span class="cooldown-text" id="cooldownText"></span>
+                </div>
+
+                <div class="stats">
+                    <div>
+                        <div class="stat">점수</div>
+                        <div class="stat-value" id="score">0</div>
+                    </div>
+                    <div>
+                        <div class="stat">현재 쿨</div>
+                        <div class="stat-value" id="currentCool">300ms</div>
+                    </div>
                 </div>
 
                 <div class="controls mt-4">
@@ -103,11 +168,42 @@
         const timerEl = document.getElementById('timer');
         const scoreEl = document.getElementById('score');
         const btnStart = document.getElementById('btnStart');
+        const cooldownFill = document.getElementById('cooldownFill');
+        const cooldownText = document.getElementById('cooldownText');
+        const currentCoolEl = document.getElementById('currentCool');
 
         let score = 0;
-        let time = 10.0;
+        let time = 30.0;
         let running = false;
         let timer = null;
+        let gameTimer = null;
+        let cooldown = 0;
+        let baseCooldown = 300;
+
+        function getCurrentCooldown() {
+            const elapsed = 30.0 - time;
+            const reduction = Math.floor(elapsed * 5);
+            return Math.max(50, baseCooldown - reduction);
+        }
+
+        function updateCooldownDisplay() {
+            const currentCool = getCurrentCooldown();
+            currentCoolEl.textContent = currentCool + 'ms';
+
+            if (cooldown > 0) {
+                cooldown--;
+                const percent = Math.round((cooldown / currentCool) * 100);
+                cooldownFill.style.width = percent + '%';
+                cooldownFill.textContent = cooldown + 'ms';
+                clickBtn.disabled = true;
+                cooldownText.textContent = '';
+            } else {
+                cooldownFill.style.width = '0%';
+                cooldownFill.textContent = '0ms';
+                clickBtn.disabled = !running;
+                cooldownText.textContent = '';
+            }
+        }
 
         function tick() {
             time -= 0.1;
@@ -121,47 +217,69 @@
         function gameOver() {
             running = false;
             clearInterval(timer);
+            clearInterval(gameTimer);
             clickBtn.disabled = true;
             btnStart.disabled = false;
             btnStart.textContent = '다시 시작';
+            cooldownText.textContent = '';
             if (window.GameStats) {
                 GameStats.saveScore(PAGE_ID, name, score, () => {
                     scoreEl.textContent = '0';
                     score = 0;
-                    time = 10.0;
+                    time = 30.0;
                     timerEl.textContent = time.toFixed(1);
-                    clickBtn.disabled = false;
+                    cooldown = 0;
+                    updateCooldownDisplay();
+                    currentCoolEl.textContent = '300ms';
                 });
             }
         }
 
         clickBtn.addEventListener('click', () => {
-            if (running) {
+            if (running && cooldown === 0) {
                 score++;
                 scoreEl.textContent = score;
+
+                const currentCool = getCurrentCooldown();
+                cooldown = currentCool;
+                clickBtn.disabled = true;
+
+                updateCooldownDisplay();
             }
         });
+
+        clickBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (running && cooldown === 0) {
+                score++;
+                scoreEl.textContent = score;
+
+                const currentCool = getCurrentCooldown();
+                cooldown = currentCool;
+                clickBtn.disabled = true;
+
+                updateCooldownDisplay();
+            }
+        }, { passive: false });
 
         btnStart.addEventListener('click', () => {
             if (running) return;
             running = true;
             score = 0;
-            time = 10.0;
+            time = 30.0;
+            cooldown = 0;
             scoreEl.textContent = '0';
-            timerEl.textContent = '10.0';
+            timerEl.textContent = '30.0';
             btnStart.disabled = true;
             clickBtn.disabled = false;
+            cooldownText.textContent = '';
+            updateCooldownDisplay();
 
             timer = setInterval(tick, 100);
+            gameTimer = setInterval(updateCooldownDisplay, 10);
         });
 
-        clickBtn.addEventListener('touchstart', (e) => {
-            if (running) {
-                e.preventDefault();
-                score++;
-                scoreEl.textContent = score;
-            }
-        }, { passive: false });
+        updateCooldownDisplay();
     </script>
 </body>
 

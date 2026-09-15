@@ -2,273 +2,231 @@
 <html lang="ko">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>쿨다운 클릭 (mini39)</title>
-    <link rel="stylesheet" href="../shared/style.css">
-    <style>
-        .click-btn {
-            width: 180px;
-            height: 180px;
-            border-radius: 50%;
-            background: var(--accent);
-            border: 8px solid #fff;
-            font-size: 2rem;
-            color: #fff;
-            cursor: pointer;
-            margin: 30px auto;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            user-select: none;
-            transition: all 0.05s;
-            position: relative;
-        }
-
-        .click-btn:active {
-            transform: scale(0.92);
-        }
-
-        .click-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .cooldown-text {
-            font-size: 0.8rem;
-            margin-top: 5px;
-        }
-
-        .timer {
-            font-size: 3rem;
-            font-weight: bold;
-            text-align: center;
-            color: var(--accent);
-            margin: 20px 0;
-        }
-
-        .energy-bar {
-            width: 100%;
-            max-width: 400px;
-            height: 30px;
-            background: #333;
-            border-radius: 15px;
-            margin: 20px auto;
-            overflow: hidden;
-            border: 2px solid var(--accent);
-        }
-
-        .energy-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #FF6B6B, var(--accent));
-            width: 100%;
-            transition: width 0.1s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
-            color: #fff;
-            font-weight: bold;
-        }
-    </style>
-  <meta name="description" content="쿨다운을 관리하며 클릭 - 미니게임">
-  <meta name="keywords" content="반응, 미니게임, 게임">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>단어 찾기</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <meta name="description" content="목표 단어를 찾아 입력하세요! (30초) - 미니게임">
+  <meta name="keywords" content="두뇌, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="⚡ 쿨다운 클릭">
-  <meta property="og:description" content="쿨다운을 관리하며 클릭">
+  <meta property="og:title" content="🔤 단어 찾기">
+  <meta property="og:description" content="목표 단어를 찾아 입력하세요! (30초)">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini39/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="⚡ 쿨다운 클릭">
-  <meta property="twitter:description" content="쿨다운을 관리하며 클릭">
+  <meta property="twitter:title" content="🔤 단어 찾기">
+  <meta property="twitter:description" content="목표 단어를 찾아 입력하세요! (30초)">
 </head>
 
 <body>
-    <div class="container">
-        <div class="game-container">
-            <div class="card">
-                <header class="mb-4">
-                    <h1>⚡ 쿨다운 클릭</h1>
-                    <p>20초 동안 쿨다운을 관리하며 클릭하세요!</p>
-                </header>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🔤 단어 찾기</h1>
+          <p>보이는 단어 중 목표 단어를 입력하세요! (30초)</p>
+        </header>
 
-                <div class="timer" id="timer">20.0</div>
-
-                <p style="text-align: center; color: var(--muted); margin: 10px 0;">에너지:</p>
-                <div class="energy-bar">
-                    <div class="energy-fill" id="energyFill" style="width: 100%;">100%</div>
-                </div>
-
-                <div class="click-btn" id="clickBtn">
-                    <span>클릭!</span>
-                    <span class="cooldown-text" id="cooldownText"></span>
-                </div>
-
-                <div class="stats-bar mb-4">
-                    <div class="stat-item">점수: <span id="score">0</span></div>
-                </div>
-
-                <div class="controls mt-4">
-                    <button id="btnStart" class="btn">게임 시작</button>
-                </div>
-
-                <div class="panel mt-4" style="text-align: left;">
-                    <h3>🏆 랭킹</h3>
-                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
-                        <li>...</li>
-                    </ul>
-                </div>
-              <div class="mt-4">
-                <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
-              </div>
-            </div>
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">시간</span>
+            <span class="stat-value" id="timeLeft">30</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">점수</span>
+            <span class="stat-value" id="scoreValue">0</span>
+          </div>
         </div>
+
+        <div style="padding: 20px; background: var(--panel); border-radius: 12px; margin: 20px 0;">
+          <p style="color: var(--warn); font-weight: bold; margin: 0 0 10px;">목표 단어:</p>
+          <div id="targetWord" style="
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent);
+            text-align: center;
+            min-height: 50px;
+          ">단어</div>
+        </div>
+
+        <div style="padding: 20px; background: var(--panel); border-radius: 12px; margin: 20px 0;">
+          <p style="color: var(--muted); margin: 0 0 10px;">보이는 단어들:</p>
+          <div id="wordList" style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+          ">
+            <!-- Words will be inserted here -->
+          </div>
+        </div>
+
+        <div style="margin: 20px 0;">
+          <input type="text" id="answerInput" placeholder="단어를 입력하고 Enter 누르기" style="
+            width: 100%;
+            padding: 12px;
+            background: var(--panel);
+            color: var(--text);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            font-size: 1rem;
+          ">
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">상태</span>
+            <span class="stat-value" id="statusText">게임 중...</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="restartBtn">🔄 새로운 게임</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5 (많은 점수)</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <script src="../shared/ranking.js"></script>
+  <script src="../shared/ranking.js"></script>
     <script src="../shared/juice.js"></script>
+  <script>
+    const PAGE_ID = "mini39";
+    const targetWordEl = document.getElementById('targetWord');
+    const wordListEl = document.getElementById('wordList');
+    const answerInputEl = document.getElementById('answerInput');
+    const timeLeftEl = document.getElementById('timeLeft');
+    const scoreValueEl = document.getElementById('scoreValue');
+    const statusTextEl = document.getElementById('statusText');
+    const restartBtn = document.getElementById('restartBtn');
+    const rankList = document.getElementById('rankList');
 
-    <script>
-        const PAGE_ID = "mini39";
-        if (window.GameStats) {
-            const rl = document.getElementById('rankList');
-            GameStats.listenTopScores(PAGE_ID, 5, arr => {
-                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
-            });
+    const WORDS = [
+      '사과', '바나나', '포도', '딸기', '오렌지',
+      '고양이', '개', '새', '물고기', '토끼',
+      '책', '펜', '연필', '종이', '책상',
+      '달리기', '수영', '점프', '춤추기', '노래하기'
+    ];
+
+    let currentWords = [];
+    let targetWord = '';
+    let timeLeft = 30;
+    let score = 0;
+    let gameActive = true;
+    let timer = null;
+
+    function initializeGame() {
+      currentWords = [];
+      while (currentWords.length < 5) {
+        const word = WORDS[Math.floor(Math.random() * WORDS.length)];
+        if (!currentWords.includes(word)) {
+          currentWords.push(word);
         }
+      }
+      targetWord = currentWords[Math.floor(Math.random() * currentWords.length)];
+      timeLeft = 30;
+      score = 0;
+      gameActive = true;
+      answerInputEl.value = '';
+      answerInputEl.focus();
+      statusTextEl.textContent = '게임 중...';
 
-        const clickBtn = document.getElementById('clickBtn');
-        const timerEl = document.getElementById('timer');
-        const scoreEl = document.getElementById('score');
-        const btnStart = document.getElementById('btnStart');
-        const energyFill = document.getElementById('energyFill');
-        const cooldownText = document.getElementById('cooldownText');
+      targetWordEl.textContent = targetWord;
+      drawWordList();
 
-        let score = 0;
-        let time = 20.0;
-        let running = false;
-        let timer = null;
-        let energy = 100;
-        let maxEnergy = 100;
-        let cooldown = 0;
-        let cooldownMax = 0;
-
-        function updateEnergy() {
-            const percent = Math.round((energy / maxEnergy) * 100);
-            energyFill.style.width = percent + '%';
-            energyFill.textContent = percent + '%';
-
-            if (energy < maxEnergy) {
-                energy = Math.min(maxEnergy, energy + 1);
-            }
+      clearInterval(timer);
+      timer = setInterval(() => {
+        timeLeft--;
+        timeLeftEl.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          endGame();
         }
+      }, 1000);
+    }
 
-        function updateCooldown() {
-            if (cooldown > 0) {
-                cooldown--;
-                clickBtn.disabled = true;
-                cooldownText.textContent = '쿨: ' + cooldown + 'ms';
-            } else {
-                clickBtn.disabled = !running;
-                cooldownText.textContent = '';
-            }
-        }
+    function drawWordList() {
+      wordListEl.innerHTML = currentWords.map(word => `
+        <div style="
+          padding: 15px;
+          background: var(--panel-border);
+          border-radius: 8px;
+          text-align: center;
+          font-weight: bold;
+          color: var(--text);
+        ">${word}</div>
+      `).join('');
+    }
 
-        function tick() {
-            time -= 0.1;
-            timerEl.textContent = time.toFixed(1);
-            if (time <= 0) {
-                time = 0;
-                gameOver();
-            }
-        }
+    function checkAnswer() {
+      if (!gameActive) return;
 
-        function gameOver() {
-            running = false;
-            clearInterval(timer);
-            clickBtn.disabled = true;
-            btnStart.disabled = false;
-            btnStart.textContent = '다시 시작';
-            cooldownText.textContent = '';
-            if (window.GameStats) {
-                GameStats.saveScore(PAGE_ID, name, score, () => {
-                    scoreEl.textContent = '0';
-                    score = 0;
-                    energy = 100;
-                    cooldown = 0;
-                    time = 20.0;
-                    timerEl.textContent = time.toFixed(1);
-                    updateEnergy();
-                });
-            }
-        }
+      const answer = answerInputEl.value.trim();
+      if (answer === targetWord) {
+        score += 10;
+        scoreValueEl.textContent = score;
+        answerInputEl.value = '';
 
-        clickBtn.addEventListener('click', () => {
-            if (running && cooldown === 0 && energy > 0) {
-                score++;
-                scoreEl.textContent = score;
-                energy = Math.max(0, energy - 20);
-                updateEnergy();
+        // Get new target word
+        targetWord = currentWords[Math.floor(Math.random() * currentWords.length)];
+        targetWordEl.textContent = targetWord;
+      } else if (answer.length > 0) {
+        statusTextEl.textContent = '틀렸습니다!';
+        setTimeout(() => {
+          if (gameActive) statusTextEl.textContent = '게임 중...';
+        }, 1000);
+        answerInputEl.value = '';
+      }
+    }
 
-                cooldownMax = Math.min(300, 50 + score * 10);
-                cooldown = cooldownMax;
-                clickBtn.disabled = true;
-                cooldownText.textContent = '쿨: ' + cooldown + 'ms';
+    function endGame() {
+      gameActive = false;
+      clearInterval(timer);
+      statusTextEl.textContent = '게임 종료!';
+      answerInputEl.disabled = true;
+      saveScore(score);
+    }
 
-                const cooldownInterval = setInterval(() => {
-                    updateCooldown();
-                    if (cooldown === 0) {
-                        clearInterval(cooldownInterval);
-                    }
-                }, 10);
-            }
+    function saveScore(finalScore) {
+      if (window.GameStats) {
+        window.GameStats.saveScore(PAGE_ID, finalScore, () => {
+          loadTopScores();
         });
+      }
+    }
 
-        clickBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (running && cooldown === 0 && energy > 0) {
-                score++;
-                scoreEl.textContent = score;
-                energy = Math.max(0, energy - 20);
-                updateEnergy();
-
-                cooldownMax = Math.min(300, 50 + score * 10);
-                cooldown = cooldownMax;
-                clickBtn.disabled = true;
-                cooldownText.textContent = '쿨: ' + cooldown + 'ms';
-
-                const cooldownInterval = setInterval(() => {
-                    updateCooldown();
-                    if (cooldown === 0) {
-                        clearInterval(cooldownInterval);
-                    }
-                }, 10);
-            }
-        }, { passive: false });
-
-        btnStart.addEventListener('click', () => {
-            if (running) return;
-            running = true;
-            score = 0;
-            energy = 100;
-            cooldown = 0;
-            time = 20.0;
-            scoreEl.textContent = '0';
-            timerEl.textContent = '20.0';
-            btnStart.disabled = true;
-            clickBtn.disabled = false;
-            cooldownText.textContent = '';
-            updateEnergy();
-
-            timer = setInterval(() => {
-                tick();
-                updateEnergy();
-            }, 100);
+    function loadTopScores() {
+      if (window.GameStats) {
+        window.GameStats.listenTopScores(PAGE_ID, 5, (scores) => {
+          rankList.innerHTML = scores.map((s, i) =>
+            `<li>${i + 1}. ${s.score}점</li>`
+          ).join('') || '<li>기록 없음</li>';
         });
+      }
+    }
 
-        updateEnergy();
-    </script>
+    answerInputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        checkAnswer();
+      }
+    });
+
+    restartBtn.addEventListener('click', () => {
+      answerInputEl.disabled = false;
+      initializeGame();
+    });
+
+    // Initialize
+    initializeGame();
+    loadTopScores();
+  </script>
 </body>
 
 </html>

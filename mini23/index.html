@@ -4,28 +4,33 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>점프 런 (mini23)</title>
+    <title>하이 앤 로우 (mini23)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        canvas {
-            background: #222;
-            border-bottom: 2px solid #fff;
-            display: block;
-            margin: 0 auto;
-            max-width: 100%;
+        .card-disp {
+            width: 100px;
+            height: 140px;
+            background: #fff;
+            color: #000;
             border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            margin: 20px auto;
+            border: 2px solid #999;
         }
     </style>
-  <meta name="description" content="러닝 액션 - 미니게임">
-  <meta name="keywords" content="액션, 미니게임, 게임">
+  <meta name="description" content="카드 예측 - 미니게임">
+  <meta name="keywords" content="캐주얼, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🦖 점프 런">
-  <meta property="og:description" content="러닝 액션">
+  <meta property="og:title" content="🃏 하이 앤 로우">
+  <meta property="og:description" content="카드 예측">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini23/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🦖 점프 런">
-  <meta property="twitter:description" content="러닝 액션">
+  <meta property="twitter:title" content="🃏 하이 앤 로우">
+  <meta property="twitter:description" content="카드 예측">
 </head>
 
 <body>
@@ -33,22 +38,23 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>🦖 점프 런</h1>
-                    <p>장애물을 점프해서 피하세요! (스페이스바 / 터치)</p>
+                    <h1>🃏 하이 앤 로우</h1>
+                    <p>다음에 나올 숫자가 더 클까요 작을까요?</p>
                 </header>
 
-                <canvas id="game" width="600" height="200"></canvas>
+                <div class="card-disp" id="currentCard">?</div>
 
-                <div class="controls mt-4">
-                    <button id="btnStart" class="btn">달리기 시작</button>
+                <div class="stats-bar mb-4">
+                    <div class="stat-item">연승: <span id="streak">0</span></div>
                 </div>
 
-                <div class="stats-bar mt-4">
-                    <div class="stat-item">거리: <span id="score">0</span>m</div>
+                <div class="controls mt-4" style="display: flex; gap: 20px; justify-content: center;">
+                    <button class="btn secondary" id="btnHigh">⬆ HIGH</button>
+                    <button class="btn secondary" id="btnLow">⬇ LOW</button>
                 </div>
 
                 <div class="panel mt-4" style="text-align: left;">
-                    <h3>🏆 랭킹</h3>
+                    <h3>🏆 랭킹 (연승)</h3>
                     <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
                         <li>...</li>
                     </ul>
@@ -66,127 +72,53 @@
     <script>
         const PAGE_ID = "mini23";
         if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
-            const rl = document.getElementById('rankList');
-            rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}m)</li>`).join('');
+            document.getElementById('rankList').innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}연승)</li>`).join('');
         });
 
-        const cvs = document.getElementById('game');
-        const ctx = cvs.getContext('2d');
-        const btn = document.getElementById('btnStart');
-        const sEl = document.getElementById('score');
+        const cEl = document.getElementById('currentCard');
+        const sEl = document.getElementById('streak');
 
-        let dino = { x: 50, y: 150, w: 30, h: 50, vy: 0, grounded: true };
-        let obstacles = [];
-        let frame = 0;
-        let score = 0;
-        let running = false;
-        let speed = 5;
+        let currentVal = Math.floor(Math.random() * 13) + 1;
+        let streak = 0;
 
-        function jump() {
-            if (dino.grounded) {
-                dino.vy = -12;
-                dino.grounded = false;
+        function render() {
+            let disp = currentVal;
+            if (currentVal === 1) disp = 'A';
+            if (currentVal === 11) disp = 'J';
+            if (currentVal === 12) disp = 'Q';
+            if (currentVal === 13) disp = 'K';
+            cEl.textContent = disp;
+            sEl.textContent = streak;
+        }
+
+        function guess(isHigh) {
+            const next = Math.floor(Math.random() * 13) + 1;
+
+            // Show next briefly? Or just update.
+            // Let's alert result.
+
+            let win = false;
+            if (isHigh && next >= currentVal) win = true;
+            if (!isHigh && next <= currentVal) win = true;
+
+            currentVal = next;
+            render();
+
+            if (win) {
+                streak++;
+                sEl.textContent = streak;
+            } else {
+                Juice.toast("틀렸습니다! (나온 숫자: ${next}) 최종 연승: ${streak}", "info");
+                const nick = localStorage.getItem('nickname') || '익명';
+                Juice.submit(PAGE_ID, streak);
+                streak = 0;
+                sEl.textContent = streak;
             }
         }
 
-        function update() {
-            if (!running) return;
-            frame++;
-            score = Math.floor(frame / 10);
-            sEl.textContent = score;
-
-            // Dino Physics
-            dino.vy += 0.8; // Gravity
-            dino.y += dino.vy;
-
-            if (dino.y >= 150) {
-                dino.y = 150;
-                dino.grounded = true;
-                dino.vy = 0;
-            }
-
-            // Spawn
-            if (frame % Math.max(60, 100 - speed * 2) === 0) {
-                if (Math.random() < 0.7) obstacles.push({ x: 600, y: 160, w: 20, h: 40 }); // Cactus
-                else obstacles.push({ x: 600, y: 130, w: 30, h: 30 }); // Bird/Box
-            }
-
-            // Update Obs
-            for (let i = 0; i < obstacles.length; i++) {
-                obstacles[i].x -= speed;
-                if (obstacles[i].x < -30) {
-                    obstacles.splice(i, 1); i--;
-                    speed += 0.05; // Accel
-                }
-                // Collision
-                let o = obstacles[i];
-                if (
-                    dino.x < o.x + o.w &&
-                    dino.x + dino.w > o.x &&
-                    dino.y < o.y + o.h &&
-                    dino.y + dino.h > o.y
-                ) {
-                    gameOver();
-                    return;
-                }
-            }
-        }
-
-        function draw() {
-            ctx.fillStyle = "#222";
-            ctx.fillRect(0, 0, 600, 200);
-
-            ctx.fillStyle = "#fff";
-            ctx.fillRect(0, 195, 600, 2); // Ground line
-
-            // Dino
-            ctx.fillStyle = "var(--good)";
-            ctx.fillRect(dino.x, dino.y, dino.w, dino.h);
-
-            // Obs
-            ctx.fillStyle = "var(--bad)";
-            for (let o of obstacles) {
-                ctx.fillRect(o.x, o.y, o.w, o.h);
-            }
-        }
-
-        function loop() {
-            if (running) {
-                update();
-                draw();
-                requestAnimationFrame(loop);
-            }
-        }
-
-        function gameOver() {
-            running = false;
-            Juice.toast("게임 오버! 기록: ${score}m", "info");
-            const nick = localStorage.getItem('nickname') || '익명';
-            Juice.submit(PAGE_ID, score);
-            btn.style.display = 'inline-block';
-        }
-
-        function start() {
-            dino.y = 150; dino.vy = 0;
-            obstacles = [];
-            score = 0; frame = 0; speed = 5;
-            running = true;
-            btn.style.display = 'none';
-            loop();
-        }
-
-        document.addEventListener('keydown', e => {
-            if (e.code === 'Space' || e.key === 'ArrowUp') jump();
-        });
-        cvs.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            jump();
-        });
-        cvs.addEventListener('mousedown', () => {
-            jump();
-        });
-
-        btn.onclick = start;
+        document.getElementById('btnHigh').onclick = () => guess(true);
+        document.getElementById('btnLow').onclick = () => guess(false);
+        render();
     </script>
 </body>
 

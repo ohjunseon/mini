@@ -4,33 +4,53 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>하이 앤 로우 (mini26)</title>
+    <title>행운의 로또 (mini26)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        .card-disp {
-            width: 100px;
-            height: 140px;
+        .balls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+
+        .ball {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             background: #fff;
             color: #000;
-            border-radius: 8px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 3rem;
-            margin: 20px auto;
-            border: 2px solid #999;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .ball.hit {
+            background: var(--good);
+            color: #fff;
+            box-shadow: 0 0 15px var(--good);
+        }
+
+        .my-nums {
+            font-size: 1.2rem;
+            min-height: 40px;
+            color: var(--accent);
+            margin-bottom: 20px;
         }
     </style>
-  <meta name="description" content="카드 예측 - 미니게임">
+  <meta name="description" content="대박 기원 - 미니게임">
   <meta name="keywords" content="캐주얼, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🃏 하이 앤 로우">
-  <meta property="og:description" content="카드 예측">
+  <meta property="og:title" content="🍀 행운의 로또">
+  <meta property="og:description" content="대박 기원">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini26/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🃏 하이 앤 로우">
-  <meta property="twitter:description" content="카드 예측">
+  <meta property="twitter:title" content="🍀 행운의 로또">
+  <meta property="twitter:description" content="대박 기원">
 </head>
 
 <body>
@@ -38,23 +58,32 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>🃏 하이 앤 로우</h1>
-                    <p>다음에 나올 숫자가 더 클까요 작을까요?</p>
+                    <h1>🍀 행운의 로또</h1>
+                    <p>1~45 중 6개 숫자를 추첨합니다. 몇 개나 맞을까요?</p>
                 </header>
 
-                <div class="card-disp" id="currentCard">?</div>
+                <div class="my-nums" id="myDisp">나의 숫자: ?</div>
 
-                <div class="stats-bar mb-4">
-                    <div class="stat-item">연승: <span id="streak">0</span></div>
+                <div class="balls" id="resultBalls">
+                    <div class="ball">?</div>
+                    <div class="ball">?</div>
+                    <div class="ball">?</div>
+                    <div class="ball">?</div>
+                    <div class="ball">?</div>
+                    <div class="ball">?</div>
                 </div>
 
-                <div class="controls mt-4" style="display: flex; gap: 20px; justify-content: center;">
-                    <button class="btn secondary" id="btnHigh">⬆ HIGH</button>
-                    <button class="btn secondary" id="btnLow">⬇ LOW</button>
+                <div class="stats-bar mb-4">
+                    <div class="stat-item">맞춘 개수: <span id="hits">0</span></div>
+                    <div class="stat-item">점수: <span id="score">0</span></div>
+                </div>
+
+                <div class="controls mt-4">
+                    <button id="btnStart" class="btn">추첨 시작</button>
                 </div>
 
                 <div class="panel mt-4" style="text-align: left;">
-                    <h3>🏆 랭킹 (연승)</h3>
+                    <h3>🏆 랭킹 (누적 점수)</h3>
                     <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
                         <li>...</li>
                     </ul>
@@ -72,53 +101,72 @@
     <script>
         const PAGE_ID = "mini26";
         if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
-            document.getElementById('rankList').innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}연승)</li>`).join('');
+            document.getElementById('rankList').innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}점)</li>`).join('');
         });
 
-        const cEl = document.getElementById('currentCard');
-        const sEl = document.getElementById('streak');
+        const myDisp = document.getElementById('myDisp');
+        const box = document.getElementById('resultBalls');
+        const btn = document.getElementById('btnStart');
+        const hEl = document.getElementById('hits');
+        const sEl = document.getElementById('score');
 
-        let currentVal = Math.floor(Math.random() * 13) + 1;
-        let streak = 0;
+        let totalScore = 0; // Cumulative? Or just one session. Let's make it one lucky try.
+        // Actually High Score is better suited for "Max hits" but that is capped at 6.
+        // Let's make score = 10^hits. 
 
-        function render() {
-            let disp = currentVal;
-            if (currentVal === 1) disp = 'A';
-            if (currentVal === 11) disp = 'J';
-            if (currentVal === 12) disp = 'Q';
-            if (currentVal === 13) disp = 'K';
-            cEl.textContent = disp;
-            sEl.textContent = streak;
-        }
-
-        function guess(isHigh) {
-            const next = Math.floor(Math.random() * 13) + 1;
-
-            // Show next briefly? Or just update.
-            // Let's alert result.
-
-            let win = false;
-            if (isHigh && next >= currentVal) win = true;
-            if (!isHigh && next <= currentVal) win = true;
-
-            currentVal = next;
-            render();
-
-            if (win) {
-                streak++;
-                sEl.textContent = streak;
-            } else {
-                Juice.toast("틀렸습니다! (나온 숫자: ${next}) 최종 연승: ${streak}", "info");
-                const nick = localStorage.getItem('nickname') || '익명';
-                Juice.submit(PAGE_ID, streak);
-                streak = 0;
-                sEl.textContent = streak;
+        function getNums() {
+            let arr = [];
+            while (arr.length < 6) {
+                let n = Math.floor(Math.random() * 45) + 1;
+                if (!arr.includes(n)) arr.push(n);
             }
+            return arr.sort((a, b) => a - b);
         }
 
-        document.getElementById('btnHigh').onclick = () => guess(true);
-        document.getElementById('btnLow').onclick = () => guess(false);
-        render();
+        btn.onclick = () => {
+            btn.disabled = true;
+
+            // 1. Assign My Nums
+            const myParams = getNums();
+            myDisp.textContent = "나의 숫자: " + myParams.join(", ");
+
+            // 2. Draw Animation
+            const winNums = getNums();
+            box.innerHTML = '';
+            winNums.forEach((n, i) => {
+                const b = document.createElement('div');
+                b.className = 'ball';
+                b.textContent = '?';
+                box.appendChild(b);
+
+                setTimeout(() => {
+                    b.textContent = n;
+                    if (myParams.includes(n)) {
+                        b.classList.add('hit');
+                    }
+                }, (i + 1) * 500);
+            });
+
+            setTimeout(() => {
+                // Check
+                const hits = winNums.filter(x => myParams.includes(x)).length;
+                hEl.textContent = hits;
+
+                let pts = 0;
+                if (hits === 3) pts = 5000;
+                if (hits === 4) pts = 50000;
+                if (hits === 5) pts = 1000000;
+                if (hits === 6) pts = 100000000;
+                if (hits < 3) pts = hits * 100;
+
+                sEl.textContent = pts;
+                Juice.toast("${hits}개 일치! 점수: ${pts}", "info");
+
+                const nick = localStorage.getItem('nickname') || '익명';
+                Juice.submit(PAGE_ID, pts);
+                btn.disabled = false;
+            }, 3500);
+        };
     </script>
 </body>
 

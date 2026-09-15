@@ -4,60 +4,73 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>타자 연습 (mini16)</title>
+    <title>지뢰찾기 (mini16)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        .word-display {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 20px;
-            border-radius: 12px;
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            min-height: 80px;
+        .mine-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 2px;
+            background: #999;
+            margin: 20px auto;
+            width: fit-content;
+            border: 4px solid #999;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            background: #bdbdbd;
+            border: 2px solid;
+            border-color: #fff #7b7b7b #7b7b7b #fff;
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
             justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            cursor: pointer;
             user-select: none;
+            font-size: 1.1rem;
         }
 
-        .w {
-            padding: 4px 8px;
-            border-radius: 4px;
+        .cell.revealed {
+            border: 1px solid #7b7b7b;
+            background: #cfcfcf;
         }
 
-        .w.correct {
-            color: var(--good);
+        .cell.mine {
+            background: #ff4444;
         }
 
-        .w.current {
-            background: rgba(255, 255, 255, 0.1);
-            border-bottom: 2px solid var(--accent);
+        .cell.flag {
+            color: red;
         }
 
-        .w.wrong {
-            color: var(--bad);
-            text-decoration: line-through;
+        .c1 {
+            color: blue;
         }
 
-        input.type-in {
-            width: 100%;
-            max-width: 400px;
-            font-size: 1.2rem;
-            padding: 12px;
-            text-align: center;
+        .c2 {
+            color: green;
+        }
+
+        .c3 {
+            color: red;
+        }
+
+        .c4 {
+            color: darkblue;
         }
     </style>
-  <meta name="description" content="영타 속도 측정 - 미니게임">
-  <meta name="keywords" content="트레이닝, 미니게임, 게임">
+  <meta name="description" content="두뇌 풀가동 - 미니게임">
+  <meta name="keywords" content="퍼즐, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="⌨️ 타자 속도 측정">
-  <meta property="og:description" content="영타 속도 측정">
+  <meta property="og:title" content="💣 지뢰찾기">
+  <meta property="og:description" content="두뇌 풀가동">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini16/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="⌨️ 타자 속도 측정">
-  <meta property="twitter:description" content="영타 속도 측정">
+  <meta property="twitter:title" content="💣 지뢰찾기">
+  <meta property="twitter:description" content="두뇌 풀가동">
 </head>
 
 <body>
@@ -65,25 +78,23 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>⌨️ 타자 속도 측정</h1>
-                    <p>1분 동안 최대한 많은 단어를 입력하세요!</p>
+                    <h1>💣 지뢰찾기</h1>
+                    <p>9x9, 지뢰 10개 (우클릭: 깃발)</p>
                 </header>
 
                 <div class="stats-bar">
-                    <div class="stat-item">남은 시간: <span id="time">60</span>s</div>
-                    <div class="stat-item">점수(WPM): <span id="wpm">0</span></div>
+                    <div class="stat-item">남은 지뢰: <span id="mines">10</span></div>
+                    <div class="stat-item">시간: <span id="time">0</span>s</div>
                 </div>
 
-                <div class="word-display" id="disp">시작 버튼을 누르세요</div>
-
-                <input type="text" class="type-in" id="inp" placeholder="여기에 입력하세요" disabled autocomplete="off">
+                <div class="mine-grid" id="grid"></div>
 
                 <div class="controls mt-4">
-                    <button id="btnStart" class="btn">시작</button>
+                    <button id="btnStart" class="btn">새 게임</button>
                 </div>
 
                 <div class="panel mt-4" style="text-align: left;">
-                    <h3>🏆 랭킹 (WPM)</h3>
+                    <h3>🏆 랭킹 (클리어 시간)</h3>
                     <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
                         <li>...</li>
                     </ul>
@@ -103,130 +114,173 @@
         if (window.GameStats) {
             GameStats.listenTopScores(PAGE_ID, 5, arr => {
                 const rl = document.getElementById('rankList');
-                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score} WPM)</li>`).join('');
+                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${Math.abs(d.score)}s)</li>`).join('');
             });
         }
 
-        const WORDS = [
-            "apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew", "kiwi", "lemon",
-            "mango", "nectarine", "orange", "papaya", "quince", "raspberry", "strawberry", "tangerine", "ugli", "vanilla",
-            "watermelon", "house", "mouse", "click", "code", "java", "html", "css", "script", "data",
-            "server", "client", "cloud", "storm", "rain", "snow", "wind", "fire", "earth", "water",
-            "game", "play", "score", "level", "hero", "enemy", "boss", "stage", "item", "shop",
-            "red", "blue", "green", "yellow", "black", "white", "purple", "pink", "gray", "brown",
-            "dog", "cat", "bird", "fish", "lion", "tiger", "bear", "wolf", "fox", "deer"
-        ]; // Simple English words for typing test
-
-        const disp = document.getElementById('disp');
-        const inp = document.getElementById('inp');
+        const grid = document.getElementById('grid');
+        const mineEl = document.getElementById('mines');
         const timeEl = document.getElementById('time');
-        const wpmEl = document.getElementById('wpm');
         const btn = document.getElementById('btnStart');
 
-        let time = 60;
+        const SIZE = 9;
+        const MINES = 10;
+
+        let board = [];
+        let revealed = [];
+        let flagged = [];
+        let startTime = 0;
         let timer = null;
-        let running = false;
-        let words = [];
-        let curIdx = 0;
-        let correctChars = 0;
+        let playing = false;
+        let flags = 0;
 
-        function genWords() {
-            words = [];
-            for (let i = 0; i < 100; i++) words.push(WORDS[Math.floor(Math.random() * WORDS.length)]);
-            render();
-        }
+        function init() {
+            grid.innerHTML = '';
+            board = [];
+            revealed = [];
+            flagged = [];
+            flags = 0;
+            mineEl.textContent = MINES;
+            timeEl.textContent = 0;
 
-        function render() {
-            disp.innerHTML = '';
-            words.slice(Math.max(0, curIdx - 2), curIdx + 10).forEach((w, i) => {
-                const span = document.createElement('span');
-                span.textContent = w;
-                span.className = 'w';
-                if (curIdx > Math.max(0, curIdx - 2) + i) span.classList.add('correct'); // Highlight finished (simplified)
-                // Precise logic needed:
-                // Let's render window around curIdx
-            });
-
-            // Simpler render: Clear and redraw all, scroll view
-            disp.innerHTML = '';
-            // Show window of 20 words
-            const start = Math.floor(curIdx / 20) * 20;
-            const end = start + 20;
-
-            for (let i = start; i < end && i < words.length; i++) {
-                const s = document.createElement('span');
-                s.textContent = words[i];
-                s.className = 'w';
-                if (i === curIdx) s.classList.add('current');
-                else if (i < curIdx) s.classList.add('correct'); // Assuming passed ones are correct (since we force correct to advance)
-                disp.appendChild(s);
+            // Init Arrays
+            for (let i = 0; i < SIZE * SIZE; i++) {
+                board.push(0);
+                revealed.push(false);
+                flagged.push(false);
+                const div = document.createElement('div');
+                div.className = 'cell';
+                div.dataset.id = i;
+                div.onmousedown = (e) => handleClick(e, i);
+                div.oncontextmenu = (e) => { e.preventDefault(); return false; };
+                grid.appendChild(div);
             }
-        }
 
-        inp.addEventListener('input', () => {
-            if (!running) return;
-            const val = inp.value.trim();
-            const target = words[curIdx];
-
-            if (val === target) {
-                // Correct word
-                correctChars += target.length + 1; // +1 for space
-                curIdx++;
-                inp.value = '';
-                render();
-                updateStats();
+            // Place Mines
+            let placed = 0;
+            while (placed < MINES) {
+                const idx = Math.floor(Math.random() * (SIZE * SIZE));
+                if (board[idx] !== 'M') {
+                    board[idx] = 'M';
+                    placed++;
+                }
             }
-        });
 
-        // Prevent space from staying in input
-        inp.addEventListener('keyup', (e) => {
-            if (e.key === ' ') {
-                inp.value = inp.value.trim();
+            // Calc Numbers
+            for (let i = 0; i < SIZE * SIZE; i++) {
+                if (board[i] === 'M') continue;
+                let cnt = 0;
+                const x = i % SIZE; const y = Math.floor(i / SIZE);
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        const nx = x + dx; const ny = y + dy;
+                        if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE) {
+                            if (board[ny * SIZE + nx] === 'M') cnt++;
+                        }
+                    }
+                }
+                board[i] = cnt;
             }
-        });
 
-        function updateStats() {
-            const elapsed = 60 - time;
-            if (elapsed > 0) {
-                const wpm = Math.round((correctChars / 5) / (elapsed / 60));
-                wpmEl.textContent = wpm;
-            }
-        }
-
-        function start() {
-            running = true;
-            time = 60;
-            curIdx = 0;
-            correctChars = 0;
-            inp.disabled = false;
-            inp.value = '';
-            inp.focus();
-            btn.style.display = 'none';
-            genWords();
-
+            playing = true;
+            startTime = Date.now();
+            clearInterval(timer);
             timer = setInterval(() => {
-                time--;
-                timeEl.textContent = time;
-                updateStats();
-                if (time <= 0) end();
+                timeEl.textContent = Math.floor((Date.now() - startTime) / 1000);
             }, 1000);
         }
 
-        function end() {
-            clearInterval(timer);
-            running = false;
-            inp.disabled = true;
-
-            const wpm = parseInt(wpmEl.textContent);
-            Juice.toast("종료! 당신의 속도: ${wpm} WPM", "info");
-
-            Juice.submit(PAGE_ID, wpm);
-
-            btn.style.display = 'inline-block';
-            btn.textContent = '다시 하기';
+        function handleClick(e, idx) {
+            if (!playing) return;
+            if (e.button === 2) { // Right Click
+                toggleFlag(idx);
+            } else {
+                reveal(idx);
+            }
         }
 
-        btn.onclick = start;
+        function toggleFlag(idx) {
+            if (revealed[idx]) return;
+            flagged[idx] = !flagged[idx];
+            const cell = grid.children[idx];
+            if (flagged[idx]) {
+                cell.textContent = '🚩';
+                cell.classList.add('flag');
+                flags++;
+            } else {
+                cell.textContent = '';
+                cell.classList.remove('flag');
+                flags--;
+            }
+            mineEl.textContent = MINES - flags;
+        }
+
+        function reveal(idx) {
+            if (revealed[idx] || flagged[idx]) return;
+            revealed[idx] = true;
+            const cell = grid.children[idx];
+            cell.classList.add('revealed');
+
+            if (board[idx] === 'M') {
+                cell.classList.add('mine');
+                cell.textContent = '💣';
+                gameOver(false);
+                return;
+            }
+
+            if (board[idx] > 0) {
+                cell.textContent = board[idx];
+                cell.classList.add('c' + board[idx]);
+            } else {
+                // Flood Fill
+                const x = idx % SIZE; const y = Math.floor(idx / SIZE);
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        const nx = x + dx; const ny = y + dy;
+                        if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE) {
+                            reveal(ny * SIZE + nx);
+                        }
+                    }
+                }
+            }
+
+            checkWin();
+        }
+
+        function checkWin() {
+            let safeRevealed = 0;
+            for (let i = 0; i < SIZE * SIZE; i++) {
+                if (board[i] !== 'M' && revealed[i]) safeRevealed++;
+            }
+            if (safeRevealed === (SIZE * SIZE - MINES)) {
+                gameOver(true);
+            }
+        }
+
+        function gameOver(win) {
+            playing = false;
+            clearInterval(timer);
+            if (win) {
+                const time = Math.floor((Date.now() - startTime) / 1000);
+                Juice.toast("클리어! 시간: ${time}초", "info");
+
+                // Save negative for sorting
+                const nick = localStorage.getItem('nickname') || '익명';
+                Juice.submit(PAGE_ID, -time);
+            } else {
+                Juice.toast("펑! 지뢰가 터졌습니다.", "info");
+                // Reveal all mines
+                board.forEach((v, i) => {
+                    if (v === 'M') {
+                        grid.children[i].classList.add('revealed', 'mine');
+                        grid.children[i].textContent = '💣';
+                    }
+                });
+            }
+        }
+
+        btn.onclick = init;
+        init(); // start immediately
     </script>
 </body>
 

@@ -2,285 +2,213 @@
 <html lang="ko">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>무한 클릭 (mini40)</title>
-    <link rel="stylesheet" href="../shared/style.css">
-    <style>
-        .click-btn {
-            width: 180px;
-            height: 180px;
-            border-radius: 50%;
-            background: var(--accent);
-            border: 8px solid #fff;
-            font-size: 2rem;
-            color: #fff;
-            cursor: pointer;
-            margin: 30px auto;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            user-select: none;
-            transition: all 0.05s;
-            position: relative;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>그리드 슬라이드</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .puzzle-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      padding: 20px;
+      background: var(--panel);
+      border-radius: 12px;
+      margin: 20px auto;
+      max-width: 250px;
+    }
 
-        .click-btn:active {
-            transform: scale(0.92);
-        }
+    .puzzle-cell {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid var(--panel-border);
+      transition: all 0.1s;
+    }
 
-        .click-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+    .puzzle-cell.number {
+      background: var(--accent);
+      color: var(--text);
+    }
 
-        .cooldown-text {
-            font-size: 0.8rem;
-            margin-top: 5px;
-        }
+    .puzzle-cell.empty {
+      background: var(--panel-border);
+      color: transparent;
+    }
 
-        .timer {
-            font-size: 3rem;
-            font-weight: bold;
-            text-align: center;
-            color: var(--accent);
-            margin: 20px 0;
-        }
-
-        .cooldown-bar {
-            width: 100%;
-            max-width: 400px;
-            height: 30px;
-            background: #333;
-            border-radius: 15px;
-            margin: 20px auto;
-            overflow: hidden;
-            border: 2px solid var(--accent);
-        }
-
-        .cooldown-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent), #6BCB77);
-            width: 100%;
-            transition: width 0.05s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
-            color: #fff;
-            font-weight: bold;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 20px 0;
-            text-align: center;
-        }
-
-        .stat {
-            font-size: 1rem;
-            color: var(--muted);
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--accent);
-        }
-    </style>
-  <meta name="description" content="시간이 지날수록 쿨다운 감소 - 미니게임">
-  <meta name="keywords" content="반응, 미니게임, 게임">
+    .puzzle-cell:hover:not(.empty) {
+      transform: scale(1.05);
+    }
+  </style>
+  <meta name="description" content="숫자를 올바른 순서로 정렬하세요! - 미니게임">
+  <meta name="keywords" content="두뇌, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🚀 무한 클릭">
-  <meta property="og:description" content="시간이 지날수록 쿨다운 감소">
+  <meta property="og:title" content="🔢 그리드 슬라이드">
+  <meta property="og:description" content="숫자를 올바른 순서로 정렬하세요!">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini40/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🚀 무한 클릭">
-  <meta property="twitter:description" content="시간이 지날수록 쿨다운 감소">
+  <meta property="twitter:title" content="🔢 그리드 슬라이드">
+  <meta property="twitter:description" content="숫자를 올바른 순서로 정렬하세요!">
 </head>
 
 <body>
-    <div class="container">
-        <div class="game-container">
-            <div class="card">
-                <header class="mb-4">
-                    <h1>🚀 무한 클릭</h1>
-                    <p>30초 동안 시간이 지날수록 빨라집니다!</p>
-                </header>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px;">
+          <h1>🔢 그리드 슬라이드</h1>
+          <p>숫자를 올바른 순서로 정렬하세요!</p>
+        </header>
 
-                <div class="timer" id="timer">30.0</div>
-
-                <p style="text-align: center; color: var(--muted); margin: 10px 0;">쿨다운:</p>
-                <div class="cooldown-bar">
-                    <div class="cooldown-fill" id="cooldownFill" style="width: 100%;">0ms</div>
-                </div>
-
-                <div class="click-btn" id="clickBtn">
-                    <span>클릭!</span>
-                    <span class="cooldown-text" id="cooldownText"></span>
-                </div>
-
-                <div class="stats">
-                    <div>
-                        <div class="stat">점수</div>
-                        <div class="stat-value" id="score">0</div>
-                    </div>
-                    <div>
-                        <div class="stat">현재 쿨</div>
-                        <div class="stat-value" id="currentCool">300ms</div>
-                    </div>
-                </div>
-
-                <div class="controls mt-4">
-                    <button id="btnStart" class="btn">게임 시작</button>
-                </div>
-
-                <div class="panel mt-4" style="text-align: left;">
-                    <h3>🏆 랭킹</h3>
-                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
-                        <li>...</li>
-                    </ul>
-                </div>
-              <div class="mt-4">
-                <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
-              </div>
-            </div>
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">상태</span>
+            <span class="stat-value" id="statusText">게임 중...</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">시간</span>
+            <span class="stat-value" id="timeValue">0초</span>
+          </div>
         </div>
+
+        <div class="puzzle-grid" id="puzzleGrid"></div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-label">점수</span>
+            <span class="stat-value" id="scoreValue">0</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="restartBtn">🔄 새로운 게임</button>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5 (높은 점수)</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <script src="../shared/ranking.js"></script>
+  <script src="../shared/ranking.js"></script>
     <script src="../shared/juice.js"></script>
+  <script>
+    const PAGE_ID = "mini40";
+    const puzzleGridEl = document.getElementById('puzzleGrid');
+    const statusTextEl = document.getElementById('statusText');
+    const timeValueEl = document.getElementById('timeValue');
+    const scoreValueEl = document.getElementById('scoreValue');
+    const restartBtn = document.getElementById('restartBtn');
+    const rankList = document.getElementById('rankList');
 
-    <script>
-        const PAGE_ID = "mini40";
-        if (window.GameStats) {
-            const rl = document.getElementById('rankList');
-            GameStats.listenTopScores(PAGE_ID, 5, arr => {
-                rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
-            });
-        }
+    let puzzle = [1, 2, 3, 0]; // 0 = empty
+    let startTime = 0;
+    let gameActive = false;
 
-        const clickBtn = document.getElementById('clickBtn');
-        const timerEl = document.getElementById('timer');
-        const scoreEl = document.getElementById('score');
-        const btnStart = document.getElementById('btnStart');
-        const cooldownFill = document.getElementById('cooldownFill');
-        const cooldownText = document.getElementById('cooldownText');
-        const currentCoolEl = document.getElementById('currentCool');
+    function initializeGame() {
+      puzzle = [1, 2, 3, 0];
+      // Shuffle
+      for (let i = 0; i < 30; i++) {
+        const emptyIdx = puzzle.indexOf(0);
+        const directions = [];
+        if (emptyIdx > 1) directions.push(emptyIdx - 2);
+        if (emptyIdx < 2) directions.push(emptyIdx + 2);
+        if (emptyIdx % 2 === 1) directions.push(emptyIdx - 1);
+        if (emptyIdx % 2 === 0) directions.push(emptyIdx + 1);
 
-        let score = 0;
-        let time = 30.0;
-        let running = false;
-        let timer = null;
-        let gameTimer = null;
-        let cooldown = 0;
-        let baseCooldown = 300;
+        const swapIdx = directions[Math.floor(Math.random() * directions.length)];
+        [puzzle[emptyIdx], puzzle[swapIdx]] = [puzzle[swapIdx], puzzle[emptyIdx]];
+      }
 
-        function getCurrentCooldown() {
-            const elapsed = 30.0 - time;
-            const reduction = Math.floor(elapsed * 5);
-            return Math.max(50, baseCooldown - reduction);
-        }
+      startTime = Date.now();
+      gameActive = true;
+      statusTextEl.textContent = '게임 중...';
+      draw();
+      updateTime();
+    }
 
-        function updateCooldownDisplay() {
-            const currentCool = getCurrentCooldown();
-            currentCoolEl.textContent = currentCool + 'ms';
+    function draw() {
+      puzzleGridEl.innerHTML = '';
+      puzzle.forEach((num, idx) => {
+        const cell = document.createElement('div');
+        cell.className = num === 0 ? 'puzzle-cell empty' : 'puzzle-cell number';
+        cell.textContent = num || '';
+        cell.addEventListener('click', () => moveNumber(idx));
+        puzzleGridEl.appendChild(cell);
+      });
+    }
 
-            if (cooldown > 0) {
-                cooldown--;
-                const percent = Math.round((cooldown / currentCool) * 100);
-                cooldownFill.style.width = percent + '%';
-                cooldownFill.textContent = cooldown + 'ms';
-                clickBtn.disabled = true;
-                cooldownText.textContent = '';
-            } else {
-                cooldownFill.style.width = '0%';
-                cooldownFill.textContent = '0ms';
-                clickBtn.disabled = !running;
-                cooldownText.textContent = '';
-            }
-        }
+    function moveNumber(idx) {
+      if (!gameActive) return;
 
-        function tick() {
-            time -= 0.1;
-            timerEl.textContent = time.toFixed(1);
-            if (time <= 0) {
-                time = 0;
-                gameOver();
-            }
-        }
+      const emptyIdx = puzzle.indexOf(0);
+      const directions = [];
+      if (emptyIdx > 1) directions.push(emptyIdx - 2);
+      if (emptyIdx < 2) directions.push(emptyIdx + 2);
+      if (emptyIdx % 2 === 1) directions.push(emptyIdx - 1);
+      if (emptyIdx % 2 === 0) directions.push(emptyIdx + 1);
 
-        function gameOver() {
-            running = false;
-            clearInterval(timer);
-            clearInterval(gameTimer);
-            clickBtn.disabled = true;
-            btnStart.disabled = false;
-            btnStart.textContent = '다시 시작';
-            cooldownText.textContent = '';
-            if (window.GameStats) {
-                GameStats.saveScore(PAGE_ID, name, score, () => {
-                    scoreEl.textContent = '0';
-                    score = 0;
-                    time = 30.0;
-                    timerEl.textContent = time.toFixed(1);
-                    cooldown = 0;
-                    updateCooldownDisplay();
-                    currentCoolEl.textContent = '300ms';
-                });
-            }
-        }
+      if (directions.includes(idx)) {
+        [puzzle[idx], puzzle[emptyIdx]] = [puzzle[emptyIdx], puzzle[idx]];
+        draw();
+        checkWin();
+      }
+    }
 
-        clickBtn.addEventListener('click', () => {
-            if (running && cooldown === 0) {
-                score++;
-                scoreEl.textContent = score;
+    function checkWin() {
+      if (JSON.stringify(puzzle) === JSON.stringify([1, 2, 3, 0])) {
+        gameActive = false;
+        statusTextEl.textContent = '완료!';
+        const time = Math.floor((Date.now() - startTime) / 1000);
+        const score = Math.max(100 - time * 2, 10);
+        scoreValueEl.textContent = Math.floor(score);
+        saveScore(Math.floor(score));
+      }
+    }
 
-                const currentCool = getCurrentCooldown();
-                cooldown = currentCool;
-                clickBtn.disabled = true;
+    function updateTime() {
+      if (gameActive) {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        timeValueEl.textContent = elapsed + '초';
+        setTimeout(updateTime, 100);
+      }
+    }
 
-                updateCooldownDisplay();
-            }
+    function saveScore(finalScore) {
+      if (window.GameStats) {
+        window.GameStats.saveScore(PAGE_ID, finalScore, () => {
+          loadTopScores();
         });
+      }
+    }
 
-        clickBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (running && cooldown === 0) {
-                score++;
-                scoreEl.textContent = score;
-
-                const currentCool = getCurrentCooldown();
-                cooldown = currentCool;
-                clickBtn.disabled = true;
-
-                updateCooldownDisplay();
-            }
-        }, { passive: false });
-
-        btnStart.addEventListener('click', () => {
-            if (running) return;
-            running = true;
-            score = 0;
-            time = 30.0;
-            cooldown = 0;
-            scoreEl.textContent = '0';
-            timerEl.textContent = '30.0';
-            btnStart.disabled = true;
-            clickBtn.disabled = false;
-            cooldownText.textContent = '';
-            updateCooldownDisplay();
-
-            timer = setInterval(tick, 100);
-            gameTimer = setInterval(updateCooldownDisplay, 10);
+    function loadTopScores() {
+      if (window.GameStats) {
+        window.GameStats.listenTopScores(PAGE_ID, 5, (scores) => {
+          rankList.innerHTML = scores.map((s, i) =>
+            `<li>${i + 1}. ${s.score}점</li>`
+          ).join('') || '<li>기록 없음</li>';
         });
+      }
+    }
 
-        updateCooldownDisplay();
-    </script>
+    restartBtn.addEventListener('click', initializeGame);
+
+    initializeGame();
+    loadTopScores();
+  </script>
 </body>
 
 </html>

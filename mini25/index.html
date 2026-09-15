@@ -4,44 +4,35 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>슬롯 머신 (mini25)</title>
+    <title>절대 시간 (mini25)</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
-        .slot-machine {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin: 30px auto;
-            padding: 20px;
-            background: #222;
-            border: 4px solid #dbb700;
-            border-radius: 12px;
-            width: fit-content;
+        .timer-disp {
+            font-size: 4rem;
+            font-weight: bold;
+            margin: 40px 0;
+            font-variant-numeric: tabular-nums;
         }
 
-        .reel {
-            width: 60px;
-            height: 80px;
-            background: #fff;
-            color: #000;
-            font-size: 2.5rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 4px;
-            border: 2px solid #555;
+        .target {
+            color: var(--accent);
+        }
+
+        .hidden {
+            color: #222;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
         }
     </style>
-  <meta name="description" content="행운 시험 - 미니게임">
-  <meta name="keywords" content="캐주얼, 미니게임, 게임">
+  <meta name="description" content="10.00초 맞추기 - 미니게임">
+  <meta name="keywords" content="트레이닝, 미니게임, 게임">
   <meta name="theme-color" content="#00e5ff">
-  <meta property="og:title" content="🎰 슬롯 머신">
-  <meta property="og:description" content="행운 시험">
+  <meta property="og:title" content="⏱️ 10.00초 맞추기">
+  <meta property="og:description" content="10.00초 맞추기">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/mini25/cover.png">
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="🎰 슬롯 머신">
-  <meta property="twitter:description" content="행운 시험">
+  <meta property="twitter:title" content="⏱️ 10.00초 맞추기">
+  <meta property="twitter:description" content="10.00초 맞추기">
 </head>
 
 <body>
@@ -49,27 +40,18 @@
         <div class="game-container">
             <div class="card">
                 <header class="mb-4">
-                    <h1>🎰 슬롯 머신</h1>
-                    <p>1000포인트로 시작합니다. 잭팟을 노리세요!</p>
+                    <h1>⏱️ 10.00초 맞추기</h1>
+                    <p>정확히 10.00초에 멈추세요! (3초 뒤 화면 가려짐)</p>
                 </header>
 
-                <div class="slot-machine">
-                    <div class="reel" id="r1">7</div>
-                    <div class="reel" id="r2">7</div>
-                    <div class="reel" id="r3">7</div>
-                </div>
-
-                <div class="stats-bar mb-4">
-                    <div class="stat-item">소지금: <span id="money">1000</span></div>
-                    <div class="stat-item">베팅: 50</div>
-                </div>
+                <div class="timer-disp" id="disp">0.00</div>
 
                 <div class="controls mt-4">
-                    <button id="btnSpin" class="btn">돌리기 (-50)</button>
+                    <button id="btnAction" class="btn" style="padding: 20px 40px; font-size: 1.5rem;">START</button>
                 </div>
 
                 <div class="panel mt-4" style="text-align: left;">
-                    <h3>🏆 랭킹 (최대 소지금)</h3>
+                    <h3>🏆 랭킹 (오차 적은 순)</h3>
                     <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
                         <li>...</li>
                     </ul>
@@ -87,66 +69,60 @@
     <script>
         const PAGE_ID = "mini25";
         if (window.GameStats) GameStats.listenTopScores(PAGE_ID, 5, arr => {
+            // Sort by smallest abs(score) manually if needed, but assuming saveScore logic for mini25 is customized or we store negative error
+            // Simplest: Store score as (100 - abs_error)*100 ?
+            // Let's store -abs_error. then max is best. -0.01 > -0.05
             const rl = document.getElementById('rankList');
-            rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score})</li>`).join('');
+            rl.innerHTML = (!arr || !arr.length) ? "<li>기록 없음</li>" : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${Math.abs(d.score).toFixed(2)}s 오차)</li>`).join('');
         });
 
-        const syms = ['🍒', '🍋', '🍇', '💎', '7'];
-        const r1 = document.getElementById('r1');
-        const r2 = document.getElementById('r2');
-        const r3 = document.getElementById('r3');
-        const btn = document.getElementById('btnSpin');
-        const mEl = document.getElementById('money');
+        const disp = document.getElementById('disp');
+        const btn = document.getElementById('btnAction');
 
-        let money = 1000;
+        let startTime;
+        let timer;
+        let running = false;
 
-        function spinReel(el, duration) {
-            return new Promise(resolve => {
-                let i = 0;
-                const interval = setInterval(() => {
-                    el.textContent = syms[Math.floor(Math.random() * syms.length)];
-                    i += 50;
-                    if (i >= duration) {
-                        clearInterval(interval);
-                        resolve(el.textContent);
-                    }
-                }, 50);
-            });
-        }
+        btn.onclick = () => {
+            if (!running) {
+                // Start
+                running = true;
+                btn.textContent = "STOP";
+                btn.style.background = "var(--accent)";
+                startTime = Date.now();
+                disp.classList.remove('hidden');
 
-        btn.onclick = async () => {
-            if (money < 50) { Juice.toast("파산했습니다!", "info"); money = 1000; mEl.textContent = money; return; }
+                timer = requestAnimationFrame(loop);
+            } else {
+                // Stop
+                running = false;
+                cancelAnimationFrame(timer);
+                const diff = (Date.now() - startTime) / 1000;
+                disp.textContent = diff.toFixed(2);
+                disp.classList.remove('hidden');
 
-            money -= 50;
-            mEl.textContent = money;
-            btn.disabled = true;
+                const error = Math.abs(10.00 - diff);
+                // Save as negative error
+                const score = -error;
 
-            const p1 = spinReel(r1, 1000);
-            const p2 = spinReel(r2, 1500);
-            const p3 = spinReel(r3, 2000);
+                Juice.toast("기록: ${diff.toFixed(2)}초 (오차 ${error.toFixed(2)}초)", "info");
 
-            const v1 = await p1;
-            const v2 = await p2;
-            const v3 = await p3;
+                const nick = localStorage.getItem('nickname') || '익명';
+                Juice.submit(PAGE_ID, score);
 
-            let prize = 0;
-            if (v1 === v2 && v2 === v3) {
-                if (v1 === '7') prize = 1000; // Jackpot
-                else if (v1 === '💎') prize = 500;
-                else prize = 200;
-                Juice.toast("잭팟! +" + prize, "info");
-            } else if (v1 === v2 || v2 === v3 || v1 === v3) {
-                prize = 30; // Small win
+                btn.textContent = "START";
+                btn.style.background = "";
             }
-
-            money += prize;
-            mEl.textContent = money;
-            btn.disabled = false;
-
-            // Save
-            const nick = localStorage.getItem('nickname') || '익명';
-            Juice.submit(PAGE_ID, money);
         };
+
+        function loop() {
+            if (running) {
+                const cur = (Date.now() - startTime) / 1000;
+                disp.textContent = cur.toFixed(2);
+                if (cur > 3.0) disp.classList.add('hidden');
+                requestAnimationFrame(loop);
+            }
+        }
     </script>
 </body>
 
