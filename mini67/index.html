@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>카탄 (mini67)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .game-container { max-width: 1100px; }
+        .game-container.hud-shell { max-width: 1440px; }
+        .pc-badge { display: inline-block; font-size: 0.7rem; color: var(--muted); border: 1px solid var(--panel-border); border-radius: 6px; padding: 2px 8px; margin-left: 8px; vertical-align: middle; }
+
+        .mode-select { display: flex; gap: 8px; justify-content: center; }
+        .mode-select .btn { flex: 1; max-width: 200px; }
+
+        .seat-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; text-align: left; }
+        .seat-row label { flex: 1; color: var(--muted); }
+        .seat-swatch { width: 14px; height: 14px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+
+        .hud-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .hud-top-actions { display: flex; gap: 8px; }
+        .hud-top-actions .btn { padding: 8px 14px; font-size: 0.85rem; }
+        .hud-turn { font-weight: 700; color: var(--accent); }
+
+        .game-stage { position: relative; max-width: 1000px; margin: 0 auto; text-align: left; }
+
+        .hud-panel { background: rgba(8, 4, 20, .65); backdrop-filter: blur(6px); border: 1px solid var(--panel-border); border-radius: 10px; padding: 12px 14px; }
+        .hud-panel h3 { margin: 0 0 8px; font-size: 0.95rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+        .hud-float { position: absolute; z-index: 5; }
+        .stage-players { top: 12px; left: 12px; width: 200px; }
+        .stage-resources { top: 12px; right: 12px; width: 220px; }
+        .stage-log { bottom: 92px; right: 12px; width: 220px; max-height: 150px; display: flex; flex-direction: column; }
+        .stage-log ul { flex: 1; overflow-y: auto; max-height: 110px; }
+        .stage-hint { top: 12px; left: 50%; transform: translateX(-50%); }
+        .stage-hint div { background: rgba(5, 2, 15, .75); padding: 6px 18px; border-radius: 20px; color: var(--muted); font-size: 0.9rem; white-space: nowrap; }
+        .stage-tradestatus { bottom: 84px; left: 50%; transform: translateX(-50%); text-align: center; }
+        .stage-actionbar { bottom: 12px; left: 50%; transform: translateX(-50%); width: max-content; }
+
+        #boardSvg { display: block; width: 100%; height: auto; background-image: url('board-bg.jpg'); background-size: 100% 100%; background-position: center; background-repeat: no-repeat; border-radius: 12px; border: 1px solid var(--panel-border); }
+        .hex-tile { stroke: #f5e9c9; stroke-width: 2.5; stroke-opacity: 0.85; }
+        .hex-number { font-size: 15px; font-weight: 700; fill: #1a1a1a; }
+        .hex-number.hot { fill: #b30000; }
+        .hex-number-bg { fill: #f5e9c9; stroke: #1a1a1a; stroke-width: 1; }
+        .robber-icon { font-size: 20px; text-anchor: middle; pointer-events: none; }
+        .port-label { font-size: 10px; fill: var(--muted); text-anchor: middle; pointer-events: none; }
+
+        .v-hit { fill: transparent; cursor: default; }
+        .v-hit.buildable { fill: rgba(57, 255, 136, .9); cursor: pointer; stroke: #fff; stroke-width: 1; }
+        .v-hit.buildable:hover { fill: #fff; }
+        .building-dot { pointer-events: none; }
+        .e-hit { stroke: transparent; stroke-width: 10px; cursor: default; }
+        .e-hit.buildable { stroke: rgba(57, 255, 136, .55); cursor: pointer; }
+        .e-hit.buildable:hover { stroke: #fff; }
+        .road-line { pointer-events: none; stroke-width: 5px; stroke-linecap: round; }
+
+        .player-badge { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,.04); margin-bottom: 6px; }
+        .player-badge.active { outline: 2px solid var(--accent); }
+        .player-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .player-badge .name { flex: 1; font-weight: 600; }
+        .player-badge .vp { font-weight: 700; }
+        .badge-tag { font-size: 0.7rem; padding: 1px 6px; border-radius: 6px; background: rgba(255,255,255,.08); margin-left: 4px; }
+
+        .hand-row { display: flex; gap: 6px; flex-wrap: wrap; }
+        .res-chip { background: rgba(0,0,0,.25); border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 10px; font-size: 0.95rem; min-width: 46px; text-align: center; }
+        .res-icon-svg { vertical-align: -4px; margin-right: 2px; }
+        .dev-chip { background: rgba(0,0,0,.25); border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 10px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+        .dev-chip button { margin-left: auto; }
+
+        .hud-actionbar { display: flex; gap: 8px; background: rgba(5, 2, 15, .7); backdrop-filter: blur(6px); border: 1px solid var(--panel-border); border-radius: 12px; padding: 8px; }
+        .hud-actionbar .btn { position: relative; width: 52px; height: 52px; padding: 0; flex: none; }
+        .hud-actionbar .btn.armed { outline: 2px solid var(--warn); }
+        .ab-icon { font-size: 1.4rem; }
+        .hotkey-badge { position: absolute; top: 3px; left: 6px; font-size: 0.62rem; font-weight: 800; color: #0a0518; background: var(--warn); border-radius: 4px; padding: 0 4px; line-height: 1.4; }
+        #tradeStatus { text-align: center; font-size: 0.8rem; color: var(--warn); margin-top: 6px; min-height: 1.2em; }
+        #tradeStatus button { margin-left: 8px; }
+
+        #eventLog { max-height: 160px; overflow-y: auto; font-size: 0.85rem; color: var(--muted); padding-left: 0; list-style: none; }
+        #eventLog li { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 50; }
+        .modal-box { max-width: 420px; width: 92vw; }
+        .modal-box.wide { max-width: 680px; max-height: 84vh; overflow-y: auto; }
+        .howto h4 { color: var(--accent); margin: 18px 0 6px; font-size: 1.02rem; }
+        .howto h4:first-child { margin-top: 0; }
+        .howto ul { margin: 0 0 8px; padding-left: 20px; color: var(--text); }
+        .howto li { margin-bottom: 4px; line-height: 1.5; }
+        .howto p { margin: 0 0 8px; line-height: 1.6; }
+        .howto .res-icon-svg { vertical-align: -4px; }
+
+        .trade-cols { display: flex; gap: 12px; }
+        .trade-col { flex: 1; }
+        .qty-row { display: flex; align-items: center; justify-content: space-between; margin: 4px 0; }
+        .qty-row button { width: 28px; height: 28px; border-radius: 6px; }
+
+        .shortcuts-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .shortcuts-table td { padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,.06); }
+        .shortcuts-table td:first-child { width: 70px; }
+        kbd { background: rgba(255,255,255,.1); border: 1px solid var(--panel-border); border-radius: 5px; padding: 1px 7px; font-family: inherit; font-weight: 700; color: var(--accent); }
+
+        @media (max-width: 900px) {
+            .stage-players { width: 150px; padding: 8px 10px; }
+            .stage-resources { width: 170px; padding: 8px 10px; }
+            .stage-log { width: 170px; }
+        }
+    </style>
+    <meta name="description" content="자원을 모아 도로·마을·도시를 짓고 승점 10점을 노리세요 - 미니게임">
+    <meta name="keywords" content="보드게임, 카탄, 전략, 미니게임, 게임">
+    <meta name="theme-color" content="#00e5ff">
+    <meta property="og:title" content="🌾 카탄">
+    <meta property="og:description" content="자원을 모아 도로·마을·도시를 짓고 승점 10점을 노리세요">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/mini67/cover.png">
+    <meta property="twitter:card" content="summary">
+    <meta property="twitter:title" content="🌾 카탄">
+    <meta property="twitter:description" content="자원을 모아 도로·마을·도시를 짓고 승점 10점을 노리세요">
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container" id="startScreen">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🌾 카탄<span class="pc-badge">🖥️ PC 전용</span></h1>
+                    <p>자원을 모아 도로·마을·도시를 짓고 승점 10점을 먼저 모으면 승리합니다. 단축키를 지원합니다.</p>
+                    <button class="btn secondary" id="howToPlayBtn" style="width:100%;">📖 처음이신가요? 게임 방법 보기</button>
+                </header>
+
+                <div class="mode-select mb-4">
+                    <button class="btn" id="modeAiBtn">🤖 AI와 대전</button>
+                    <button class="btn secondary" id="modeOnlineBtn">🌐 온라인 대전</button>
+                </div>
+
+                <div class="panel mb-4" id="aiSetupPanel">
+                    <h3>싱글 플레이 설정</h3>
+                    <div class="seat-row">
+                        <label>총 인원</label>
+                        <select id="aiSeatCount">
+                            <option value="2">2인</option>
+                            <option value="3">3인</option>
+                            <option value="4" selected>4인</option>
+                        </select>
+                    </div>
+                    <div id="aiBotConfig"></div>
+                    <button class="btn mt-4" id="startAiBtn" style="width:100%;">게임 시작</button>
+                </div>
+
+                <div class="panel mb-4" id="onlinePanel" style="display:none; text-align:left;">
+                    <div id="onlineLobby">
+                        <div class="seat-row">
+                            <label>좌석 수 (방장)</label>
+                            <select id="onlineSeatCount">
+                                <option value="2">2인</option>
+                                <option value="3">3인</option>
+                                <option value="4" selected>4인</option>
+                            </select>
+                        </div>
+                        <div class="seat-row">
+                            <label><input type="checkbox" id="fillBotsChk" checked> 빈 자리는 봇으로 채우기</label>
+                            <select id="fillBotLevel">
+                                <option value="easy">이지 봇</option>
+                                <option value="hard">하드 봇</option>
+                            </select>
+                        </div>
+                        <button class="btn" id="createRoomBtn" style="width:100%;">🆕 방 만들기</button>
+                        <div class="mt-4" style="display:flex; gap:8px;">
+                            <input id="joinCodeInput" type="text" placeholder="참가 코드 입력" maxlength="6">
+                            <button class="btn secondary" id="joinRoomBtn">참가</button>
+                        </div>
+                    </div>
+                    <div id="onlineRoomInfo" style="display:none;">
+                        <p>방 코드: <code id="roomCodeDisplay" style="background:rgba(0,229,255,.12); border:1px solid var(--panel-border); padding:3px 10px; border-radius:6px; letter-spacing:2px; color:var(--accent);"></code>
+                            <button class="btn secondary" id="copyLinkBtn" style="padding:4px 10px; margin-left:8px;">🔗 링크 복사</button>
+                        </p>
+                        <div id="onlineSeatList"></div>
+                        <p id="onlineStatusMsg" style="color:var(--muted); margin:8px 0;"></p>
+                        <button class="btn" id="onlineStartBtn" style="width:100%; display:none;">게임 시작</button>
+                    </div>
+                </div>
+
+                <div class="panel" style="text-align: left;">
+                    <h3>🏆 랭킹 (최종 승점)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+                <div class="mt-4">
+                    <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-container hud-shell" id="gameScreen" style="display:none;">
+            <div class="hud-top mb-4">
+                <h1 style="margin:0; font-size:1.4rem;">🌾 카탄</h1>
+                <div id="turnBanner" class="hud-turn"></div>
+                <div class="hud-top-actions">
+                    <button class="btn secondary" id="howToPlayBtnGame">📖 게임 방법</button>
+                    <button class="btn secondary" id="shortcutsBtn">⌨️ 단축키</button>
+                    <button class="btn secondary" id="backToStartBtn">← 나가기</button>
+                </div>
+            </div>
+
+            <div class="game-stage">
+                <svg id="boardSvg" viewBox="-320 -280 640 560"></svg>
+
+                <div class="hud-float hud-panel stage-players">
+                    <h3>플레이어</h3>
+                    <div id="playerList"></div>
+                </div>
+
+                <div class="hud-float hud-panel stage-resources">
+                    <h3>내 자원</h3>
+                    <div class="hand-row" id="resourceHand"></div>
+                    <h3 class="mt-4">내 개발카드</h3>
+                    <div id="devHand"></div>
+                </div>
+
+                <div class="hud-float hud-panel stage-log">
+                    <h3>기록</h3>
+                    <ul id="eventLog"></ul>
+                </div>
+
+                <div class="hud-float stage-hint">
+                    <div id="boardHint"></div>
+                </div>
+
+                <div class="hud-float stage-tradestatus">
+                    <div id="tradeStatus"></div>
+                </div>
+
+                <div class="hud-float hud-actionbar stage-actionbar">
+                    <button class="btn" id="rollBtn" title="주사위 굴리기 (R)"><span class="ab-icon">🎲</span><span class="hotkey-badge">R</span></button>
+                    <button class="btn secondary" id="buildRoadBtn" title="도로: 목재1+벽돌1 (1)"><span class="ab-icon">🛤️</span><span class="hotkey-badge">1</span></button>
+                    <button class="btn secondary" id="buildSettleBtn" title="마을: 목재1+벽돌1+양모1+곡물1 (2)"><span class="ab-icon">🏠</span><span class="hotkey-badge">2</span></button>
+                    <button class="btn secondary" id="buildCityBtn" title="도시: 곡물2+광석3 (3)"><span class="ab-icon">🏰</span><span class="hotkey-badge">3</span></button>
+                    <button class="btn secondary" id="buyDevBtn" title="개발카드 구매: 양모1+곡물1+광석1 (4)"><span class="ab-icon">🎴</span><span class="hotkey-badge">4</span></button>
+                    <button class="btn secondary" id="bankTradeBtn" title="은행/항구 거래 (5)"><span class="ab-icon">🏦</span><span class="hotkey-badge">5</span></button>
+                    <button class="btn secondary" id="proposeTradeBtn" title="다른 플레이어에게 무역 제안 (6)"><span class="ab-icon">🤝</span><span class="hotkey-badge">6</span></button>
+                    <button class="btn danger" id="endTurnBtn" title="턴 종료 (Enter)"><span class="ab-icon">✅</span><span class="hotkey-badge">⏎</span></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-container" id="overScreen" style="display:none;">
+            <div class="card">
+                <h1 id="overTitle">게임 종료</h1>
+                <div id="overTable" class="panel" style="text-align:left;"></div>
+                <div class="controls mt-4" style="display:flex; gap:8px; justify-content:center;">
+                    <button class="btn" id="playAgainBtn">다시 하기</button>
+                    <a href="../index.html" class="btn secondary">메인으로</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay" style="display:none;">
+        <div class="panel modal-box" id="modalBox"></div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+    <script src="../shared/juice.js"></script>
+    <script type="module">
+        import * as Engine from './catan-engine.js';
+        import * as AI from './catan-ai.js';
+
+        const PAGE_ID = 'mini67';
+        if (window.GameStats) {
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                const rl = document.getElementById('rankList');
+                rl.innerHTML = (!arr || !arr.length) ? '<li>기록 없음</li>' : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}점)</li>`).join('');
+            });
+        }
+
+        const SCALE = 60;
+        function ic(inner, vb = '0 0 20 20') { return `<svg class="res-icon-svg" viewBox="${vb}" width="18" height="18">${inner}</svg>`; }
+        const RES_ICON = {
+            wood: ic('<rect x="9" y="14" width="2" height="4" fill="#8a5a2b"/><polygon points="10,2 4,10 16,10" fill="#4a7c4e"/><polygon points="10,6 3,14 17,14" fill="#3a5a40"/>'),
+            brick: ic('<rect x="2" y="4" width="16" height="12" rx="1" fill="#bc6c25"/><line x1="2" y1="10" x2="18" y2="10" stroke="#7a3e10" stroke-width="1.2"/><line x1="6" y1="4" x2="6" y2="10" stroke="#7a3e10" stroke-width="1.2"/><line x1="14" y1="4" x2="14" y2="10" stroke="#7a3e10" stroke-width="1.2"/><line x1="10" y1="10" x2="10" y2="16" stroke="#7a3e10" stroke-width="1.2"/>'),
+            wool: ic('<circle cx="7" cy="10" r="5" fill="#eef2f0"/><circle cx="11.5" cy="7.5" r="4" fill="#eef2f0"/><circle cx="14" cy="11" r="4" fill="#eef2f0"/><circle cx="16.5" cy="12" r="2.4" fill="#333"/>'),
+            grain: ic('<line x1="10" y1="18" x2="10" y2="5" stroke="#8a6a1a" stroke-width="1.5"/><ellipse cx="7.8" cy="7" rx="1.5" ry="2.3" fill="#e9c46a"/><ellipse cx="12.2" cy="7" rx="1.5" ry="2.3" fill="#e9c46a"/><ellipse cx="7.8" cy="10.6" rx="1.5" ry="2.3" fill="#e9c46a"/><ellipse cx="12.2" cy="10.6" rx="1.5" ry="2.3" fill="#e9c46a"/>'),
+            ore: ic('<polygon points="4,16 9,6 14,16" fill="#6c757d"/><polygon points="10,16 14,9 18,16" fill="#868e96"/><circle cx="15" cy="4" r="2" fill="#adb5bd"/>'),
+        };
+        const RES_EMOJI = { wood: '🌲', brick: '🧱', wool: '🐑', grain: '🌾', ore: '⛰️' };
+        const RES_NAME = { wood: '목재', brick: '벽돌', wool: '양모', grain: '곡물', ore: '광석' };
+        const DEV_ICON = {
+            knight: ic('<path d="M10 2 L17 5 V10 C17 14 14 17 10 18 C6 17 3 14 3 10 V5 Z" fill="#5a6b8c" stroke="#2a3550" stroke-width="1"/><path d="M10 6 L10 14 M7 8.5 L13 8.5" stroke="#eafcff" stroke-width="1.4"/>'),
+            victorypoint: ic('<polygon points="10,1 12.4,7.2 19,7.6 13.8,11.8 15.6,18.2 10,14.6 4.4,18.2 6.2,11.8 1,7.6 7.6,7.2" fill="#ffe066"/>'),
+            roadbuilding: ic('<rect x="2" y="8" width="16" height="4" rx="1" fill="#888"/><rect x="4" y="9.2" width="2" height="1.6" fill="#fff"/><rect x="9" y="9.2" width="2" height="1.6" fill="#fff"/><rect x="14" y="9.2" width="2" height="1.6" fill="#fff"/>'),
+            yearofplenty: ic('<rect x="3" y="9" width="14" height="9" rx="1" fill="#e76f51"/><rect x="3" y="6" width="14" height="4" fill="#f4a261"/><rect x="9" y="6" width="2" height="12" fill="#e9c46a"/>'),
+            monopoly: ic('<circle cx="10" cy="11" r="7.5" fill="#f4c430" stroke="#a8860a" stroke-width="1"/><text x="10" y="14.5" font-size="9" text-anchor="middle" fill="#7a5c00" font-weight="800">$</text>'),
+        };
+        const DEV_LABEL = {
+            knight: DEV_ICON.knight + ' 기사',
+            victorypoint: DEV_ICON.victorypoint + ' 승점',
+            roadbuilding: DEV_ICON.roadbuilding + ' 도로건설',
+            yearofplenty: DEV_ICON.yearofplenty + ' 풍요',
+            monopoly: DEV_ICON.monopoly + ' 독점',
+        };
+        const SEAT_COLORS = ['#ff4d6d', '#4cc9f0', '#ffb703', '#90be6d'];
+        const DICE_PIPS = {
+            1: [[10, 10]],
+            2: [[5, 5], [15, 15]],
+            3: [[5, 5], [10, 10], [15, 15]],
+            4: [[5, 5], [15, 5], [5, 15], [15, 15]],
+            5: [[5, 5], [15, 5], [10, 10], [5, 15], [15, 15]],
+            6: [[5, 5], [15, 5], [5, 10], [15, 10], [5, 15], [15, 15]],
+        };
+        function diceFaceSVG(n) {
+            const pips = (DICE_PIPS[n] || []).map(([px, py]) => `<circle cx="${px}" cy="${py}" r="1.8" fill="#1a1a2e"/>`).join('');
+            return `<svg viewBox="0 0 20 20" width="22" height="22" style="vertical-align:-6px; margin:0 2px;"><rect x="1" y="1" width="18" height="18" rx="4" fill="#f5e9c9" stroke="#1a1a2e" stroke-width="1.2"/>${pips}</svg>`;
+        }
+
+        let mode = 'ai';
+        let state = null;
+        let myId = null;
+        let seatMeta = [];
+        let ws = null, roomCode = null, isHost = false;
+        let buildMode = null;
+        let pendingSetupVertex = null;
+        let pendingRobberTile = null;
+        let discardModalShown = false;
+        let myOutgoingOfferId = null;
+        let currentIncomingOfferId = null;
+        let discardDraft = null;
+
+        const $ = (id) => document.getElementById(id);
+
+        function log(msg) {
+            const el = $('eventLog');
+            const li = document.createElement('li');
+            li.textContent = msg;
+            el.prepend(li);
+            while (el.children.length > 60) el.removeChild(el.lastChild);
+        }
+
+        function seatColor(playerId) {
+            const idx = seatMeta.findIndex(s => s.id === playerId);
+            return SEAT_COLORS[idx >= 0 ? idx : 0];
+        }
+        function seatName(playerId) {
+            const s = seatMeta.find(s => s.id === playerId);
+            return s ? s.name : playerId;
+        }
+
+        // ============ Start screen wiring ============
+        function buildAiBotConfig() {
+            const n = parseInt($('aiSeatCount').value, 10);
+            const wrap = $('aiBotConfig');
+            wrap.innerHTML = '';
+            for (let i = 1; i < n; i++) {
+                const row = document.createElement('div');
+                row.className = 'seat-row';
+                row.innerHTML = `<label><span class="seat-swatch" style="background:${SEAT_COLORS[i]}"></span>봇 ${i}</label>
+                    <select id="botLevel${i}"><option value="easy">이지</option><option value="hard">하드</option></select>`;
+                wrap.appendChild(row);
+            }
+        }
+        $('aiSeatCount').onchange = buildAiBotConfig;
+        buildAiBotConfig();
+
+        $('modeAiBtn').onclick = () => setStartMode('ai');
+        $('modeOnlineBtn').onclick = () => setStartMode('online');
+        function setStartMode(next) {
+            mode = next;
+            $('modeAiBtn').classList.toggle('secondary', next !== 'ai');
+            $('modeOnlineBtn').classList.toggle('secondary', next !== 'online');
+            $('aiSetupPanel').style.display = next === 'ai' ? 'block' : 'none';
+            $('onlinePanel').style.display = next === 'online' ? 'block' : 'none';
+        }
+
+        $('startAiBtn').onclick = () => {
+            const n = parseInt($('aiSeatCount').value, 10);
+            const ids = Array.from({ length: n }, (_, i) => i === 0 ? 'me' : `bot${i}`);
+            state = Engine.createGame(ids);
+            for (let i = 1; i < n; i++) {
+                const p = state.players[i];
+                p.isBot = true;
+                p.botLevel = $(`botLevel${i}`).value;
+            }
+            myId = 'me';
+            seatMeta = ids.map((id, i) => ({ id, name: i === 0 ? '나' : `봇 ${i}`, isBot: i !== 0 }));
+            showScreen('game');
+            log('게임을 시작합니다. 초기 정착지를 배치하세요.');
+            renderAll();
+            advanceGame();
+        };
+
+        function showScreen(which) {
+            $('startScreen').style.display = which === 'start' ? 'block' : 'none';
+            $('gameScreen').style.display = which === 'game' ? 'block' : 'none';
+            $('overScreen').style.display = which === 'over' ? 'block' : 'none';
+        }
+
+        $('backToStartBtn').onclick = () => {
+            if (ws) { try { ws.close(); } catch (e) { } ws = null; }
+            myOutgoingOfferId = null;
+            currentIncomingOfferId = null;
+            buildMode = null;
+            showScreen('start');
+        };
+        $('playAgainBtn').onclick = () => {
+            if (mode === 'online' && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'rematch' }));
+                showScreen('game');
+            } else {
+                showScreen('start');
+            }
+        };
+
+        // ============ Online lobby wiring ============
+        function genCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let s = '';
+            for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
+            return s;
+        }
+        function wsUrl(code) {
+            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const name = encodeURIComponent(localStorage.getItem('nickname') || '플레이어');
+            return `${proto}//${location.host}/ws/catan/${encodeURIComponent(code)}?name=${name}`;
+        }
+        function connectRoom(code, createOpts) {
+            if (ws) { try { ws.onclose = null; ws.close(); } catch (e) { } }
+            roomCode = code.toUpperCase();
+            $('roomCodeDisplay').textContent = roomCode;
+            $('onlineLobby').style.display = 'none';
+            $('onlineRoomInfo').style.display = 'block';
+            $('onlineStatusMsg').textContent = '연결 중...';
+            try { ws = new WebSocket(wsUrl(roomCode)); } catch (e) { $('onlineStatusMsg').textContent = '연결 실패'; return; }
+            ws.onopen = () => {
+                $('onlineStatusMsg').textContent = '연결됨';
+                if (createOpts) ws.send(JSON.stringify({ type: 'configure', ...createOpts }));
+            };
+            ws.onmessage = (ev) => {
+                let data; try { data = JSON.parse(ev.data); } catch (e) { return; }
+                handleServerMessage(data);
+            };
+            ws.onclose = () => { $('onlineStatusMsg').textContent = '연결이 종료되었습니다.'; };
+            ws.onerror = () => { $('onlineStatusMsg').textContent = '연결 오류가 발생했어요.'; };
+        }
+
+        $('createRoomBtn').onclick = () => {
+            const seatCount = parseInt($('onlineSeatCount').value, 10);
+            const fillBots = $('fillBotsChk').checked;
+            const botLevel = $('fillBotLevel').value;
+            connectRoom(genCode(), { seatCount, fillBots, botLevel });
+        };
+        $('joinRoomBtn').onclick = () => {
+            const v = $('joinCodeInput').value.trim();
+            if (v) connectRoom(v);
+        };
+        $('copyLinkBtn').onclick = () => {
+            const url = `${location.origin}${location.pathname}?room=${roomCode}`;
+            navigator.clipboard?.writeText(url).then(() => { $('onlineStatusMsg').textContent = '✅ 링크가 복사되었습니다!'; }).catch(() => { });
+        };
+        $('onlineStartBtn').onclick = () => { ws.send(JSON.stringify({ type: 'start' })); };
+
+        function handleServerMessage(data) {
+            if (data.type === 'hello') {
+                myId = data.seatId;
+                isHost = !!data.isHost;
+            } else if (data.type === 'lobby') {
+                seatMeta = data.seats;
+                renderLobbySeats(data);
+            } else if (data.type === 'sync') {
+                state = data.state;
+                seatMeta = data.seats;
+                if ($('startScreen').style.display !== 'none') showScreen('game');
+
+                if (state.phase === 'robber' && state.turn === myId) buildMode = 'robber';
+                else if (buildMode === 'robber') buildMode = null;
+
+                if (state.phase === 'discard' && state.pendingDiscards[myId] != null) {
+                    if (!discardModalShown) { discardModalShown = true; openDiscardModal(); }
+                } else if (discardModalShown) {
+                    discardModalShown = false;
+                    if ($('modalOverlay').style.display !== 'none' && $('modalBox').querySelector('#confirmDiscardBtn')) closeModal();
+                }
+
+                renderAll();
+                if (state.winner) showGameOver();
+            } else if (data.type === 'log') {
+                log(data.message);
+            } else if (data.type === 'tradeOffered') {
+                currentIncomingOfferId = data.offerId;
+                showIncomingTrade(data);
+            } else if (data.type === 'tradeSent') {
+                myOutgoingOfferId = data.offerId;
+                renderTradeStatus();
+            } else if (data.type === 'tradeResolved') {
+                myOutgoingOfferId = null;
+                renderTradeStatus();
+            } else if (data.type === 'tradeCancelled') {
+                if (myOutgoingOfferId === data.offerId) { myOutgoingOfferId = null; renderTradeStatus(); }
+                if (currentIncomingOfferId === data.offerId) {
+                    currentIncomingOfferId = null;
+                    if ($('modalBox').querySelector('#acceptTradeBtn')) closeModal();
+                }
+            } else if (data.type === 'error') {
+                log('❌ ' + data.message);
+            } else if (data.type === 'peer-left') {
+                log('⚠️ ' + seatName(data.seatId) + ' 님의 연결이 끊겼습니다.');
+            }
+        }
+
+        function renderLobbySeats(data) {
+            const wrap = $('onlineSeatList');
+            wrap.innerHTML = data.seats.map((s, i) =>
+                `<div class="seat-row"><span class="seat-swatch" style="background:${SEAT_COLORS[i]}"></span>${s.name}${s.isBot ? ' (봇 ' + (s.botLevel === 'hard' ? '하드' : '이지') + ')' : ''}${s.connected === false ? ' - 대기중' : ''}</div>`
+            ).join('');
+            $('onlineStatusMsg').textContent = data.status === 'waiting' ? '다른 플레이어를 기다리는 중...' : '';
+            $('onlineStartBtn').style.display = isHost && data.status === 'waiting' ? 'block' : 'none';
+        }
+
+        // ============ Board rendering ============
+        function tilePixel(t) { return { x: t.x * SCALE, y: t.y * SCALE }; }
+        function vPixel(v) { return { x: v.x * SCALE, y: v.y * SCALE }; }
+
+        function hexPathPoints(t) {
+            const { x: cx, y: cy } = tilePixel(t);
+            const pts = [];
+            for (let i = 0; i < 6; i++) {
+                const deg = 60 * i - 30;
+                const rad = (Math.PI / 180) * deg;
+                pts.push(`${cx + SCALE * Math.cos(rad)},${cy + SCALE * Math.sin(rad)}`);
+            }
+            return pts.join(' ');
+        }
+
+        function svgEl(tag, attrs) {
+            const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+            for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+            return el;
+        }
+
+        function drawRobberIcon(svg, x, y) {
+            const g = svgEl('g', { transform: `translate(${x - 8},${y - 22})`, class: 'robber-icon' });
+            g.appendChild(svgEl('ellipse', { cx: 8, cy: 21, rx: 7, ry: 2, fill: 'rgba(0,0,0,.35)' }));
+            g.appendChild(svgEl('path', {
+                d: 'M8 8 C4.5 8 3 10.4 3 13.2 L3 17 C3 19.6 5 21 8 21 C11 21 13 19.6 13 17 L13 13.2 C13 10.4 11.5 8 8 8 Z',
+                fill: '#2a2a3d', stroke: '#0a0518', 'stroke-width': 0.7
+            }));
+            g.appendChild(svgEl('path', { d: 'M -1 8.5 C -1 4.5 3 2 8 2 C 13 2 17 4.5 17 8.5 C 13.5 6.5 2.5 6.5 -1 8.5 Z', fill: '#241733', stroke: '#0a0518', 'stroke-width': 0.7 }));
+            g.appendChild(svgEl('rect', { x: 3, y: 12, width: 10, height: 2, fill: '#0a0518' }));
+            g.appendChild(svgEl('circle', { cx: 5.6, cy: 15.3, r: 0.9, fill: '#ff3366' }));
+            g.appendChild(svgEl('circle', { cx: 10.4, cy: 15.3, r: 0.9, fill: '#ff3366' }));
+            svg.appendChild(g);
+        }
+
+        function drawSettlementIcon(svg, x, y, color) {
+            const pts = [[x - 7, y + 6], [x - 7, y - 1], [x, y - 8], [x + 7, y - 1], [x + 7, y + 6]].map(p => p.join(',')).join(' ');
+            svg.appendChild(svgEl('polygon', { points: pts, fill: color, stroke: '#fff', 'stroke-width': 1.4, class: 'building-dot' }));
+        }
+
+        function drawCityIcon(svg, x, y, color) {
+            const g = svgEl('g', { class: 'building-dot' });
+            g.appendChild(svgEl('rect', { x: x - 10, y: y - 2, width: 20, height: 11, fill: color, stroke: '#fff', 'stroke-width': 1.4 }));
+            g.appendChild(svgEl('polygon', { points: `${x - 10},${y - 2} ${x - 5},${y - 9} ${x},${y - 2}`, fill: color, stroke: '#fff', 'stroke-width': 1.4 }));
+            g.appendChild(svgEl('rect', { x: x - 9, y: y - 6, width: 2, height: 4, fill: color, stroke: '#fff', 'stroke-width': 1 }));
+            g.appendChild(svgEl('rect', { x: x + 4, y: y - 6, width: 2, height: 4, fill: color, stroke: '#fff', 'stroke-width': 1 }));
+            svg.appendChild(g);
+        }
+
+        function setupBoardDefs(svg) {
+            const defs = svgEl('defs', {});
+            const token = svgEl('radialGradient', { id: 'grad-token', cx: '35%', cy: '30%', r: '75%' });
+            token.appendChild(svgEl('stop', { offset: '0%', 'stop-color': '#fdf6e0' }));
+            token.appendChild(svgEl('stop', { offset: '100%', 'stop-color': '#e8d5a0' }));
+            defs.appendChild(token);
+            svg.appendChild(defs);
+        }
+
+        const TILE_ACCENTS = {
+            wood: (svg, x, y) => {
+                for (const [dx, dy] of [[-16, 8], [14, -10], [2, 14]]) drawTinyTree(svg, x + dx, y + dy);
+            },
+            wool: (svg, x, y) => {
+                for (const [dx, dy] of [[-14, 10], [16, 6], [0, -14]]) drawTinySheep(svg, x + dx, y + dy);
+            },
+            grain: (svg, x, y) => {
+                for (const [dx, dy] of [[-14, 8], [14, 8], [0, -12]]) drawTinyWheat(svg, x + dx, y + dy);
+            },
+            ore: (svg, x, y) => {
+                drawTinyRock(svg, x - 12, y + 12);
+                drawTinyRock(svg, x + 12, y - 8);
+            },
+            brick: (svg, x, y) => {
+                drawTinyBrick(svg, x - 10, y + 12);
+                drawTinyBrick(svg, x + 12, y - 10);
+            },
+        };
+        function drawTinyTree(svg, x, y) {
+            const g = svgEl('g', { transform: `translate(${x},${y}) scale(0.85)`, 'pointer-events': 'none' });
+            g.appendChild(svgEl('polygon', { points: '0,-10 -5,0 5,0', fill: '#2d4a30', stroke: '#0a0518', 'stroke-width': 0.5 }));
+            g.appendChild(svgEl('polygon', { points: '0,-5 -6,6 6,6', fill: '#254024', stroke: '#0a0518', 'stroke-width': 0.5 }));
+            svg.appendChild(g);
+        }
+        function drawTinySheep(svg, x, y) {
+            const g = svgEl('g', { transform: `translate(${x},${y}) scale(0.8)`, 'pointer-events': 'none' });
+            g.appendChild(svgEl('circle', { cx: -3, cy: 0, r: 4, fill: '#fbfdfa', stroke: '#0a0518', 'stroke-width': 0.5 }));
+            g.appendChild(svgEl('circle', { cx: 3, cy: -1, r: 3.4, fill: '#fbfdfa', stroke: '#0a0518', 'stroke-width': 0.5 }));
+            g.appendChild(svgEl('circle', { cx: 6, cy: 1, r: 2, fill: '#333' }));
+            svg.appendChild(g);
+        }
+        function drawTinyWheat(svg, x, y) {
+            const g = svgEl('g', { transform: `translate(${x},${y}) scale(0.85)`, 'pointer-events': 'none' });
+            g.appendChild(svgEl('line', { x1: 0, y1: 8, x2: 0, y2: -8, stroke: '#5c4310', 'stroke-width': 1.4 }));
+            g.appendChild(svgEl('ellipse', { cx: -2, cy: -4, rx: 1.6, ry: 3, fill: '#e9c46a', stroke: '#0a0518', 'stroke-width': 0.4 }));
+            g.appendChild(svgEl('ellipse', { cx: 2, cy: -4, rx: 1.6, ry: 3, fill: '#e9c46a', stroke: '#0a0518', 'stroke-width': 0.4 }));
+            svg.appendChild(g);
+        }
+        function drawTinyRock(svg, x, y) {
+            const g = svgEl('g', { transform: `translate(${x},${y}) scale(0.9)`, 'pointer-events': 'none' });
+            g.appendChild(svgEl('polygon', { points: '-6,4 -1,-6 5,4', fill: '#9aa2ab', stroke: '#0a0518', 'stroke-width': 0.5 }));
+            svg.appendChild(g);
+        }
+        function drawTinyBrick(svg, x, y) {
+            const g = svgEl('g', { transform: `translate(${x},${y}) scale(0.85)`, 'pointer-events': 'none' });
+            g.appendChild(svgEl('rect', { x: -6, y: -4, width: 12, height: 8, rx: 1, fill: '#c1783f', stroke: '#0a0518', 'stroke-width': 0.5 }));
+            g.appendChild(svgEl('line', { x1: -6, y1: 0, x2: 6, y2: 0, stroke: '#5c3013', 'stroke-width': 0.8 }));
+            svg.appendChild(g);
+        }
+        function drawShipIcon(svg, x, y) {
+            const g = svgEl('g', { transform: `translate(${x},${y})`, 'pointer-events': 'none' });
+            g.appendChild(svgEl('path', { d: 'M -6 2 L 6 2 L 4 6 L -4 6 Z', fill: '#c99a5b', stroke: '#5c3013', 'stroke-width': 0.6 }));
+            g.appendChild(svgEl('line', { x1: 0, y1: 2, x2: 0, y2: -8, stroke: '#5c3013', 'stroke-width': 1 }));
+            g.appendChild(svgEl('path', { d: 'M 0 -8 L 5 -2 L 0 -2 Z', fill: '#eafcff' }));
+            svg.appendChild(g);
+        }
+
+        function renderBoard() {
+            const svg = $('boardSvg');
+            svg.innerHTML = '';
+            if (!state) return;
+            const board = state.board;
+
+            setupBoardDefs(svg);
+
+            for (const t of board.tiles) {
+                const poly = svgEl('polygon', { points: hexPathPoints(t), class: 'hex-tile', fill: 'none' });
+                svg.appendChild(poly);
+                if (TILE_ACCENTS[t.resource]) {
+                    const { x, y } = tilePixel(t);
+                    TILE_ACCENTS[t.resource](svg, x, y);
+                }
+                if (t.number) {
+                    const { x, y } = tilePixel(t);
+                    svg.appendChild(svgEl('circle', { cx: x, cy: y, r: 16, fill: 'url(#grad-token)', stroke: '#8a5a2b', 'stroke-width': 1.5 }));
+                    const txt = svgEl('text', { x, y: y + 5, class: 'hex-number' + ((t.number === 6 || t.number === 8) ? ' hot' : ''), 'text-anchor': 'middle' });
+                    txt.textContent = t.number;
+                    svg.appendChild(txt);
+                }
+                if (t.id === board.robberTileId) {
+                    const { x, y } = tilePixel(t);
+                    drawRobberIcon(svg, x, y);
+                }
+                if (buildMode === 'robber' && t.id !== board.robberTileId) {
+                    const { x, y } = tilePixel(t);
+                    const hit = svgEl('circle', { cx: x, cy: y, r: 30, class: 'robber-hit', fill: 'rgba(255,224,102,.25)', stroke: '#ffe066', 'stroke-width': 2, style: 'cursor:pointer' });
+                    hit.onclick = () => onRobberTileClick(t.id);
+                    svg.appendChild(hit);
+                }
+            }
+
+            for (const port of board.ports) {
+                const [v1id, v2id] = port.vertexIds;
+                const v1 = vPixel(board.vertices[v1id]), v2 = vPixel(board.vertices[v2id]);
+                const mx = (v1.x + v2.x) / 2, my = (v1.y + v2.y) / 2;
+                const label = port.type === '3:1' ? '3:1' : `${RES_EMOJI[port.type]}2:1`;
+                const angle = Math.atan2(my, mx);
+                const dirX = Math.cos(angle), dirY = Math.sin(angle);
+                const o1x = v1.x + dirX * 34, o1y = v1.y + dirY * 34;
+                const o2x = v2.x + dirX * 34, o2y = v2.y + dirY * 34;
+                svg.appendChild(svgEl('polygon', {
+                    points: `${v1.x},${v1.y} ${v2.x},${v2.y} ${o2x},${o2y} ${o1x},${o1y}`,
+                    fill: '#3d7ea3', stroke: '#7a5a2e', 'stroke-width': 1.5, opacity: '0.9',
+                }));
+                const shipX = mx + dirX * 30, shipY = my + dirY * 30;
+                drawShipIcon(svg, shipX, shipY);
+                const txt = svgEl('text', { x: shipX, y: shipY + 16, class: 'port-label' });
+                txt.textContent = label;
+                svg.appendChild(txt);
+            }
+
+            const buildableRoads = new Set();
+            const buildableSettle = new Set();
+            const buildableCities = new Set();
+            const isMyTurn = state.turn === myId;
+            const isSetup = state.phase === 'setup';
+            const meForAfford = state.players.find(p => p.id === myId);
+            const freeRoad = !isSetup && meForAfford && meForAfford.pendingFreeRoads > 0;
+            const canAffordCost = (cost) => isSetup || (meForAfford && Object.entries(cost).every(([r, n]) => meForAfford.resources[r] >= n));
+            if (isMyTurn && buildMode === 'road' && (isSetup || freeRoad || canAffordCost(Engine.COSTS.road))) {
+                for (const eid of Object.keys(board.edges)) {
+                    if (Engine.canBuildRoad(state, myId, eid, isSetup, pendingSetupVertex)) buildableRoads.add(eid);
+                }
+            }
+            if (isMyTurn && (isSetup || buildMode === 'settlement') && canAffordCost(Engine.COSTS.settlement)) {
+                for (const vid of Object.keys(board.vertices)) {
+                    if (Engine.canBuildSettlement(state, myId, vid, isSetup)) buildableSettle.add(vid);
+                }
+            }
+            if (isMyTurn && buildMode === 'city' && canAffordCost(Engine.COSTS.city)) {
+                const me = state.players.find(p => p.id === myId);
+                for (const vid of me.settlements) if (Engine.canBuildCity(state, myId, vid)) buildableCities.add(vid);
+            }
+
+            for (const e of Object.values(board.edges)) {
+                const v1 = vPixel(board.vertices[e.v1]), v2 = vPixel(board.vertices[e.v2]);
+                if (e.road) {
+                    svg.appendChild(svgEl('line', { x1: v1.x, y1: v1.y, x2: v2.x, y2: v2.y, class: 'road-line', stroke: seatColor(e.road) }));
+                } else if (buildableRoads.has(e.id)) {
+                    const hit = svgEl('line', { x1: v1.x, y1: v1.y, x2: v2.x, y2: v2.y, class: 'e-hit buildable' });
+                    hit.onclick = () => onEdgeClick(e.id);
+                    svg.appendChild(hit);
+                }
+            }
+
+            for (const v of Object.values(board.vertices)) {
+                const { x, y } = vPixel(v);
+                if (v.building) {
+                    const color = seatColor(v.building.owner);
+                    if (v.building.type === 'city') {
+                        drawCityIcon(svg, x, y, color);
+                    } else {
+                        drawSettlementIcon(svg, x, y, color);
+                    }
+                    if (buildMode === 'city' && buildableCities.has(v.id)) {
+                        const ring = svgEl('circle', { cx: x, cy: y, r: 13, fill: 'none', stroke: '#ffe066', 'stroke-width': 3, style: 'cursor:pointer;' });
+                        ring.onclick = () => onVertexClick(v.id);
+                        svg.appendChild(ring);
+                    }
+                } else if (buildableSettle.has(v.id)) {
+                    const hit = svgEl('circle', { cx: x, cy: y, r: 9, class: 'v-hit buildable' });
+                    hit.onclick = () => onVertexClick(v.id);
+                    svg.appendChild(hit);
+                }
+            }
+        }
+
+        function onVertexClick(vertexId) {
+            if (state.phase === 'setup') {
+                if (pendingSetupVertex == null) {
+                    if (!Engine.canBuildSettlement(state, myId, vertexId, true)) return;
+                    pendingSetupVertex = vertexId;
+                    buildMode = 'road';
+                    $('boardHint').textContent = '이제 연결할 도로를 클릭하세요.';
+                    renderBoard();
+                }
+                return;
+            }
+            if (buildMode === 'settlement') {
+                dispatchAction({ type: 'buildSettlement', vertexId });
+                buildMode = null;
+            } else if (buildMode === 'city') {
+                dispatchAction({ type: 'buildCity', vertexId });
+                buildMode = null;
+            }
+        }
+
+        function onEdgeClick(edgeId) {
+            if (state.phase === 'setup' && pendingSetupVertex != null) {
+                dispatchAction({ type: 'setupPick', vertexId: pendingSetupVertex, edgeId });
+                pendingSetupVertex = null;
+                buildMode = null;
+                return;
+            }
+            if (buildMode === 'road') {
+                dispatchAction({ type: 'buildRoad', edgeId });
+                const me = state.players.find(p => p.id === myId);
+                buildMode = (me && me.pendingFreeRoads > 0) ? 'road' : null;
+            }
+        }
+
+        function onRobberTileClick(tileId) {
+            const candidates = Engine.getStealCandidates(state, tileId, myId);
+            if (candidates.length > 1) {
+                openVictimPicker(tileId, candidates);
+            } else {
+                dispatchAction({ type: 'robber', tileId, victimId: candidates[0] || null });
+                buildMode = null;
+            }
+        }
+
+        function openVictimPicker(tileId, candidates) {
+            const box = $('modalBox');
+            box.innerHTML = `<h3>누구의 자원을 훔칠까요?</h3>` + candidates.map(pid =>
+                `<button class="btn mt-4" style="width:100%; margin-bottom:6px;" data-pid="${pid}">${seatName(pid)}</button>`
+            ).join('');
+            box.querySelectorAll('button').forEach(btn => {
+                btn.onclick = () => {
+                    closeModal();
+                    dispatchAction({ type: 'robber', tileId, victimId: btn.dataset.pid });
+                    buildMode = null;
+                };
+            });
+            openModal();
+        }
+
+        function openModal() { $('modalOverlay').style.display = 'flex'; }
+        function closeModal() { $('modalOverlay').style.display = 'none'; $('modalBox').innerHTML = ''; $('modalBox').classList.remove('wide'); }
+
+        // ============ Side panel rendering ============
+        function renderPlayerList() {
+            const wrap = $('playerList');
+            wrap.innerHTML = '';
+            for (const p of state.players) {
+                const vp = Engine.getVictoryPoints(state, p.id, { includeHidden: p.id === myId });
+                const cardCount = Engine.RESOURCES.reduce((s, r) => s + p.resources[r], 0);
+                const div = document.createElement('div');
+                div.className = 'player-badge' + (state.turn === p.id ? ' active' : '');
+                div.innerHTML = `<span class="player-dot" style="background:${seatColor(p.id)}"></span>
+                    <span class="name">${seatName(p.id)}${p.id === myId ? ' (나)' : ''}</span>
+                    <span>🃏${cardCount}</span>
+                    ${state.longestRoadOwner === p.id ? '<span class="badge-tag">최장도로</span>' : ''}
+                    ${state.largestArmyOwner === p.id ? '<span class="badge-tag">최대기사단</span>' : ''}
+                    <span class="vp">${vp}점</span>`;
+                wrap.appendChild(div);
+            }
+        }
+
+        function renderHand() {
+            const me = state.players.find(p => p.id === myId);
+            const hand = $('resourceHand');
+            hand.innerHTML = Engine.RESOURCES.map(r => `<div class="res-chip">${RES_ICON[r]} ${me.resources[r]}</div>`).join('');
+
+            const devWrap = $('devHand');
+            devWrap.innerHTML = '';
+            me.devCards.forEach((c, idx) => {
+                const div = document.createElement('div');
+                div.className = 'dev-chip';
+                const playable = c.type !== 'victorypoint' && !c.played && c.boughtTurn !== state.turnNumber && !state.devCardPlayedThisTurn && state.turn === myId && state.phase === 'main';
+                div.innerHTML = `<span>${DEV_LABEL[c.type]}</span>` + (playable ? `<button class="btn secondary" data-idx="${idx}">사용</button>` : '');
+                devWrap.appendChild(div);
+                if (playable) div.querySelector('button').onclick = () => onPlayDevCard(idx, c.type);
+            });
+            if (!me.devCards.length) devWrap.innerHTML = '<p style="color:var(--muted);">없음</p>';
+        }
+
+        function onPlayDevCard(idx, type) {
+            if (type === 'knight') {
+                buildMode = 'robber';
+                dispatchAction({ type: 'playDevCard', cardIndex: idx, params: {} });
+                $('boardHint').textContent = '도적을 옮길 타일을 클릭하세요.';
+            } else if (type === 'roadbuilding') {
+                buildMode = 'road';
+                dispatchAction({ type: 'playDevCard', cardIndex: idx, params: {} });
+                $('boardHint').textContent = '무료 도로 2개를 놓을 위치를 클릭하세요.';
+            } else if (type === 'yearofplenty') {
+                openResourcePicker('풍요: 자원 2개를 선택하세요', 2, (picks) => {
+                    dispatchAction({ type: 'playDevCard', cardIndex: idx, params: { resource1: picks[0], resource2: picks[1] } });
+                });
+            } else if (type === 'monopoly') {
+                openResourcePicker('독점: 가져올 자원을 선택하세요', 1, (picks) => {
+                    dispatchAction({ type: 'playDevCard', cardIndex: idx, params: { resource: picks[0] } });
+                });
+            }
+        }
+
+        function openResourcePicker(title, count, cb) {
+            const box = $('modalBox');
+            let picked = [];
+            function draw() {
+                box.innerHTML = `<h3>${title}</h3>` +
+                    Engine.RESOURCES.map(r => `<button class="btn secondary" data-r="${r}" style="margin:3px;">${RES_ICON[r]} ${RES_NAME[r]}</button>`).join('') +
+                    `<p class="mt-4">선택됨: ${picked.map(r => RES_ICON[r]).join(' ') || '-'}</p>` +
+                    `<button class="btn mt-4" id="confirmPickBtn" style="width:100%;" ${picked.length === count ? '' : 'disabled'}>확인</button>`;
+                box.querySelectorAll('button[data-r]').forEach(btn => {
+                    btn.onclick = () => { if (picked.length < count) picked.push(btn.dataset.r); draw(); };
+                });
+                const confirm = box.querySelector('#confirmPickBtn');
+                if (confirm) confirm.onclick = () => { closeModal(); cb(picked); };
+            }
+            draw();
+            openModal();
+        }
+
+        // ============ Action buttons ============
+        $('rollBtn').onclick = () => dispatchAction({ type: 'roll' });
+        $('buildRoadBtn').onclick = () => { buildMode = buildMode === 'road' ? null : 'road'; renderBoard(); updateActionButtons(); };
+        $('buildSettleBtn').onclick = () => { buildMode = buildMode === 'settlement' ? null : 'settlement'; renderBoard(); updateActionButtons(); };
+        $('buildCityBtn').onclick = () => { buildMode = buildMode === 'city' ? null : 'city'; renderBoard(); updateActionButtons(); };
+        $('buyDevBtn').onclick = () => dispatchAction({ type: 'buyDevCard' });
+        $('endTurnBtn').onclick = () => { buildMode = null; dispatchAction({ type: 'endTurn' }); };
+
+        $('bankTradeBtn').onclick = () => openBankTradeModal();
+        function openBankTradeModal() {
+            const me = state.players.find(p => p.id === myId);
+            let give = null, want = null;
+            function draw() {
+                const box = $('modalBox');
+                box.innerHTML = `<h3>은행 거래</h3><div class="trade-cols">
+                    <div class="trade-col"><p>줄 자원</p>${Engine.RESOURCES.map(r => {
+                    const ratio = Engine.getTradeRatio(state, myId, r);
+                    return `<button class="btn secondary" data-give="${r}" style="width:100%; margin-bottom:4px;" ${me.resources[r] < ratio ? 'disabled' : ''}>${RES_ICON[r]} ${ratio}:1</button>`;
+                }).join('')}</div>
+                    <div class="trade-col"><p>받을 자원</p>${Engine.RESOURCES.map(r =>
+                    `<button class="btn secondary" data-want="${r}" style="width:100%; margin-bottom:4px;">${RES_ICON[r]}</button>`
+                ).join('')}</div>
+                </div>
+                <button class="btn mt-4" id="doTradeBtn" style="width:100%;" ${(give && want) ? '' : 'disabled'}>거래하기</button>`;
+                box.querySelectorAll('[data-give]').forEach(b => b.onclick = () => { give = b.dataset.give; draw(); });
+                box.querySelectorAll('[data-want]').forEach(b => b.onclick = () => { want = b.dataset.want; draw(); });
+                const doBtn = box.querySelector('#doTradeBtn');
+                if (doBtn) doBtn.onclick = () => { closeModal(); dispatchAction({ type: 'bankTrade', giveResource: give, wantResource: want }); };
+            }
+            draw();
+            openModal();
+        }
+
+        $('proposeTradeBtn').onclick = () => openProposeTradeModal();
+        function openProposeTradeModal() {
+            const give = {}, receive = {};
+            function draw() {
+                const box = $('modalBox');
+                box.innerHTML = `<h3>무역 제안</h3><div class="trade-cols">
+                    <div class="trade-col"><p>내가 줄 것</p>${Engine.RESOURCES.map(r => qtyRow('give', r, give[r] || 0)).join('')}</div>
+                    <div class="trade-col"><p>내가 받을 것</p>${Engine.RESOURCES.map(r => qtyRow('receive', r, receive[r] || 0)).join('')}</div>
+                </div>
+                <button class="btn mt-4" id="sendOfferBtn" style="width:100%;" ${(sum(give) && sum(receive)) ? '' : 'disabled'}>다른 플레이어에게 제안</button>`;
+                function sum(obj) { return Object.values(obj).reduce((s, n) => s + n, 0); }
+                function qtyRow(kind, r, n) {
+                    return `<div class="qty-row">${RES_ICON[r]} <button data-kind="${kind}" data-r="${r}" data-d="-1">-</button> ${n} <button data-kind="${kind}" data-r="${r}" data-d="1">+</button></div>`;
+                }
+                box.querySelectorAll('button[data-kind]').forEach(btn => {
+                    btn.onclick = () => {
+                        const obj = btn.dataset.kind === 'give' ? give : receive;
+                        const r = btn.dataset.r, d = parseInt(btn.dataset.d, 10);
+                        obj[r] = Math.max(0, (obj[r] || 0) + d);
+                        draw();
+                    };
+                });
+                const sendBtn = box.querySelector('#sendOfferBtn');
+                if (sendBtn && !sendBtn.disabled) sendBtn.onclick = () => {
+                    closeModal();
+                    dispatchAction({ type: 'tradeOffer', give, receive });
+                };
+            }
+            draw();
+            openModal();
+        }
+
+        function showIncomingTrade(data) {
+            const box = $('modalBox');
+            box.innerHTML = `<h3>${seatName(data.fromSeatId)} 님의 무역 제안</h3>
+                <p>${seatName(data.fromSeatId)}이(가) ${Object.entries(data.give).filter(([, n]) => n > 0).map(([r, n]) => RES_ICON[r] + n).join(' ')} 주고
+                ${Object.entries(data.receive).filter(([, n]) => n > 0).map(([r, n]) => RES_ICON[r] + n).join(' ')} 받길 원해요.</p>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn" id="acceptTradeBtn" style="flex:1;">수락</button>
+                    <button class="btn secondary" id="declineTradeBtn" style="flex:1;">거절</button>
+                </div>`;
+            box.querySelector('#acceptTradeBtn').onclick = () => { currentIncomingOfferId = null; closeModal(); dispatchAction({ type: 'tradeResponse', offerId: data.offerId, accept: true }); };
+            box.querySelector('#declineTradeBtn').onclick = () => { currentIncomingOfferId = null; closeModal(); dispatchAction({ type: 'tradeResponse', offerId: data.offerId, accept: false }); };
+            openModal();
+        }
+
+        function renderTradeStatus() {
+            const el = $('tradeStatus');
+            if (!el) return;
+            if (!myOutgoingOfferId) { el.innerHTML = ''; return; }
+            el.innerHTML = `무역 제안 응답을 기다리는 중... <button class="btn secondary" id="cancelTradeBtn" style="padding:2px 10px;">제안 취소</button>`;
+            $('cancelTradeBtn').onclick = () => dispatchAction({ type: 'tradeCancel', offerId: myOutgoingOfferId });
+        }
+
+        function updateActionButtons() {
+            const isMyTurn = state && state.turn === myId;
+            const canRoll = isMyTurn && state.phase === 'roll';
+            const canBuild = isMyTurn && state.phase === 'main';
+            $('rollBtn').style.display = state && state.phase === 'roll' ? 'inline-flex' : 'none';
+            $('rollBtn').disabled = !canRoll;
+            for (const id of ['buildRoadBtn', 'buildSettleBtn', 'buildCityBtn', 'buyDevBtn', 'bankTradeBtn', 'proposeTradeBtn', 'endTurnBtn']) {
+                $(id).disabled = !canBuild;
+            }
+            if (canBuild) {
+                const me = state.players.find(p => p.id === myId);
+                const afford = (cost) => Object.entries(cost).every(([r, n]) => me.resources[r] >= n);
+                $('buildRoadBtn').disabled = !(me.pendingFreeRoads > 0 || afford(Engine.COSTS.road));
+                $('buildSettleBtn').disabled = !afford(Engine.COSTS.settlement);
+                $('buildCityBtn').disabled = !(me.settlements.length && afford(Engine.COSTS.city));
+                $('buyDevBtn').disabled = !(afford(Engine.COSTS.devcard) && state.devDeck.length > 0);
+                $('bankTradeBtn').disabled = !Engine.RESOURCES.some(r => me.resources[r] >= Engine.getTradeRatio(state, myId, r));
+                $('proposeTradeBtn').disabled = !Engine.RESOURCES.some(r => me.resources[r] > 0) || !!myOutgoingOfferId;
+            }
+            $('buildRoadBtn').classList.toggle('armed', buildMode === 'road');
+            $('buildSettleBtn').classList.toggle('armed', buildMode === 'settlement');
+            $('buildCityBtn').classList.toggle('armed', buildMode === 'city');
+            renderTradeStatus();
+
+            let hint = '';
+            if (!state) hint = '';
+            else if (state.phase === 'setup') hint = state.turn === myId ? '정착지를 놓을 위치를 클릭하세요.' : `${seatName(state.turn)} 님이 배치 중...`;
+            else if (state.phase === 'roll') hint = state.turn === myId ? '주사위를 굴려주세요.' : `${seatName(state.turn)} 님의 차례입니다.`;
+            else if (state.phase === 'robber' && buildMode === 'robber') hint = '도적을 옮길 타일을 클릭하세요.';
+            else if (state.phase === 'main') hint = state.turn === myId ? '건설하거나 거래한 뒤 턴을 종료하세요.' : `${seatName(state.turn)} 님의 차례입니다.`;
+            $('boardHint').textContent = hint;
+        }
+
+        function renderAll() {
+            if (!state) return;
+            renderBoard();
+            renderPlayerList();
+            renderHand();
+            updateActionButtons();
+            const dice = state.lastDice ? `${diceFaceSVG(state.lastDice.d1)}${diceFaceSVG(state.lastDice.d2)} = ${state.lastDice.total}` : '';
+            const turnText = state.phase === 'gameover' ? '게임 종료' : (seatName(state.turn) + ' 님의 차례');
+            $('turnBanner').innerHTML = `${turnText} ${dice}`;
+        }
+
+        // ============ Dispatch: AI mode direct, online mode via websocket ============
+        function dispatchAction(action) {
+            if (mode === 'online') {
+                if (!ws || ws.readyState !== WebSocket.OPEN) {
+                    log('❌ 서버와 연결이 끊겼습니다. 잠시 후 다시 시도해주세요.');
+                    return;
+                }
+                ws.send(JSON.stringify(action));
+                return;
+            }
+            applyLocalAction(action);
+        }
+
+        function applyLocalAction(action) {
+            const pid = myId;
+            switch (action.type) {
+                case 'setupPick':
+                    Engine.placeSetupPick(state, pid, action.vertexId, action.edgeId);
+                    break;
+                case 'roll': {
+                    const r = Engine.applyRoll(state);
+                    log(`🎲 ${r.d1}+${r.d2}=${r.total}`);
+                    break;
+                }
+                case 'buildRoad': {
+                    const me = state.players.find(x => x.id === pid);
+                    const free = me.pendingFreeRoads > 0;
+                    if (!Engine.canBuildRoad(state, pid, action.edgeId, false)) { log('도로를 지을 수 없습니다.'); break; }
+                    Engine.buildRoad(state, pid, action.edgeId, { free });
+                    if (free) me.pendingFreeRoads--;
+                    break;
+                }
+                case 'buildSettlement':
+                    if (!Engine.buildSettlement(state, pid, action.vertexId)) log('마을을 지을 수 없습니다.');
+                    break;
+                case 'buildCity':
+                    if (!Engine.buildCity(state, pid, action.vertexId)) log('도시를 지을 수 없습니다.');
+                    break;
+                case 'buyDevCard':
+                    if (!Engine.buyDevCard(state, pid)) log('개발카드를 구매할 수 없습니다.');
+                    break;
+                case 'playDevCard': {
+                    const res = Engine.playDevCard(state, pid, action.cardIndex, action.params);
+                    if (!res.ok) log('카드를 사용할 수 없습니다.');
+                    else if (res.needsRobber) { /* wait for robber tile click */ }
+                    break;
+                }
+                case 'discard':
+                    Engine.applyDiscard(state, pid, action.resources);
+                    break;
+                case 'robber':
+                    Engine.moveRobberAndSteal(state, action.tileId, pid, action.victimId);
+                    state.phase = 'main';
+                    break;
+                case 'bankTrade':
+                    if (!Engine.bankTrade(state, pid, action.giveResource, action.wantResource)) log('거래할 수 없습니다.');
+                    break;
+                case 'tradeOffer': {
+                    const bots = state.players.filter(p => p.isBot);
+                    const accepter = bots.find(p => AI.respondToTrade(state, p.id, action, p.botLevel));
+                    if (accepter) {
+                        Engine.executePlayerTrade(state, pid, accepter.id, action.give, action.receive);
+                        log(`${seatName(accepter.id)}이(가) 무역을 수락했습니다.`);
+                    } else {
+                        log('아무도 무역을 수락하지 않았습니다.');
+                    }
+                    break;
+                }
+                case 'endTurn':
+                    Engine.endTurn(state);
+                    break;
+            }
+            renderAll();
+            advanceGame();
+        }
+
+        function advanceGame() {
+            if (mode !== 'ai') return;
+            if (Engine.checkVictory(state)) { renderAll(); showGameOver(); return; }
+
+            if (state.phase === 'discard') {
+                for (const p of state.players) {
+                    if (p.isBot && state.pendingDiscards[p.id] != null) {
+                        Engine.applyDiscard(state, p.id, AI.chooseDiscard(state, p.id));
+                    }
+                }
+                if (state.pendingDiscards[myId] != null) {
+                    renderAll();
+                    openDiscardModal();
+                    return;
+                }
+                state.phase = 'robber';
+            }
+
+            if (state.phase === 'robber') {
+                if (state.turn === myId) {
+                    buildMode = 'robber';
+                    renderAll();
+                    return;
+                } else {
+                    const bot = state.players.find(p => p.id === state.turn);
+                    const { tileId, victimId } = AI.chooseRobberPlacement(state, bot.id, bot.botLevel);
+                    Engine.moveRobberAndSteal(state, tileId, bot.id, victimId);
+                    state.phase = 'main';
+                }
+            }
+
+            const current = state.players.find(p => p.id === state.turn);
+            if (current && current.isBot) {
+                renderAll();
+                setTimeout(() => runBotTurn(current), 450);
+                return;
+            }
+
+            renderAll();
+        }
+
+        function runBotTurn(bot) {
+            if (state.phase === 'roll') {
+                Engine.applyRoll(state);
+                log(`🎲 ${seatName(bot.id)}: ${state.lastDice.d1}+${state.lastDice.d2}=${state.lastDice.total}`);
+            }
+            if (state.phase === 'setup') {
+                const { vertexId, edgeId } = AI.chooseSetupPick(state, bot.id, bot.botLevel);
+                Engine.placeSetupPick(state, bot.id, vertexId, edgeId);
+                renderAll();
+                setTimeout(advanceGame, 250);
+                return;
+            }
+            renderAll();
+            setTimeout(() => {
+                advanceGame();
+                if (state.phase === 'main' && state.turn === bot.id) {
+                    AI.runBuildPhase(state, bot.id, bot.botLevel);
+                    if (Engine.checkVictory(state)) { renderAll(); showGameOver(); return; }
+                    Engine.endTurn(state);
+                    renderAll();
+                    setTimeout(advanceGame, 300);
+                }
+            }, 350);
+        }
+
+        function openDiscardModal() {
+            const me = state.players.find(p => p.id === myId);
+            const need = state.pendingDiscards[myId];
+            const picked = { wood: 0, brick: 0, wool: 0, grain: 0, ore: 0 };
+            function total() { return Engine.RESOURCES.reduce((s, r) => s + picked[r], 0); }
+            function draw() {
+                const box = $('modalBox');
+                box.innerHTML = `<h3>도적: ${need}장 버리기</h3>` +
+                    Engine.RESOURCES.map(r => `<div class="qty-row">${RES_ICON[r]} 보유 ${me.resources[r]}
+                        <button data-r="${r}" data-d="-1">-</button> ${picked[r]} <button data-r="${r}" data-d="1">+</button></div>`).join('') +
+                    `<button class="btn mt-4" id="confirmDiscardBtn" style="width:100%;" ${total() === need ? '' : 'disabled'}>확인 (${total()}/${need})</button>`;
+                box.querySelectorAll('button[data-r]').forEach(btn => {
+                    btn.onclick = () => {
+                        const r = btn.dataset.r, d = parseInt(btn.dataset.d, 10);
+                        const next = picked[r] + d;
+                        if (next < 0 || next > me.resources[r] || total() + d > need) return;
+                        picked[r] = next;
+                        draw();
+                    };
+                });
+                const confirm = box.querySelector('#confirmDiscardBtn');
+                if (confirm) confirm.onclick = () => {
+                    closeModal();
+                    discardModalShown = false;
+                    dispatchAction({ type: 'discard', resources: picked });
+                };
+            }
+            draw();
+            openModal();
+        }
+
+        function showGameOver() {
+            showScreen('over');
+            const winnerName = seatName(state.winner);
+            $('overTitle').textContent = state.winner === myId ? '🎉 승리했습니다!' : `${winnerName} 님이 승리했습니다`;
+            const rows = [...state.players].sort((a, b) =>
+                Engine.getVictoryPoints(state, b.id, { includeHidden: true }) - Engine.getVictoryPoints(state, a.id, { includeHidden: true })
+            ).map(p => `<tr><td>${seatName(p.id)}</td><td>${Engine.getVictoryPoints(state, p.id, { includeHidden: true })}점</td></tr>`).join('');
+            $('overTable').innerHTML = `<table style="width:100%;">${rows}</table>`;
+            if (window.Juice && myId) {
+                const myVp = Engine.getVictoryPoints(state, myId, { includeHidden: true });
+                Juice.submit(PAGE_ID, myVp);
+            }
+        }
+
+        // ============ Keyboard shortcuts (PC 전용) ============
+        const SHORTCUTS = [
+            ['R', '주사위 굴리기'],
+            ['1', '도로 건설 모드'],
+            ['2', '마을 건설 모드'],
+            ['3', '도시 건설 모드'],
+            ['4', '개발카드 구매'],
+            ['5', '은행 거래 열기'],
+            ['6', '무역 제안 열기'],
+            ['Enter / Space', '턴 종료'],
+            ['Esc', '건설 모드 취소 / 창 닫기'],
+            ['?', '단축키 도움말'],
+        ];
+
+        function openHowToPlay() {
+            const box = $('modalBox');
+            box.classList.add('wide');
+            box.innerHTML = `<h3>📖 카탄 하는 방법</h3>
+                <div class="howto">
+                    <h4>🎯 목표</h4>
+                    <p>자원을 모아 도로·마을·도시를 짓고, <b>승점 10점</b>을 가장 먼저 모으면 승리합니다.</p>
+
+                    <h4>🧱 자원 5종류</h4>
+                    <p>보드의 각 육각 타일은 자원 하나를 생산합니다. 타일 위 숫자와 주사위 합이 같으면, 그 타일에 인접한 마을·도시를 가진 플레이어가 자원을 받습니다.</p>
+                    <ul>
+                        <li>${RES_ICON.wood} 목재 (숲) · ${RES_ICON.brick} 벽돌 (언덕) · ${RES_ICON.wool} 양모 (목초지)</li>
+                        <li>${RES_ICON.grain} 곡물 (경작지) · ${RES_ICON.ore} 광석 (산)</li>
+                        <li>🏜️ 사막은 자원이 나오지 않고, 도적이 처음 여기서 시작합니다.</li>
+                    </ul>
+
+                    <h4>🏁 시작 순서 (셋업)</h4>
+                    <p>게임 시작 시 순서대로 돌아가며 <b>마을 + 도로를 2번</b> 무료로 배치합니다 (첫→마지막→마지막→첫 순서로 한 바퀴 돌고 되돌아옴). 두 번째 마을을 놓으면 그 주변 타일에서 시작 자원을 받습니다.</p>
+
+                    <h4>🔄 한 턴의 흐름</h4>
+                    <ul>
+                        <li>① <b>🎲 주사위 굴리기</b> (단축키 R) — 나온 합에 해당하는 타일에서 모두에게 자원 지급</li>
+                        <li>② 합이 <b>7</b>이면: 카드를 8장 넘게 가진 플레이어는 절반을 버리고, 주사위를 굴린 사람이 도적을 옮겨 그 타일의 상대 자원 1장을 훔칩니다</li>
+                        <li>③ <b>건설 / 구매 / 거래</b>를 원하는 만큼 진행</li>
+                        <li>④ <b>턴 종료</b> (단축키 Enter)로 다음 사람에게 순서를 넘김</li>
+                    </ul>
+
+                    <h4>🏗️ 건설하기</h4>
+                    <ul>
+                        <li>🛤️ 도로 — ${RES_ICON.wood}목재1 + ${RES_ICON.brick}벽돌1 — 내 도로/마을에서 이어서만 건설 가능</li>
+                        <li>🏠 마을 (1점) — ${RES_ICON.wood}목재1 + ${RES_ICON.brick}벽돌1 + ${RES_ICON.wool}양모1 + ${RES_ICON.grain}곡물1 — 내 도로 끝, 다른 마을과 최소 두 칸 이상 떨어진 곳에만 가능</li>
+                        <li>🏰 도시 (2점, 마을 1점 대체) — ${RES_ICON.grain}곡물2 + ${RES_ICON.ore}광석3 — 이미 있는 내 마을을 업그레이드, 생산량이 2배로 증가</li>
+                        <li>🎴 개발카드 — ${RES_ICON.wool}양모1 + ${RES_ICON.grain}곡물1 + ${RES_ICON.ore}광석1 — 구매한 턴엔 사용 불가, 한 턴에 1장만 사용 가능</li>
+                    </ul>
+
+                    <h4>🎴 개발카드 종류</h4>
+                    <ul>
+                        <li>${DEV_ICON.knight} 기사 — 도적을 옮기고 상대 자원 훔침. 3장 이상 사용 시 <b>최대 기사단</b>(2점) 획득 가능</li>
+                        <li>${DEV_ICON.roadbuilding} 도로건설 — 도로 2개를 무료로 건설</li>
+                        <li>${DEV_ICON.yearofplenty} 풍요 — 은행에서 원하는 자원 2장을 무료로 획득</li>
+                        <li>${DEV_ICON.monopoly} 독점 — 자원 하나를 지정하면 다른 모든 플레이어의 그 자원을 전부 가져옴</li>
+                        <li>${DEV_ICON.victorypoint} 승점 카드 — 사용하지 않고 그냥 가지고만 있어도 1점으로 계산됨 (상대에겐 비공개)</li>
+                    </ul>
+
+                    <h4>🏦 거래하기</h4>
+                    <ul>
+                        <li>은행 거래 — 같은 자원 4장을 원하는 자원 1장으로 교환 (항구에 마을·도시가 있으면 3:1 또는 특정 자원 2:1로 유리하게)</li>
+                        <li>무역 제안 — 다른 플레이어에게 자원 교환을 제안하고, 상대가 수락하면 즉시 교환됩니다</li>
+                    </ul>
+
+                    <h4>🏆 승점 얻는 방법</h4>
+                    <ul>
+                        <li>마을 1점 · 도시 2점</li>
+                        <li>최장 도로 (5칸 이상 연결, 가장 김) — 2점</li>
+                        <li>최대 기사단 (기사 카드 3장 이상 사용, 가장 많음) — 2점</li>
+                        <li>승점 개발카드 1장당 1점</li>
+                    </ul>
+
+                    <h4>🖱️ 조작 방법</h4>
+                    <p>보드에서 초록색으로 표시된 위치를 클릭해 건설합니다. 먼저 하단 액션바에서 도로/마을/도시 버튼을 눌러 건설 모드를 켠 다음, 보드에서 위치를 클릭하세요. 마우스를 버튼 위에 올리면 정확한 비용이 툴팁으로 나옵니다. 자세한 키보드 단축키는 "⌨️ 단축키" 버튼에서 확인할 수 있어요.</p>
+                </div>
+                <button class="btn mt-4" id="closeHowToBtn" style="width:100%;">닫기</button>`;
+            box.querySelector('#closeHowToBtn').onclick = closeModal;
+            openModal();
+        }
+        $('howToPlayBtn').onclick = openHowToPlay;
+        $('howToPlayBtnGame').onclick = openHowToPlay;
+
+        function openShortcutsHelp() {
+            const box = $('modalBox');
+            box.innerHTML = `<h3>⌨️ 단축키</h3><table class="shortcuts-table">${SHORTCUTS.map(([k, d]) =>
+                `<tr><td><kbd>${k}</kbd></td><td>${d}</td></tr>`).join('')}</table>
+                <button class="btn mt-4" id="closeShortcutsBtn" style="width:100%;">닫기</button>`;
+            box.querySelector('#closeShortcutsBtn').onclick = closeModal;
+            openModal();
+        }
+        $('shortcutsBtn').onclick = openShortcutsHelp;
+
+        document.addEventListener('keydown', (e) => {
+            const tag = document.activeElement && document.activeElement.tagName;
+            if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+            if ($('gameScreen').style.display === 'none') return;
+
+            const modalOpen = $('modalOverlay').style.display !== 'none';
+
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                if (modalOpen) {
+                    const box = $('modalBox');
+                    if (box.querySelector('#confirmDiscardBtn')) return;
+                    closeModal();
+                } else if (buildMode) {
+                    buildMode = null;
+                    renderBoard();
+                    updateActionButtons();
+                }
+                return;
+            }
+            if (e.key === '?') { e.preventDefault(); if (!modalOpen) openShortcutsHelp(); return; }
+            if (modalOpen) return;
+            if (!state) return;
+
+            switch (e.key) {
+                case 'r': case 'R':
+                    if (!$('rollBtn').disabled && $('rollBtn').style.display !== 'none') $('rollBtn').click();
+                    break;
+                case '1':
+                    if (!$('buildRoadBtn').disabled) $('buildRoadBtn').click();
+                    break;
+                case '2':
+                    if (!$('buildSettleBtn').disabled) $('buildSettleBtn').click();
+                    break;
+                case '3':
+                    if (!$('buildCityBtn').disabled) $('buildCityBtn').click();
+                    break;
+                case '4':
+                    if (!$('buyDevBtn').disabled) $('buyDevBtn').click();
+                    break;
+                case '5':
+                    if (!$('bankTradeBtn').disabled) $('bankTradeBtn').click();
+                    break;
+                case '6':
+                    if (!$('proposeTradeBtn').disabled) $('proposeTradeBtn').click();
+                    break;
+                case 'Enter': case ' ':
+                    e.preventDefault();
+                    if (!$('endTurnBtn').disabled) $('endTurnBtn').click();
+                    break;
+            }
+        });
+
+        // ---- Boot ----
+        const urlRoom = new URLSearchParams(location.search).get('room');
+        if (urlRoom) {
+            setStartMode('online');
+            connectRoom(urlRoom);
+        }
+    </script>
+</body>
+
+</html>

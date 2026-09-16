@@ -1,4 +1,5 @@
 export { OthelloRoom } from './othello-room.js';
+export { CatanRoom } from './catan-room.js';
 
 // Per-game score ceiling validation (renumbered after mini1~65 cleanup)
 const GAME_SCORE_LIMITS = {
@@ -28,6 +29,7 @@ const GAME_SCORE_LIMITS = {
   mini24: 999,
   mini25: 10000,
   mini26: 1,
+  mini67: 10,
 };
 
 // Regex for name filtering - allow basic chars, block emoji/control
@@ -67,6 +69,20 @@ export default {
       }
       const id = env.OTHELLO_ROOM.idFromName(code.toUpperCase());
       const stub = env.OTHELLO_ROOM.get(id);
+      return stub.fetch(request);
+    }
+
+    // Route: WebSocket room for online Catan (mini67)
+    if (pathname.startsWith('/ws/catan/')) {
+      const code = pathname.slice('/ws/catan/'.length).trim();
+      if (!code || !/^[A-Za-z0-9]{4,12}$/.test(code)) {
+        return new Response(JSON.stringify({ error: 'invalid room code' }), {
+          status: 400,
+          headers: corsHeaders,
+        });
+      }
+      const id = env.CATAN_ROOM.idFromName(code.toUpperCase());
+      const stub = env.CATAN_ROOM.get(id);
       return stub.fetch(request);
     }
 
