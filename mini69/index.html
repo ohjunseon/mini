@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>야추 (mini69)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .container { max-width: 1600px; }
+        .game-container { max-width: 1100px; }
+        .game-container.hud-shell { max-width: 1440px; }
+        .pc-badge { display: inline-block; font-size: 0.7rem; color: var(--muted); border: 1px solid var(--panel-border); border-radius: 6px; padding: 2px 8px; margin-left: 8px; vertical-align: middle; }
+
+        .mode-select { display: flex; gap: 8px; justify-content: center; }
+        .mode-select .btn { flex: 1; max-width: 200px; }
+
+        .seat-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; text-align: left; }
+        .seat-row label { flex: 1; color: var(--muted); }
+        .seat-swatch { width: 14px; height: 14px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+
+        .hud-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .hud-top-actions { display: flex; gap: 8px; }
+        .hud-top-actions .btn { padding: 8px 14px; font-size: 0.85rem; }
+        .hud-turn { font-weight: 700; color: var(--accent); }
+
+        .game-stage { position: relative; max-width: 1360px; margin: 0 auto; text-align: left; background: radial-gradient(1200px 500px at 50% -10%, #241454 0%, #150a30 55%, #0a0518 100%); border: 1px solid var(--panel-border); border-radius: 16px; padding: 16px; }
+
+        .hud-panel { background: rgba(8, 4, 20, .65); backdrop-filter: blur(6px); border: 1px solid var(--panel-border); border-radius: 10px; padding: 12px 14px; }
+        .hud-panel h3 { margin: 0 0 8px; font-size: 0.9rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+        .stage-body { display: flex; gap: 14px; align-items: flex-start; }
+        .stage-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+        .stage-side { flex: 0 0 280px; display: flex; flex-direction: column; gap: 10px; }
+
+        .dice-tray { display: flex; gap: 16px; justify-content: center; padding: 12px 0 20px; flex-wrap: wrap; }
+        .die { cursor: default; transition: transform .12s ease; border-radius: 14px; }
+        .die.holdable { cursor: pointer; }
+        .die.holdable:hover { transform: translateY(-3px); }
+        .die.held { outline: 3px solid var(--warn); box-shadow: 0 0 10px rgba(255,224,102,.5); }
+        .die.unrolled { opacity: .3; }
+        .roll-controls { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .rolls-left { color: var(--muted); font-size: 0.85rem; }
+
+        .score-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+        .score-table th, .score-table td { padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,.08); text-align: center; white-space: nowrap; }
+        .score-table th:first-child, .score-table td:first-child { text-align: left; color: var(--muted); white-space: normal; }
+        .score-table th.active-col { color: var(--accent); }
+        .score-table td.cell-empty { color: rgba(255,255,255,.25); }
+        .score-table td.cell-preview { cursor: pointer; color: var(--good); font-weight: 800; border: 1px dashed var(--good); border-radius: 6px; background: rgba(57,255,136,.08); }
+        .score-table td.cell-preview:hover { background: rgba(57,255,136,.25); }
+        .score-table tr.subtotal-row td { font-weight: 700; background: rgba(255,255,255,.03); color: var(--muted); }
+        .score-table tr.total-row td { font-weight: 800; background: rgba(255,255,255,.05); color: var(--accent); font-size: 1.02rem; }
+
+        .player-badge { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,.04); margin-bottom: 6px; }
+        .player-badge.active { outline: 2px solid var(--accent); }
+        .player-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .player-badge .name { flex: 1; font-weight: 600; }
+        .player-badge .vp { font-weight: 700; }
+
+        #eventLog { max-height: 200px; overflow-y: auto; font-size: 0.82rem; color: var(--muted); padding-left: 0; list-style: none; margin: 0; }
+        #eventLog li { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 50; }
+        .modal-box { max-width: 420px; width: 92vw; }
+        .modal-box.wide { max-width: 680px; max-height: 84vh; overflow-y: auto; }
+        .howto h4 { color: var(--accent); margin: 18px 0 6px; font-size: 1.02rem; }
+        .howto h4:first-child { margin-top: 0; }
+        .howto ul { margin: 0 0 8px; padding-left: 20px; }
+        .howto li { margin-bottom: 4px; line-height: 1.5; }
+        .howto p { margin: 0 0 8px; line-height: 1.6; }
+
+        .shortcuts-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .shortcuts-table td { padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,.06); }
+        .shortcuts-table td:first-child { width: 90px; }
+        kbd { background: rgba(255,255,255,.1); border: 1px solid var(--panel-border); border-radius: 5px; padding: 1px 7px; font-family: inherit; font-weight: 700; color: var(--accent); }
+
+        @media (max-width: 900px) {
+            .stage-body { flex-direction: column; }
+            .stage-side { flex: 1 1 auto; }
+        }
+    </style>
+    <meta name="description" content="주사위 5개로 13개 카테고리를 채워 최고 점수를 노리세요 - 미니게임">
+    <meta name="keywords" content="보드게임, 야추, 야찌, 주사위게임, 전략, 미니게임, 게임">
+    <meta name="theme-color" content="#00e5ff">
+    <meta property="og:title" content="🎲 야추">
+    <meta property="og:description" content="주사위 5개로 13개 카테고리를 채워 최고 점수를 노리세요">
+    <meta property="og:type" content="website">
+    <meta property="twitter:card" content="summary">
+    <meta property="twitter:title" content="🎲 야추">
+    <meta property="twitter:description" content="주사위 5개로 13개 카테고리를 채워 최고 점수를 노리세요">
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container" id="startScreen">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>🎲 야추<span class="pc-badge">🖥️ PC 전용</span></h1>
+                    <p>주사위 5개를 굴려 13개 카테고리를 채우고, 총점이 가장 높으면 승리합니다.</p>
+                    <button class="btn secondary" id="howToPlayBtn" style="width:100%;">📖 처음이신가요? 게임 방법 보기</button>
+                </header>
+
+                <div class="mode-select mb-4">
+                    <button class="btn" id="modeAiBtn">🤖 AI와 대전</button>
+                    <button class="btn secondary" id="modeOnlineBtn">🌐 온라인 대전</button>
+                </div>
+
+                <div class="panel mb-4" id="aiSetupPanel">
+                    <h3>싱글 플레이 설정</h3>
+                    <div class="seat-row">
+                        <label>총 인원</label>
+                        <select id="aiSeatCount">
+                            <option value="2">2인</option>
+                            <option value="3">3인</option>
+                            <option value="4" selected>4인</option>
+                        </select>
+                    </div>
+                    <div id="aiBotConfig"></div>
+                    <button class="btn mt-4" id="startAiBtn" style="width:100%;">게임 시작</button>
+                </div>
+
+                <div class="panel mb-4" id="onlinePanel" style="display:none; text-align:left;">
+                    <div id="onlineLobby">
+                        <div class="seat-row">
+                            <label>좌석 수 (방장)</label>
+                            <select id="onlineSeatCount">
+                                <option value="2">2인</option>
+                                <option value="3">3인</option>
+                                <option value="4" selected>4인</option>
+                            </select>
+                        </div>
+                        <div class="seat-row">
+                            <label><input type="checkbox" id="fillBotsChk" checked> 빈 자리는 봇으로 채우기</label>
+                            <select id="fillBotLevel">
+                                <option value="easy">이지 봇</option>
+                                <option value="hard">하드 봇</option>
+                            </select>
+                        </div>
+                        <button class="btn" id="createRoomBtn" style="width:100%;">🆕 방 만들기</button>
+                        <div class="mt-4" style="display:flex; gap:8px;">
+                            <input id="joinCodeInput" type="text" placeholder="참가 코드 입력" maxlength="6">
+                            <button class="btn secondary" id="joinRoomBtn">참가</button>
+                        </div>
+                    </div>
+                    <div id="onlineRoomInfo" style="display:none;">
+                        <p>방 코드: <code id="roomCodeDisplay" style="background:rgba(0,229,255,.12); border:1px solid var(--panel-border); padding:3px 10px; border-radius:6px; letter-spacing:2px; color:var(--accent);"></code>
+                            <button class="btn secondary" id="copyLinkBtn" style="padding:4px 10px; margin-left:8px;">🔗 링크 복사</button>
+                        </p>
+                        <div id="onlineSeatList"></div>
+                        <p id="onlineStatusMsg" style="color:var(--muted); margin:8px 0;"></p>
+                        <button class="btn" id="onlineStartBtn" style="width:100%; display:none;">게임 시작</button>
+                    </div>
+                </div>
+
+                <div class="panel" style="text-align: left;">
+                    <h3>🏆 랭킹 (최종 총점)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+                <div class="mt-4">
+                    <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-container hud-shell" id="gameScreen" style="display:none;">
+            <div class="hud-top mb-4">
+                <h1 style="margin:0; font-size:1.4rem;">🎲 야추</h1>
+                <div id="turnBanner" class="hud-turn"></div>
+                <div class="hud-top-actions">
+                    <button class="btn secondary" id="howToPlayBtnGame">📖 게임 방법</button>
+                    <button class="btn secondary" id="shortcutsBtn">⌨️ 단축키</button>
+                    <button class="btn secondary" id="backToStartBtn">← 나가기</button>
+                </div>
+            </div>
+
+            <div class="game-stage">
+                <div id="boardHint" class="mb-4" style="text-align:center; color:var(--muted); min-height:20px;"></div>
+
+                <div class="stage-body">
+                    <div class="stage-main">
+                        <div class="hud-panel">
+                            <div class="roll-controls">
+                                <div class="dice-tray" id="diceTray"></div>
+                                <button class="btn" id="rollBtn">🎲 굴리기</button>
+                                <div class="rolls-left" id="rollsLeftText"></div>
+                            </div>
+                        </div>
+                        <div class="hud-panel">
+                            <h3>점수표</h3>
+                            <div id="scorecardWrap" style="overflow-x:auto;"></div>
+                        </div>
+                    </div>
+                    <div class="stage-side">
+                        <div class="hud-panel">
+                            <h3>플레이어</h3>
+                            <div id="playerList"></div>
+                        </div>
+                        <div class="hud-panel" style="flex:1; min-height:0;">
+                            <h3>기록</h3>
+                            <ul id="eventLog"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-container" id="overScreen" style="display:none;">
+            <div class="card">
+                <h1 id="overTitle">게임 종료</h1>
+                <div id="overTable" class="panel" style="text-align:left;"></div>
+                <div class="controls mt-4" style="display:flex; gap:8px; justify-content:center;">
+                    <button class="btn" id="playAgainBtn">다시 하기</button>
+                    <a href="../index.html" class="btn secondary">메인으로</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay" style="display:none;">
+        <div class="panel modal-box" id="modalBox"></div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+    <script src="../shared/juice.js"></script>
+    <script type="module">
+        import * as Engine from './yacht-engine.js';
+        import * as AI from './yacht-ai.js';
+
+        const PAGE_ID = 'mini69';
+        if (window.GameStats) {
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                const rl = document.getElementById('rankList');
+                rl.innerHTML = (!arr || !arr.length) ? '<li>기록 없음</li>' : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}점)</li>`).join('');
+            });
+        }
+
+        const $ = (id) => document.getElementById(id);
+
+        const CATEGORY_LABELS = {
+            ones: '1', twos: '2', threes: '3', fours: '4', fives: '5', sixes: '6',
+            threeKind: '트리플(3 of a kind)', fourKind: '포카드(4 of a kind)',
+            fullHouse: '풀하우스(25)', smallStraight: '스몰 스트레이트(30)',
+            largeStraight: '라지 스트레이트(40)', yacht: '야추(50)', chance: '찬스',
+        };
+
+        const PIP_LAYOUTS = {
+            1: [[50, 50]],
+            2: [[25, 25], [75, 75]],
+            3: [[25, 25], [50, 50], [75, 75]],
+            4: [[25, 25], [75, 25], [25, 75], [75, 75]],
+            5: [[25, 25], [75, 25], [50, 50], [25, 75], [75, 75]],
+            6: [[25, 25], [75, 25], [25, 50], [75, 50], [25, 75], [75, 75]],
+        };
+        function diceFaceSvg(value, size = 60) {
+            const pips = (PIP_LAYOUTS[value] || []).map(([x, y]) => `<circle cx="${x}" cy="${y}" r="9" fill="#1a1440"/>`).join('');
+            return `<svg width="${size}" height="${size}" viewBox="0 0 100 100"><rect x="4" y="4" width="92" height="92" rx="16" fill="#f2f0e8" stroke="#7a5a2e" stroke-width="3"/>${pips}</svg>`;
+        }
+
+        let mode = 'ai';
+        let state = null;
+        let myId = null;
+        let seatMeta = [];
+        let ws = null, roomCode = null, isHost = false;
+        let heldUI = [false, false, false, false, false];
+
+        function log(msg) {
+            const el = $('eventLog');
+            const li = document.createElement('li');
+            li.textContent = msg;
+            el.prepend(li);
+            while (el.children.length > 60) el.removeChild(el.lastChild);
+        }
+
+        function seatColor(playerId) {
+            const COLORS_SEAT = ['#ff4d6d', '#4cc9f0', '#ffb703', '#90be6d'];
+            const idx = seatMeta.findIndex(s => s.id === playerId);
+            return COLORS_SEAT[idx >= 0 ? idx : 0];
+        }
+        function seatName(playerId) {
+            const s = seatMeta.find(s => s.id === playerId);
+            return s ? s.name : playerId;
+        }
+
+        // ============ Start screen wiring ============
+        function buildAiBotConfig() {
+            const n = parseInt($('aiSeatCount').value, 10);
+            const wrap = $('aiBotConfig');
+            wrap.innerHTML = '';
+            const SEAT_COLORS = ['#ff4d6d', '#4cc9f0', '#ffb703', '#90be6d'];
+            for (let i = 1; i < n; i++) {
+                const row = document.createElement('div');
+                row.className = 'seat-row';
+                row.innerHTML = `<label><span class="seat-swatch" style="background:${SEAT_COLORS[i]}"></span>봇 ${i}</label>
+                    <select id="botLevel${i}"><option value="easy">이지</option><option value="hard">하드</option></select>`;
+                wrap.appendChild(row);
+            }
+        }
+        $('aiSeatCount').onchange = buildAiBotConfig;
+        buildAiBotConfig();
+
+        $('modeAiBtn').onclick = () => setStartMode('ai');
+        $('modeOnlineBtn').onclick = () => setStartMode('online');
+        function setStartMode(next) {
+            mode = next;
+            $('modeAiBtn').classList.toggle('secondary', next !== 'ai');
+            $('modeOnlineBtn').classList.toggle('secondary', next !== 'online');
+            $('aiSetupPanel').style.display = next === 'ai' ? 'block' : 'none';
+            $('onlinePanel').style.display = next === 'online' ? 'block' : 'none';
+        }
+
+        $('startAiBtn').onclick = () => {
+            const n = parseInt($('aiSeatCount').value, 10);
+            const ids = Array.from({ length: n }, (_, i) => i === 0 ? 'me' : `bot${i}`);
+            state = Engine.createGame(ids);
+            const botLevels = {};
+            for (let i = 1; i < n; i++) {
+                state.players[i].isBot = true;
+                state.players[i].botLevel = $(`botLevel${i}`).value;
+                botLevels[ids[i]] = $(`botLevel${i}`).value;
+            }
+            myId = 'me';
+            heldUI = [false, false, false, false, false];
+            seatMeta = ids.map((id, i) => ({ id, name: i === 0 ? '나' : `봇 ${i}`, isBot: i !== 0 }));
+            showScreen('game');
+            log('게임을 시작합니다.');
+            renderAll();
+            advanceGame();
+        };
+
+        function showScreen(which) {
+            $('startScreen').style.display = which === 'start' ? 'block' : 'none';
+            $('gameScreen').style.display = which === 'game' ? 'block' : 'none';
+            $('overScreen').style.display = which === 'over' ? 'block' : 'none';
+        }
+
+        $('backToStartBtn').onclick = () => {
+            if (ws) { try { ws.close(); } catch (e) { } ws = null; }
+            showScreen('start');
+        };
+        $('playAgainBtn').onclick = () => {
+            if (mode === 'online' && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'rematch' }));
+                showScreen('game');
+            } else {
+                showScreen('start');
+            }
+        };
+
+        // ============ Online lobby wiring ============
+        function genCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let s = ''; for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
+            return s;
+        }
+        function wsUrl(code) {
+            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const name = encodeURIComponent(localStorage.getItem('nickname') || '플레이어');
+            return `${proto}//${location.host}/ws/yacht/${encodeURIComponent(code)}?name=${name}`;
+        }
+        function connectRoom(code, createOpts) {
+            if (ws) { try { ws.onclose = null; ws.close(); } catch (e) { } }
+            roomCode = code.toUpperCase();
+            $('roomCodeDisplay').textContent = roomCode;
+            $('onlineLobby').style.display = 'none';
+            $('onlineRoomInfo').style.display = 'block';
+            $('onlineStatusMsg').textContent = '연결 중...';
+            try { ws = new WebSocket(wsUrl(roomCode)); } catch (e) { $('onlineStatusMsg').textContent = '연결 실패'; return; }
+            ws.onopen = () => { $('onlineStatusMsg').textContent = '연결됨'; if (createOpts) ws.send(JSON.stringify({ type: 'configure', ...createOpts })); };
+            ws.onmessage = (ev) => { let data; try { data = JSON.parse(ev.data); } catch (e) { return; } handleServerMessage(data); };
+            ws.onclose = () => { $('onlineStatusMsg').textContent = '연결이 종료되었습니다.'; };
+            ws.onerror = () => { $('onlineStatusMsg').textContent = '연결 오류가 발생했어요.'; };
+        }
+        $('createRoomBtn').onclick = () => {
+            const seatCount = parseInt($('onlineSeatCount').value, 10);
+            const fillBots = $('fillBotsChk').checked;
+            const botLevel = $('fillBotLevel').value;
+            connectRoom(genCode(), { seatCount, fillBots, botLevel });
+        };
+        $('joinRoomBtn').onclick = () => { const v = $('joinCodeInput').value.trim(); if (v) connectRoom(v); };
+        $('copyLinkBtn').onclick = () => {
+            const url = `${location.origin}${location.pathname}?room=${roomCode}`;
+            navigator.clipboard?.writeText(url).then(() => { $('onlineStatusMsg').textContent = '✅ 링크가 복사되었습니다!'; }).catch(() => { });
+        };
+        $('onlineStartBtn').onclick = () => { ws.send(JSON.stringify({ type: 'start' })); };
+
+        function handleServerMessage(data) {
+            if (data.type === 'hello') { myId = data.seatId; isHost = !!data.isHost; }
+            else if (data.type === 'lobby') { seatMeta = data.seats; renderLobbySeats(data); }
+            else if (data.type === 'sync') {
+                state = data.state; seatMeta = data.seats;
+                if ($('startScreen').style.display !== 'none') showScreen('game');
+                renderAll();
+                if (state.phase === 'gameover') showGameOver();
+            } else if (data.type === 'log') { log(data.message); }
+            else if (data.type === 'error') { log('❌ ' + data.message); }
+            else if (data.type === 'peer-left') { log('⚠️ ' + seatName(data.seatId) + ' 님의 연결이 끊겼습니다.'); }
+        }
+
+        function renderLobbySeats(data) {
+            const wrap = $('onlineSeatList');
+            wrap.innerHTML = data.seats.map((s, i) =>
+                `<div class="seat-row"><span class="seat-swatch" style="background:${['#ff4d6d', '#4cc9f0', '#ffb703', '#90be6d'][i]}"></span>${s.name}${s.isBot ? ' (봇 ' + (s.botLevel === 'hard' ? '하드' : '이지') + ')' : ''}${s.connected === false ? ' - 대기중' : ''}</div>`
+            ).join('');
+            $('onlineStatusMsg').textContent = data.status === 'waiting' ? '다른 플레이어를 기다리는 중...' : '';
+            $('onlineStartBtn').style.display = isHost && data.status === 'waiting' ? 'block' : 'none';
+        }
+
+        // ============ Rendering ============
+        function renderAll() {
+            if (!state) return;
+            if (!state.hasRolledThisTurn) heldUI = [false, false, false, false, false];
+            renderDice();
+            renderScorecard();
+            renderPlayerList();
+            const turnText = state.phase === 'gameover' ? '게임 종료' : (seatName(state.turn) + ' 님의 차례');
+            $('turnBanner').textContent = turnText;
+            const isMyTurn = state.turn === myId && state.phase === 'main';
+            $('boardHint').textContent = state.phase === 'gameover' ? '' :
+                !isMyTurn ? '' :
+                    !state.hasRolledThisTurn ? '주사위를 굴려보세요.' :
+                        state.rollsLeft > 0 ? '남길 주사위를 클릭한 뒤 다시 굴리거나, 점수표에서 칸을 선택해 기록하세요.' :
+                            '더 이상 굴릴 수 없습니다. 점수표에서 칸을 선택해 기록하세요.';
+        }
+
+        function renderDice() {
+            const wrap = $('diceTray');
+            wrap.innerHTML = '';
+            const isMyTurn = state.turn === myId && state.phase === 'main';
+            const canHold = isMyTurn && state.hasRolledThisTurn && state.rollsLeft > 0;
+            for (let i = 0; i < 5; i++) {
+                const div = document.createElement('div');
+                const held = state.hasRolledThisTurn && heldUI[i];
+                div.className = 'die' + (held ? ' held' : '') + (!state.hasRolledThisTurn ? ' unrolled' : '') + (canHold ? ' holdable' : '');
+                div.innerHTML = state.hasRolledThisTurn ? diceFaceSvg(state.dice[i], 60) : diceFaceSvg(null, 60);
+                if (canHold) div.onclick = () => { heldUI[i] = !heldUI[i]; renderDice(); };
+                wrap.appendChild(div);
+            }
+            $('rollsLeftText').textContent = `굴림 ${3 - state.rollsLeft}/3 사용`;
+            $('rollBtn').disabled = !(isMyTurn && state.rollsLeft > 0);
+        }
+
+        function renderScorecard() {
+            const wrap = $('scorecardWrap');
+            const isMyTurn = state.turn === myId && state.phase === 'main';
+            let html = '<table class="score-table"><thead><tr><th>카테고리</th>';
+            for (const p of state.players) {
+                html += `<th class="${state.turn === p.id && state.phase === 'main' ? 'active-col' : ''}">${seatName(p.id)}${p.id === myId ? ' (나)' : ''}</th>`;
+            }
+            html += '</tr></thead><tbody>';
+
+            function rows(cats) {
+                for (const cat of cats) {
+                    html += `<tr><td>${CATEGORY_LABELS[cat]}</td>`;
+                    for (const p of state.players) {
+                        const filled = p.scorecard[cat];
+                        if (filled != null) {
+                            html += `<td>${filled}</td>`;
+                        } else if (p.id === myId && isMyTurn && state.hasRolledThisTurn) {
+                            const preview = Engine.computeCategoryScore(state.dice, cat);
+                            html += `<td class="cell-preview" data-cat="${cat}">${preview}</td>`;
+                        } else {
+                            html += `<td class="cell-empty">-</td>`;
+                        }
+                    }
+                    html += '</tr>';
+                }
+            }
+            rows(Engine.UPPER_CATEGORIES);
+            html += '<tr class="subtotal-row"><td>상단 합계</td>';
+            for (const p of state.players) html += `<td>${Engine.getTotal(p).upperSum}</td>`;
+            html += '</tr><tr class="subtotal-row"><td>보너스 (63+)</td>';
+            for (const p of state.players) { const t = Engine.getTotal(p); html += `<td>${t.bonus || '-'}</td>`; }
+            html += '</tr>';
+            rows(Engine.LOWER_CATEGORIES);
+            html += '<tr class="total-row"><td>합계</td>';
+            for (const p of state.players) html += `<td>${Engine.getTotal(p).total}</td>`;
+            html += '</tr></tbody></table>';
+            wrap.innerHTML = html;
+
+            wrap.querySelectorAll('.cell-preview').forEach(td => {
+                td.onclick = () => dispatchAction({ type: 'score', category: td.dataset.cat });
+            });
+        }
+
+        function renderPlayerList() {
+            const wrap = $('playerList');
+            wrap.innerHTML = state.players.map(p => {
+                const t = Engine.getTotal(p);
+                return `<div class="player-badge ${state.turn === p.id && state.phase === 'main' ? 'active' : ''}">
+                    <span class="player-dot" style="background:${seatColor(p.id)}"></span>
+                    <span class="name">${seatName(p.id)}${p.id === myId ? ' (나)' : ''}</span>
+                    <span class="vp">${t.total}점</span>
+                </div>`;
+            }).join('');
+        }
+
+        // ============ Actions ============
+        $('rollBtn').onclick = () => dispatchAction({ type: 'roll', hold: heldUI.slice() });
+
+        function dispatchAction(action) {
+            if (mode === 'online') {
+                if (!ws || ws.readyState !== WebSocket.OPEN) { log('❌ 서버와 연결이 끊겼습니다.'); return; }
+                ws.send(JSON.stringify(action));
+                return;
+            }
+            applyLocalAction(action);
+        }
+
+        function applyLocalAction(action) {
+            const pid = myId;
+            let ok = false;
+            if (action.type === 'roll') {
+                ok = Engine.rollDice(state, pid, action.hold);
+            } else if (action.type === 'score') {
+                ok = Engine.scoreCategory(state, pid, action.category);
+                if (ok) log(`${seatName(pid)}님이 '${CATEGORY_LABELS[action.category]}'에 점수를 기록했습니다.`);
+            }
+            renderAll();
+            if (action.type === 'score') advanceGame();
+        }
+
+        function advanceGame() {
+            if (mode !== 'ai') return;
+            if (state.phase === 'gameover') { renderAll(); showGameOver(); return; }
+            const current = state.players.find(p => p.id === state.turn);
+            if (current && current.isBot) {
+                renderAll();
+                setTimeout(() => {
+                    AI.runBotTurn(state, current.id, current.botLevel);
+                    log(`${seatName(current.id)} 봇이 턴을 마쳤습니다.`);
+                    renderAll();
+                    setTimeout(advanceGame, 350);
+                }, 500);
+                return;
+            }
+            renderAll();
+        }
+
+        function showGameOver() {
+            showScreen('over');
+            const amWinner = state.winners.includes(myId);
+            const winnerNames = state.winners.map(seatName).join(', ');
+            $('overTitle').textContent = amWinner ? '🎉 승리했습니다!' : `${winnerNames} 님이 승리했습니다`;
+            const rows = [...state.players].sort((a, b) => Engine.getTotal(b).total - Engine.getTotal(a).total)
+                .map(p => `<tr><td>${seatName(p.id)}</td><td>${Engine.getTotal(p).total}점</td></tr>`).join('');
+            $('overTable').innerHTML = `<table style="width:100%;">${rows}</table>`;
+            if (window.Juice && myId) {
+                const me = state.players.find(p => p.id === myId);
+                if (me) Juice.submit(PAGE_ID, Engine.getTotal(me).total);
+            }
+        }
+
+        // ============ Modals ============
+        const SHORTCUTS = [
+            ['1~5', '주사위 1~5번 홀드(유지) 토글'],
+            ['R', '주사위 굴리기'],
+            ['Esc', '창 닫기'],
+            ['?', '단축키 도움말'],
+        ];
+        function openShortcutsHelp() {
+            const box = $('modalBox');
+            box.innerHTML = `<h3>⌨️ 단축키</h3><table class="shortcuts-table">${SHORTCUTS.map(([k, d]) => `<tr><td><kbd>${k}</kbd></td><td>${d}</td></tr>`).join('')}</table>
+                <button class="btn mt-4" id="closeShortcutsBtn" style="width:100%;">닫기</button>`;
+            box.querySelector('#closeShortcutsBtn').onclick = closeModal;
+            openModal();
+        }
+        $('shortcutsBtn').onclick = openShortcutsHelp;
+
+        function openHowToPlay() {
+            const box = $('modalBox');
+            box.classList.add('wide');
+            box.innerHTML = `<h3>📖 야추 하는 방법</h3>
+                <div class="howto">
+                    <h4>🎯 목표</h4>
+                    <p>주사위 5개로 13개의 점수 칸을 채워, <b>총점이 가장 높은</b> 사람이 승리하는 게임입니다.</p>
+
+                    <h4>🎲 한 턴의 진행</h4>
+                    <p>주사위 5개를 굴린 뒤, 원하는 주사위만 남기고(클릭해서 홀드) 최대 3번까지 다시 굴릴 수 있습니다. 굴림을 마쳤으면 점수표에서 원하는 칸을 선택해 점수를 기록하고 턴을 마칩니다.</p>
+
+                    <h4>📋 점수 칸 (13개, 한 번씩만 사용)</h4>
+                    <p><b>상단</b>: 1~6 각각 해당 눈이 나온 주사위의 합. 상단 합계가 63점 이상이면 <b>보너스 35점</b>을 추가로 받습니다.</p>
+                    <p><b>하단</b>: 트리플(같은 눈 3개 이상, 주사위 합), 포카드(같은 눈 4개 이상, 주사위 합), 풀하우스(3개+2개 조합, 25점), 스몰 스트레이트(연속된 눈 4개, 30점), 라지 스트레이트(연속된 눈 5개, 40점), 야추(같은 눈 5개, 50점), 찬스(주사위 합, 아무 때나 사용 가능).</p>
+                    <p>원하는 조합이 안 나왔다면 점수가 낮은 칸(0점)에 포기하듯 기록할 수도 있습니다.</p>
+
+                    <h4>🖱️ 조작 방법</h4>
+                    <p>주사위를 클릭해 홀드를 켜고 끌 수 있고(굴린 뒤에만), "굴리기" 버튼으로 재굴림합니다. 점수표에서 초록 테두리로 강조된 칸이 지금 주사위로 받을 수 있는 점수이며, 클릭하면 바로 확정됩니다.</p>
+                </div>
+                <button class="btn mt-4" id="closeHowToBtn" style="width:100%;">닫기</button>`;
+            box.querySelector('#closeHowToBtn').onclick = closeModal;
+            openModal();
+        }
+        $('howToPlayBtn').onclick = openHowToPlay;
+        $('howToPlayBtnGame').onclick = openHowToPlay;
+
+        function openModal() { $('modalOverlay').style.display = 'flex'; }
+        function closeModal() { $('modalOverlay').style.display = 'none'; $('modalBox').innerHTML = ''; $('modalBox').classList.remove('wide'); }
+
+        document.addEventListener('keydown', (e) => {
+            const tag = document.activeElement && document.activeElement.tagName;
+            if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+            const modalOpen = $('modalOverlay').style.display !== 'none';
+
+            if (e.key === 'Escape') { e.preventDefault(); if (modalOpen) closeModal(); return; }
+            if (e.key === '?') { e.preventDefault(); if (!modalOpen) openShortcutsHelp(); return; }
+            if (modalOpen) return;
+            if ($('gameScreen').style.display === 'none') return;
+            if (!state) return;
+
+            const isMyTurn = state.turn === myId && state.phase === 'main';
+            if (!isMyTurn) return;
+
+            if (e.key >= '1' && e.key <= '5') {
+                if (state.hasRolledThisTurn && state.rollsLeft > 0) {
+                    const i = parseInt(e.key, 10) - 1;
+                    heldUI[i] = !heldUI[i];
+                    renderDice();
+                }
+            } else if (e.key === 'r' || e.key === 'R') {
+                if (!$('rollBtn').disabled) $('rollBtn').click();
+            }
+        });
+
+        // ---- Boot ----
+        const urlRoom = new URLSearchParams(location.search).get('room');
+        if (urlRoom) { setStartMode('online'); connectRoom(urlRoom); }
+    </script>
+</body>
+
+</html>

@@ -65,5 +65,7 @@
   { "id": "mini64", "title": "🏆 명예의전당", "path": "mini64/", "desc": "최종 토너먼트! 9개 게임 완주", "thumb": "mini64/cover.png", "category": "스포츠", "scoreType": "high" },
   { "id": "mini65", "title": "🔵 오셀로 🟣", "path": "mini65/", "desc": "돌을 뒤집어 더 많은 영역을 차지하세요", "thumb": "mini65/cover.png", "category": "퍼즐", "scoreType": "high" },
   { "id": "mini66", "title": "🔵 체커 🟣", "path": "mini66/", "desc": "대각선 이동과 점프로 상대 말을 모두 잡으세요", "thumb": "mini66/cover.png", "category": "퍼즐", "scoreType": "high" },
-  { "id": "mini67", "title": "🌾 카탄", "path": "mini67/", "desc": "자원을 모아 도로·마을·도시를 짓고 승점 10점을 노리세요", "thumb": "mini67/cover.png", "category": "전략", "scoreType": "high" }
+  { "id": "mini67", "title": "🌾 카탄", "path": "mini67/", "desc": "자원을 모아 도로·마을·도시를 짓고 승점 10점을 노리세요", "thumb": "mini67/cover.png", "category": "전략", "scoreType": "high", "type": "board" },
+  { "id": "mini68", "title": "💎 스플렌더", "path": "mini68/", "desc": "보석을 모아 카드를 사고 귀족을 유치해 승점 15점을 노리세요", "thumb": "mini68/cover.svg", "category": "전략", "scoreType": "high", "type": "board" },
+  { "id": "mini69", "title": "🎲 야추", "path": "mini69/", "desc": "주사위 5개로 13개 카테고리를 채워 최고 점수를 노리세요", "thumb": "mini69/cover.svg", "category": "전략", "scoreType": "high", "type": "board" }
 ]

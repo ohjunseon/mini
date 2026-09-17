@@ -63,6 +63,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
       gap: 12px;
       padding: 14px 16px;
       background: linear-gradient(180deg, rgba(255, 255, 255, .04), rgba(255, 255, 255, .02));
@@ -87,20 +88,21 @@
     }
 
     h1 {
-      font-size: 22px;
+      font-size: 26px;
       margin: 0;
       letter-spacing: 0.2px;
     }
 
     .sub {
       color: var(--muted);
-      font-size: 13px;
+      font-size: 14px;
     }
 
     .actions {
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
     .btn {
@@ -112,6 +114,8 @@
       background: #1f2937;
       color: var(--text);
       border: 1px solid rgba(255, 255, 255, .08);
+      white-space: nowrap;
+      font-size: 14px;
     }
 
     .btn:hover {
@@ -184,13 +188,13 @@
     }
 
     .title {
-      font-size: 16px;
+      font-size: 17px;
       margin: 0 0 6px;
     }
 
     .desc {
       color: var(--muted);
-      font-size: 13px;
+      font-size: 14.5px;
       margin: 0 0 10px;
       min-height: 36px;
     }
@@ -200,7 +204,7 @@
       align-items: center;
       gap: 10px;
       color: var(--muted);
-      font-size: 12px;
+      font-size: 13px;
     }
 
     .dot {
@@ -219,18 +223,55 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 10px 14px;
+      padding: 11px 16px;
       border-radius: 999px;
       border: 1px solid rgba(255, 255, 255, .12);
       background: linear-gradient(180deg, rgba(59, 130, 246, .2), rgba(59, 130, 246, .05));
       color: #dbeafe;
       text-decoration: none;
       font-weight: 600;
-      font-size: 14px;
+      font-size: 15px;
     }
 
     .play:hover {
       filter: brightness(1.1);
+    }
+
+    .mode-tabs {
+      display: flex;
+      gap: 8px;
+      margin: 18px 0 4px;
+    }
+
+    .mode-tab {
+      flex: 1;
+      min-height: 48px;
+      padding: 14px 16px;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .15s ease;
+    }
+
+    .mode-tab:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    .mode-tab.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #05101f;
+      border-color: transparent;
+    }
+
+    .mode-desc {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0 2px 12px;
     }
 
     .search-bar {
@@ -268,11 +309,12 @@
     /* Small tweaks */
     @media (max-width: 420px) {
       h1 {
-        font-size: 18px;
+        font-size: 20px;
       }
 
       .btn {
-        padding: 8px 12px;
+        min-height: 44px;
+        padding: 10px 14px;
       }
 
       .game-grid {
@@ -309,6 +351,12 @@
         (adsbygoogle = window.adsbygoogle || []).push({});
       </script>
     </div>
+
+    <div class="mode-tabs" role="tablist" aria-label="게임 종류 선택">
+      <button class="mode-tab active" id="tabMini" role="tab" aria-selected="true">🕹️ 미니게임</button>
+      <button class="mode-tab" id="tabBoard" role="tab" aria-selected="false">🎲 PC 보드게임</button>
+    </div>
+    <p class="mode-desc" id="modeDesc">짧고 가볍게 즐기는 캐주얼 미니게임 모음</p>
 
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="🔍 게임 이름으로 검색..." aria-label="게임 검색">
@@ -447,21 +495,42 @@
       return card;
     }
 
+    let currentMode = 'mini';
+    const MODE_DESC = {
+      mini: '짧고 가볍게 즐기는 캐주얼 미니게임 모음',
+      board: 'PC 전용으로 만든 깊이 있는 정식 보드게임',
+    };
+
     async function loadGames() {
       try {
         const res = await fetch('games.json');
         allGames = await res.json();
-        games = allGames;
-        render();
+        applyFilters();
       } catch (e) {
         console.error('Failed to load games.json:', e);
       }
     }
 
-    function filterGames(query) {
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('tabMini').classList.toggle('active', mode === 'mini');
+      document.getElementById('tabMini').setAttribute('aria-selected', mode === 'mini');
+      document.getElementById('tabBoard').classList.toggle('active', mode === 'board');
+      document.getElementById('tabBoard').setAttribute('aria-selected', mode === 'board');
+      document.getElementById('modeDesc').textContent = MODE_DESC[mode];
+      applyFilters();
+    }
+
+    function applyFilters(query = document.getElementById('searchInput').value) {
       const q = query.toLowerCase();
-      games = allGames.filter(g => g.title.toLowerCase().includes(q) || g.desc.toLowerCase().includes(q) || g.category.includes(q));
+      games = allGames
+        .filter(g => (g.type || 'mini') === currentMode)
+        .filter(g => g.title.toLowerCase().includes(q) || g.desc.toLowerCase().includes(q) || g.category.includes(q));
       render();
+    }
+
+    function filterGames(query) {
+      applyFilters(query);
     }
 
     function render() {
@@ -544,6 +613,10 @@
     document.getElementById('searchInput').addEventListener('input', (e) => {
       filterGames(e.target.value);
     });
+
+    // 탭 전환 이벤트
+    document.getElementById('tabMini').addEventListener('click', () => setMode('mini'));
+    document.getElementById('tabBoard').addEventListener('click', () => setMode('board'));
   </script>
 </body>
 

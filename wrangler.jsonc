@@ -19,11 +19,15 @@
 	"durable_objects": {
 		"bindings": [
 			{ "name": "OTHELLO_ROOM", "class_name": "OthelloRoom" },
-			{ "name": "CATAN_ROOM", "class_name": "CatanRoom" }
+			{ "name": "CATAN_ROOM", "class_name": "CatanRoom" },
+			{ "name": "SPLENDOR_ROOM", "class_name": "SplendorRoom" },
+			{ "name": "YACHT_ROOM", "class_name": "YachtRoom" }
 		]
 	},
 	"migrations": [
 		{ "tag": "v1", "new_sqlite_classes": ["OthelloRoom"] },
-		{ "tag": "v2", "new_sqlite_classes": ["CatanRoom"] }
+		{ "tag": "v2", "new_sqlite_classes": ["CatanRoom"] },
+		{ "tag": "v3", "new_sqlite_classes": ["SplendorRoom"] },
+		{ "tag": "v4", "new_sqlite_classes": ["YachtRoom"] }
 	]
 }

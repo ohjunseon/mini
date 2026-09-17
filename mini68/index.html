@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>스플렌더 (mini68)</title>
+    <link rel="stylesheet" href="../shared/style.css">
+    <style>
+        .container { max-width: 1600px; }
+        .game-container { max-width: 1100px; }
+        .game-container.hud-shell { max-width: 1440px; }
+        .pc-badge { display: inline-block; font-size: 0.7rem; color: var(--muted); border: 1px solid var(--panel-border); border-radius: 6px; padding: 2px 8px; margin-left: 8px; vertical-align: middle; }
+
+        .mode-select { display: flex; gap: 8px; justify-content: center; }
+        .mode-select .btn { flex: 1; max-width: 200px; }
+
+        .seat-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; text-align: left; }
+        .seat-row label { flex: 1; color: var(--muted); }
+        .seat-swatch { width: 14px; height: 14px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+
+        .hud-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .hud-top-actions { display: flex; gap: 8px; }
+        .hud-top-actions .btn { padding: 8px 14px; font-size: 0.85rem; }
+        .hud-turn { font-weight: 700; color: var(--accent); }
+
+        .game-stage { position: relative; max-width: 1360px; margin: 0 auto; text-align: left; background: radial-gradient(1200px 500px at 50% -10%, #241454 0%, #150a30 55%, #0a0518 100%); border: 1px solid var(--panel-border); border-radius: 16px; padding: 16px; }
+
+        .hud-panel { background: rgba(8, 4, 20, .65); backdrop-filter: blur(6px); border: 1px solid var(--panel-border); border-radius: 10px; padding: 12px 14px; }
+        .hud-panel h3 { margin: 0 0 8px; font-size: 0.9rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+        .stage-body { display: flex; gap: 14px; align-items: flex-start; }
+        .stage-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+        .stage-side { flex: 0 0 300px; display: flex; flex-direction: column; gap: 10px; }
+
+        .token-bank { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .token-pile { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; border-radius: 12px; border: 2px solid transparent; cursor: pointer; background: rgba(255,255,255,.03); transition: all .12s ease; }
+        .token-pile:hover { background: rgba(255,255,255,.08); }
+        .token-pile.selected { border-color: var(--warn); background: rgba(255,224,102,.15); }
+        .token-pile.disabled { opacity: .35; cursor: not-allowed; }
+        .token-pile .count { font-weight: 800; font-size: 1.05rem; }
+
+        .noble-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+        .noble-tile { width: 56px; height: 56px; border-radius: 8px; background: linear-gradient(160deg,#3a2a1a,#1a1208); border: 2px solid #8a6a3a; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.65rem; }
+
+        .tier-row { display: flex; gap: 8px; align-items: center; justify-content: center; }
+        .tier-label { width: 26px; font-weight: 800; color: var(--muted); text-align: center; font-size: 0.8rem; }
+        .deck-pile { width: 64px; height: 88px; border-radius: 8px; background: linear-gradient(160deg,#2a2450,#150e30); border: 2px dashed var(--panel-border); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: var(--muted); cursor: pointer; flex-shrink: 0; }
+        .deck-pile.armed { border-color: var(--warn); box-shadow: 0 0 0 2px rgba(255,224,102,.3); }
+        .deck-pile.disabled { opacity: .3; cursor: not-allowed; }
+
+        .card-tile { width: 64px; height: 88px; border-radius: 8px; position: relative; flex-shrink: 0; cursor: pointer; border: 2px solid var(--panel-border); overflow: hidden; background: #1a1440; transition: transform .1s ease; }
+        .card-tile:hover { transform: translateY(-3px); }
+        .card-tile.affordable { border-color: var(--good); box-shadow: 0 0 8px rgba(57,255,136,.5); }
+        .card-tile.armed-target { border-color: var(--warn); box-shadow: 0 0 8px rgba(255,224,102,.6); }
+        .card-tile .cband { height: 18px; display: flex; align-items: center; justify-content: space-between; padding: 0 4px; font-size: 0.7rem; font-weight: 800; color: #fff; }
+        .card-tile .ccosts { position: absolute; left: 2px; bottom: 2px; right: 2px; display: flex; flex-direction: column; gap: 1px; }
+        .card-tile .ccost-row { display: flex; align-items: center; gap: 2px; background: rgba(0,0,0,.55); border-radius: 3px; padding: 1px 3px; font-size: 0.6rem; font-weight: 700; color: #fff; }
+        .card-tile .ccost-row .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+        .hand-row { display: flex; gap: 6px; flex-wrap: wrap; }
+        .res-chip { background: rgba(0,0,0,.25); border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 8px; font-size: 0.85rem; min-width: 40px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .gem-icon { display: inline-block; vertical-align: -3px; }
+
+        .hud-actionbar { display: flex; gap: 8px; background: rgba(5, 2, 15, .7); border: 1px solid var(--panel-border); border-radius: 12px; padding: 8px; justify-content: center; }
+        .hud-actionbar .btn { position: relative; padding: 10px 16px; font-size: 0.85rem; }
+        .hud-actionbar .btn.armed { outline: 2px solid var(--warn); }
+        .hotkey-badge { position: absolute; top: 2px; left: 6px; font-size: 0.6rem; font-weight: 800; color: #0a0518; background: var(--warn); border-radius: 4px; padding: 0 4px; }
+
+        .player-badge { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,.04); margin-bottom: 6px; }
+        .player-badge.active { outline: 2px solid var(--accent); }
+        .player-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .player-badge .name { flex: 1; font-weight: 600; }
+        .player-badge .vp { font-weight: 700; }
+
+        #eventLog { max-height: 140px; overflow-y: auto; font-size: 0.82rem; color: var(--muted); padding-left: 0; list-style: none; margin: 0; }
+        #eventLog li { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 50; }
+        .modal-box { max-width: 420px; width: 92vw; }
+        .modal-box.wide { max-width: 680px; max-height: 84vh; overflow-y: auto; }
+        .howto h4 { color: var(--accent); margin: 18px 0 6px; font-size: 1.02rem; }
+        .howto h4:first-child { margin-top: 0; }
+        .howto ul { margin: 0 0 8px; padding-left: 20px; }
+        .howto li { margin-bottom: 4px; line-height: 1.5; }
+        .howto p { margin: 0 0 8px; line-height: 1.6; }
+
+        .shortcuts-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .shortcuts-table td { padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,.06); }
+        .shortcuts-table td:first-child { width: 90px; }
+        kbd { background: rgba(255,255,255,.1); border: 1px solid var(--panel-border); border-radius: 5px; padding: 1px 7px; font-family: inherit; font-weight: 700; color: var(--accent); }
+
+        @media (max-width: 900px) {
+            .stage-body { flex-direction: column; }
+            .stage-side { flex: 1 1 auto; }
+        }
+    </style>
+    <meta name="description" content="보석 토큰을 모아 카드를 사고 귀족을 유치해 승점 15점을 노리세요 - 미니게임">
+    <meta name="keywords" content="보드게임, 스플렌더, 전략, 미니게임, 게임">
+    <meta name="theme-color" content="#00e5ff">
+    <meta property="og:title" content="💎 스플렌더">
+    <meta property="og:description" content="보석을 모아 카드를 사고 귀족을 유치해 승점 15점을 노리세요">
+    <meta property="og:type" content="website">
+    <meta property="twitter:card" content="summary">
+    <meta property="twitter:title" content="💎 스플렌더">
+    <meta property="twitter:description" content="보석을 모아 카드를 사고 귀족을 유치해 승점 15점을 노리세요">
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-container" id="startScreen">
+            <div class="card">
+                <header class="mb-4">
+                    <h1>💎 스플렌더<span class="pc-badge">🖥️ PC 전용</span></h1>
+                    <p>보석 토큰을 모아 카드를 사고, 귀족을 유치해 승점 15점을 먼저 모으면 승리합니다.</p>
+                    <button class="btn secondary" id="howToPlayBtn" style="width:100%;">📖 처음이신가요? 게임 방법 보기</button>
+                </header>
+
+                <div class="mode-select mb-4">
+                    <button class="btn" id="modeAiBtn">🤖 AI와 대전</button>
+                    <button class="btn secondary" id="modeOnlineBtn">🌐 온라인 대전</button>
+                </div>
+
+                <div class="panel mb-4" id="aiSetupPanel">
+                    <h3>싱글 플레이 설정</h3>
+                    <div class="seat-row">
+                        <label>총 인원</label>
+                        <select id="aiSeatCount">
+                            <option value="2">2인</option>
+                            <option value="3">3인</option>
+                            <option value="4" selected>4인</option>
+                        </select>
+                    </div>
+                    <div id="aiBotConfig"></div>
+                    <button class="btn mt-4" id="startAiBtn" style="width:100%;">게임 시작</button>
+                </div>
+
+                <div class="panel mb-4" id="onlinePanel" style="display:none; text-align:left;">
+                    <div id="onlineLobby">
+                        <div class="seat-row">
+                            <label>좌석 수 (방장)</label>
+                            <select id="onlineSeatCount">
+                                <option value="2">2인</option>
+                                <option value="3">3인</option>
+                                <option value="4" selected>4인</option>
+                            </select>
+                        </div>
+                        <div class="seat-row">
+                            <label><input type="checkbox" id="fillBotsChk" checked> 빈 자리는 봇으로 채우기</label>
+                            <select id="fillBotLevel">
+                                <option value="easy">이지 봇</option>
+                                <option value="hard">하드 봇</option>
+                            </select>
+                        </div>
+                        <button class="btn" id="createRoomBtn" style="width:100%;">🆕 방 만들기</button>
+                        <div class="mt-4" style="display:flex; gap:8px;">
+                            <input id="joinCodeInput" type="text" placeholder="참가 코드 입력" maxlength="6">
+                            <button class="btn secondary" id="joinRoomBtn">참가</button>
+                        </div>
+                    </div>
+                    <div id="onlineRoomInfo" style="display:none;">
+                        <p>방 코드: <code id="roomCodeDisplay" style="background:rgba(0,229,255,.12); border:1px solid var(--panel-border); padding:3px 10px; border-radius:6px; letter-spacing:2px; color:var(--accent);"></code>
+                            <button class="btn secondary" id="copyLinkBtn" style="padding:4px 10px; margin-left:8px;">🔗 링크 복사</button>
+                        </p>
+                        <div id="onlineSeatList"></div>
+                        <p id="onlineStatusMsg" style="color:var(--muted); margin:8px 0;"></p>
+                        <button class="btn" id="onlineStartBtn" style="width:100%; display:none;">게임 시작</button>
+                    </div>
+                </div>
+
+                <div class="panel" style="text-align: left;">
+                    <h3>🏆 랭킹 (최종 승점)</h3>
+                    <ul id="rankList" style="padding-left: 20px; color: var(--muted); font-size: 0.9rem;">
+                        <li>...</li>
+                    </ul>
+                </div>
+                <div class="mt-4">
+                    <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-container hud-shell" id="gameScreen" style="display:none;">
+            <div class="hud-top mb-4">
+                <h1 style="margin:0; font-size:1.4rem;">💎 스플렌더</h1>
+                <div id="turnBanner" class="hud-turn"></div>
+                <div class="hud-top-actions">
+                    <button class="btn secondary" id="howToPlayBtnGame">📖 게임 방법</button>
+                    <button class="btn secondary" id="shortcutsBtn">⌨️ 단축키</button>
+                    <button class="btn secondary" id="backToStartBtn">← 나가기</button>
+                </div>
+            </div>
+
+            <div class="game-stage">
+                <div id="boardHint" class="mb-4" style="text-align:center; color:var(--muted); min-height:20px;"></div>
+
+                <div class="stage-body">
+                    <div class="stage-main">
+                        <div class="hud-panel">
+                            <h3>귀족</h3>
+                            <div class="noble-row" id="nobleRow"></div>
+                        </div>
+                        <div class="hud-panel">
+                            <h3>보석 은행</h3>
+                            <div class="token-bank" id="tokenBank"></div>
+                        </div>
+                        <div class="hud-panel">
+                            <h3>카드 진열대</h3>
+                            <div id="tiersWrap"></div>
+                        </div>
+                    </div>
+                    <div class="stage-side">
+                        <div class="hud-panel">
+                            <h3>플레이어</h3>
+                            <div id="playerList"></div>
+                        </div>
+                        <div class="hud-panel">
+                            <h3>내 보석</h3>
+                            <div class="hand-row" id="myTokens"></div>
+                            <h3 class="mt-4">내 카드 (보너스)</h3>
+                            <div class="hand-row" id="myBonuses"></div>
+                        </div>
+                        <div class="hud-panel">
+                            <h3>내 예약 카드 (<span id="reservedCount">0</span>/3)</h3>
+                            <div class="hand-row" id="myReserved"></div>
+                        </div>
+                        <div class="hud-panel" style="flex:1; min-height:0;">
+                            <h3>기록</h3>
+                            <ul id="eventLog"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hud-actionbar mt-4">
+                    <button class="btn" id="takeThreeBtn" title="서로 다른 색 토큰 3개 받기 (1)">🪙 토큰 3개<span class="hotkey-badge">1</span></button>
+                    <button class="btn secondary" id="takeTwoBtn" title="같은 색 토큰 2개 받기 (2)">🪙🪙 같은색 2개<span class="hotkey-badge">2</span></button>
+                    <button class="btn secondary" id="reserveModeBtn" title="카드 예약 모드 (3)">🔖 카드 예약<span class="hotkey-badge">3</span></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-container" id="overScreen" style="display:none;">
+            <div class="card">
+                <h1 id="overTitle">게임 종료</h1>
+                <div id="overTable" class="panel" style="text-align:left;"></div>
+                <div class="controls mt-4" style="display:flex; gap:8px; justify-content:center;">
+                    <button class="btn" id="playAgainBtn">다시 하기</button>
+                    <a href="../index.html" class="btn secondary">메인으로</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay" style="display:none;">
+        <div class="panel modal-box" id="modalBox"></div>
+    </div>
+
+    <script src="../shared/ranking.js"></script>
+    <script src="../shared/juice.js"></script>
+    <script type="module">
+        import * as Engine from './splendor-engine.js';
+        import * as AI from './splendor-ai.js';
+
+        const PAGE_ID = 'mini68';
+        if (window.GameStats) {
+            GameStats.listenTopScores(PAGE_ID, 5, arr => {
+                const rl = document.getElementById('rankList');
+                rl.innerHTML = (!arr || !arr.length) ? '<li>기록 없음</li>' : arr.map((d, i) => `<li>${i + 1}위 ${d.name} (${d.score}점)</li>`).join('');
+            });
+        }
+
+        const $ = (id) => document.getElementById(id);
+        const COLOR_HEX = { white: '#f2f0e8', blue: '#3a7bd5', green: '#2e9e5b', red: '#d64545', black: '#3a3a44', gold: '#e8b923' };
+        const COLOR_NAME = { white: '흰색', blue: '파랑', green: '초록', red: '빨강', black: '검정', gold: '금(와일드)' };
+
+        function gemIcon(color, size = 16) {
+            const hex = COLOR_HEX[color];
+            const stroke = color === 'white' ? '#999' : 'rgba(0,0,0,.35)';
+            return `<svg class="gem-icon" width="${size}" height="${size}" viewBox="0 0 20 20"><polygon points="10,1 18,7 15,19 5,19 2,7" fill="${hex}" stroke="${stroke}" stroke-width="1.2"/><polygon points="10,1 14,7 6,7" fill="rgba(255,255,255,.35)"/></svg>`;
+        }
+
+        let mode = 'ai';
+        let state = null;
+        let myId = null;
+        let seatMeta = [];
+        let ws = null, roomCode = null, isHost = false;
+        let armedAction = null; // 'take3' | 'take2' | 'reserve'
+        let selectedColors = [];
+        let discardModalShown = false;
+
+        function log(msg) {
+            const el = $('eventLog');
+            const li = document.createElement('li');
+            li.textContent = msg;
+            el.prepend(li);
+            while (el.children.length > 60) el.removeChild(el.lastChild);
+        }
+
+        function seatColor(playerId) {
+            const COLORS_SEAT = ['#ff4d6d', '#4cc9f0', '#ffb703', '#90be6d'];
+            const idx = seatMeta.findIndex(s => s.id === playerId);
+            return COLORS_SEAT[idx >= 0 ? idx : 0];
+        }
+        function seatName(playerId) {
+            const s = seatMeta.find(s => s.id === playerId);
+            return s ? s.name : playerId;
+        }
+
+        // ============ Start screen wiring ============
+        function buildAiBotConfig() {
+            const n = parseInt($('aiSeatCount').value, 10);
+            const wrap = $('aiBotConfig');
+            wrap.innerHTML = '';
+            const SEAT_COLORS = ['#ff4d6d', '#4cc9f0', '#ffb703', '#90be6d'];
+            for (let i = 1; i < n; i++) {
+                const row = document.createElement('div');
+                row.className = 'seat-row';
+                row.innerHTML = `<label><span class="seat-swatch" style="background:${SEAT_COLORS[i]}"></span>봇 ${i}</label>
+                    <select id="botLevel${i}"><option value="easy">이지</option><option value="hard">하드</option></select>`;
+                wrap.appendChild(row);
+            }
+        }
+        $('aiSeatCount').onchange = buildAiBotConfig;
+        buildAiBotConfig();
+
+        $('modeAiBtn').onclick = () => setStartMode('ai');
+        $('modeOnlineBtn').onclick = () => setStartMode('online');
+        function setStartMode(next) {
+            mode = next;
+            $('modeAiBtn').classList.toggle('secondary', next !== 'ai');
+            $('modeOnlineBtn').classList.toggle('secondary', next !== 'online');
+            $('aiSetupPanel').style.display = next === 'ai' ? 'block' : 'none';
+            $('onlinePanel').style.display = next === 'online' ? 'block' : 'none';
+        }
+
+        $('startAiBtn').onclick = () => {
+            const n = parseInt($('aiSeatCount').value, 10);
+            const ids = Array.from({ length: n }, (_, i) => i === 0 ? 'me' : `bot${i}`);
+            state = Engine.createGame(ids);
+            for (let i = 1; i < n; i++) {
+                const p = state.players[i];
+                p.isBot = true;
+                p.botLevel = $(`botLevel${i}`).value;
+            }
+            myId = 'me';
+            seatMeta = ids.map((id, i) => ({ id, name: i === 0 ? '나' : `봇 ${i}`, isBot: i !== 0 }));
+            showScreen('game');
+            log('게임을 시작합니다.');
+            renderAll();
+            advanceGame();
+        };
+
+        function showScreen(which) {
+            $('startScreen').style.display = which === 'start' ? 'block' : 'none';
+            $('gameScreen').style.display = which === 'game' ? 'block' : 'none';
+            $('overScreen').style.display = which === 'over' ? 'block' : 'none';
+        }
+
+        $('backToStartBtn').onclick = () => {
+            if (ws) { try { ws.close(); } catch (e) { } ws = null; }
+            armedAction = null; selectedColors = [];
+            showScreen('start');
+        };
+        $('playAgainBtn').onclick = () => {
+            if (mode === 'online' && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'rematch' }));
+                showScreen('game');
+            } else {
+                showScreen('start');
+            }
+        };
+
+        // ============ Online lobby wiring ============
+        function genCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let s = ''; for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
+            return s;
+        }
+        function wsUrl(code) {
+            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const name = encodeURIComponent(localStorage.getItem('nickname') || '플레이어');
+            return `${proto}//${location.host}/ws/splendor/${encodeURIComponent(code)}?name=${name}`;
+        }
+        function connectRoom(code, createOpts) {
+            if (ws) { try { ws.onclose = null; ws.close(); } catch (e) { } }
+            roomCode = code.toUpperCase();
+            $('roomCodeDisplay').textContent = roomCode;
+            $('onlineLobby').style.display = 'none';
+            $('onlineRoomInfo').style.display = 'block';
+            $('onlineStatusMsg').textContent = '연결 중...';
+            try { ws = new WebSocket(wsUrl(roomCode)); } catch (e) { $('onlineStatusMsg').textContent = '연결 실패'; return; }
+            ws.onopen = () => { $('onlineStatusMsg').textContent = '연결됨'; if (createOpts) ws.send(JSON.stringify({ type: 'configure', ...createOpts })); };
+            ws.onmessage = (ev) => { let data; try { data = JSON.parse(ev.data); } catch (e) { return; } handleServerMessage(data); };
+            ws.onclose = () => { $('onlineStatusMsg').textContent = '연결이 종료되었습니다.'; };
+            ws.onerror = () => { $('onlineStatusMsg').textContent = '연결 오류가 발생했어요.'; };
+        }
+        $('createRoomBtn').onclick = () => {
+            const seatCount = parseInt($('onlineSeatCount').value, 10);
+            const fillBots = $('fillBotsChk').checked;
+            const botLevel = $('fillBotLevel').value;
+            connectRoom(genCode(), { seatCount, fillBots, botLevel });
+        };
+        $('joinRoomBtn').onclick = () => { const v = $('joinCodeInput').value.trim(); if (v) connectRoom(v); };
+        $('copyLinkBtn').onclick = () => {
+            const url = `${location.origin}${location.pathname}?room=${roomCode}`;
+            navigator.clipboard?.writeText(url).then(() => { $('onlineStatusMsg').textContent = '✅ 링크가 복사되었습니다!'; }).catch(() => { });
+        };
+        $('onlineStartBtn').onclick = () => { ws.send(JSON.stringify({ type: 'start' })); };
+
+        function handleServerMessage(data) {
+            if (data.type === 'hello') { myId = data.seatId; isHost = !!data.isHost; }
+            else if (data.type === 'lobby') { seatMeta = data.seats; renderLobbySeats(data); }
+            else if (data.type === 'sync') {
+                state = data.state; seatMeta = data.seats;
+                if ($('startScreen').style.display !== 'none') showScreen('game');
+                if (state.phase === 'discard' && state.pendingDiscard[myId] != null) {
+                    if (!discardModalShown) { discardModalShown = true; openDiscardModal(); }
+                } else if (discardModalShown) { discardModalShown = false; if ($('modalBox').querySelector('#confirmDiscardBtn')) closeModal(); }
+                if (state.pendingNobleChoice === myId && !$('modalBox').querySelector('#nobleChoiceBox')) openNobleChoiceModal();
+                renderAll();
+                if (state.winner) showGameOver();
+            } else if (data.type === 'log') { log(data.message); }
+            else if (data.type === 'error') { log('❌ ' + data.message); }
+            else if (data.type === 'peer-left') { log('⚠️ ' + seatName(data.seatId) + ' 님의 연결이 끊겼습니다.'); }
+        }
+
+        function renderLobbySeats(data) {
+            const wrap = $('onlineSeatList');
+            wrap.innerHTML = data.seats.map((s, i) =>
+                `<div class="seat-row"><span class="seat-swatch" style="background:${['#ff4d6d', '#4cc9f0', '#ffb703', '#90be6d'][i]}"></span>${s.name}${s.isBot ? ' (봇 ' + (s.botLevel === 'hard' ? '하드' : '이지') + ')' : ''}${s.connected === false ? ' - 대기중' : ''}</div>`
+            ).join('');
+            $('onlineStatusMsg').textContent = data.status === 'waiting' ? '다른 플레이어를 기다리는 중...' : '';
+            $('onlineStartBtn').style.display = isHost && data.status === 'waiting' ? 'block' : 'none';
+        }
+
+        // ============ Rendering ============
+        function renderAll() {
+            if (!state) return;
+            renderNobles();
+            renderBank();
+            renderTiers();
+            renderPlayerList();
+            renderMyHand();
+            updateActionButtons();
+            const turnText = state.phase === 'gameover' ? '게임 종료' : (seatName(state.turn) + ' 님의 차례');
+            $('turnBanner').textContent = turnText;
+        }
+
+        function renderNobles() {
+            const wrap = $('nobleRow');
+            wrap.innerHTML = '';
+            for (const n of state.nobles) {
+                const div = document.createElement('div');
+                div.className = 'noble-tile';
+                div.title = Object.entries(n.requirements).map(([c, v]) => `${COLOR_NAME[c]}${v}`).join(' ');
+                div.innerHTML = `⭐3<br>${Object.entries(n.requirements).map(([c, v]) => `${gemIcon(c, 10)}${v}`).join(' ')}`;
+                wrap.appendChild(div);
+            }
+        }
+
+        function renderBank() {
+            const wrap = $('tokenBank');
+            wrap.innerHTML = '';
+            const isMyTurn = state.turn === myId && state.phase === 'main';
+            for (const c of [...Engine.COLORS, 'gold']) {
+                const div = document.createElement('div');
+                const disabled = c === 'gold' || state.bank[c] <= 0 || !isMyTurn || !armedAction;
+                div.className = 'token-pile' + (selectedColors.includes(c) ? ' selected' : '') + (disabled ? ' disabled' : '');
+                div.innerHTML = `${gemIcon(c, 28)}<span class="count">${state.bank[c]}</span>`;
+                if (!disabled) div.onclick = () => onTokenPileClick(c);
+                wrap.appendChild(div);
+            }
+        }
+
+        function cardCostHtml(card) {
+            return `<div class="ccosts">${Object.entries(card.cost).map(([c, n]) =>
+                `<div class="ccost-row"><span class="dot" style="background:${COLOR_HEX[c]}"></span>${n}</div>`).join('')}</div>`;
+        }
+
+        function makeCardTile(card, { affordable, onClick, armed }) {
+            const div = document.createElement('div');
+            div.className = 'card-tile' + (affordable ? ' affordable' : '') + (armed ? ' armed-target' : '');
+            div.style.background = `linear-gradient(160deg, ${COLOR_HEX[card.color]}55, #1a1440)`;
+            div.title = `${COLOR_NAME[card.color]} 보너스 · ${card.points}점`;
+            div.innerHTML = `<div class="cband" style="background:${COLOR_HEX[card.color]}aa;">${gemIcon(card.color, 12)}<span>${card.points || ''}</span></div>${cardCostHtml(card)}`;
+            if (onClick) div.onclick = onClick;
+            return div;
+        }
+
+        function renderTiers() {
+            const wrap = $('tiersWrap');
+            wrap.innerHTML = '';
+            const isMyTurn = state.turn === myId && state.phase === 'main';
+            for (const tier of [3, 2, 1]) {
+                const row = document.createElement('div');
+                row.className = 'tier-row mb-4';
+                const label = document.createElement('div');
+                label.className = 'tier-label';
+                label.textContent = 'T' + tier;
+                row.appendChild(label);
+
+                const deck = document.createElement('div');
+                deck.className = 'deck-pile' + (armedAction === 'reserve' && isMyTurn ? ' armed' : '') + ((!isMyTurn || !state.decks[tier].length) ? ' disabled' : '');
+                deck.textContent = `🂠 ${state.decks[tier].length}`;
+                if (isMyTurn && state.decks[tier].length) deck.onclick = () => onDeckClick(tier);
+                row.appendChild(deck);
+
+                for (const card of state.board[tier]) {
+                    if (!card) { const empty = document.createElement('div'); empty.className = 'card-tile'; empty.style.visibility = 'hidden'; row.appendChild(empty); continue; }
+                    const affordable = isMyTurn && armedAction !== 'reserve' && Engine.canAfford(state, myId, card);
+                    const armed = isMyTurn && armedAction === 'reserve';
+                    const tile = makeCardTile(card, {
+                        affordable, armed,
+                        onClick: isMyTurn ? () => onBoardCardClick(card) : null
+                    });
+                    row.appendChild(tile);
+                }
+                wrap.appendChild(row);
+            }
+        }
+
+        function renderPlayerList() {
+            const wrap = $('playerList');
+            wrap.innerHTML = '';
+            for (const p of state.players) {
+                const div = document.createElement('div');
+                div.className = 'player-badge' + (state.turn === p.id ? ' active' : '');
+                div.innerHTML = `<span class="player-dot" style="background:${seatColor(p.id)}"></span>
+                    <span class="name">${seatName(p.id)}${p.id === myId ? ' (나)' : ''}</span>
+                    <span>🃏${p.cards.length} 🔖${p.reserved.length} 👑${p.nobles.length}</span>
+                    <span class="vp">${Engine.getPoints(p)}점</span>`;
+                wrap.appendChild(div);
+            }
+        }
+
+        function renderMyHand() {
+            const me = state.players.find(p => p.id === myId);
+            if (!me) return;
+            $('myTokens').innerHTML = [...Engine.COLORS, 'gold'].map(c =>
+                `<div class="res-chip">${gemIcon(c, 18)}${me.tokens[c]}</div>`).join('');
+            $('myBonuses').innerHTML = Engine.COLORS.map(c =>
+                `<div class="res-chip">${gemIcon(c, 18)}${me.bonuses[c]}</div>`).join('');
+            $('reservedCount').textContent = me.reserved.length;
+            const rwrap = $('myReserved');
+            rwrap.innerHTML = '';
+            const isMyTurn = state.turn === myId && state.phase === 'main';
+            if (!me.reserved.length) rwrap.innerHTML = '<p style="color:var(--muted); margin:0;">없음</p>';
+            for (const card of me.reserved) {
+                const affordable = isMyTurn && armedAction !== 'reserve' && Engine.canAfford(state, myId, card);
+                const tile = makeCardTile(card, { affordable, onClick: isMyTurn ? () => onReservedCardClick(card) : null });
+                rwrap.appendChild(tile);
+            }
+        }
+
+        function updateActionButtons() {
+            const isMyTurn = state && state.turn === myId && state.phase === 'main';
+            $('takeThreeBtn').disabled = !isMyTurn;
+            $('takeTwoBtn').disabled = !isMyTurn;
+            $('reserveModeBtn').disabled = !isMyTurn;
+            $('takeThreeBtn').classList.toggle('armed', armedAction === 'take3');
+            $('takeTwoBtn').classList.toggle('armed', armedAction === 'take2');
+            $('reserveModeBtn').classList.toggle('armed', armedAction === 'reserve');
+
+            let hint = '';
+            if (!state) hint = '';
+            else if (state.phase === 'gameover') hint = '게임이 종료되었습니다.';
+            else if (state.turn !== myId) hint = `${seatName(state.turn)} 님의 차례입니다.`;
+            else if (armedAction === 'take3') hint = `서로 다른 색 토큰을 3개 클릭하세요. (${selectedColors.length}/3 선택됨)`;
+            else if (armedAction === 'take2') hint = '같은 색 토큰 더미를 클릭하세요 (은행에 4개 이상 남아있어야 함).';
+            else if (armedAction === 'reserve') hint = '예약할 카드 또는 덱을 클릭하세요. (최대 3장, 골드 1개 획득)';
+            else hint = '카드 위 초록 테두리는 바로 구매 가능! 또는 하단 버튼으로 토큰/예약을 진행하세요.';
+            $('boardHint').textContent = hint;
+        }
+
+        // ============ Interaction ============
+        function setArmed(action) {
+            armedAction = (armedAction === action) ? null : action;
+            selectedColors = [];
+            renderAll();
+        }
+        $('takeThreeBtn').onclick = () => setArmed('take3');
+        $('takeTwoBtn').onclick = () => setArmed('take2');
+        $('reserveModeBtn').onclick = () => setArmed('reserve');
+
+        function onTokenPileClick(color) {
+            if (armedAction === 'take3') {
+                const i = selectedColors.indexOf(color);
+                if (i >= 0) selectedColors.splice(i, 1);
+                else if (selectedColors.length < 3) selectedColors.push(color);
+                if (selectedColors.length === 3) {
+                    dispatchAction({ type: 'takeThree', colors: [...selectedColors] });
+                    armedAction = null; selectedColors = [];
+                    renderAll();
+                } else renderAll();
+            } else if (armedAction === 'take2') {
+                dispatchAction({ type: 'takeTwo', color });
+                armedAction = null; selectedColors = [];
+                renderAll();
+            }
+        }
+
+        function onBoardCardClick(card) {
+            if (armedAction === 'reserve') {
+                dispatchAction({ type: 'reserve', tier: card.tier, cardId: card.id });
+                armedAction = null;
+                renderAll();
+            } else if (Engine.canAfford(state, myId, card)) {
+                dispatchAction({ type: 'purchase', source: 'board', cardId: card.id });
+            }
+        }
+        function onReservedCardClick(card) {
+            if (Engine.canAfford(state, myId, card)) {
+                dispatchAction({ type: 'purchase', source: 'reserved', cardId: card.id });
+            }
+        }
+        function onDeckClick(tier) {
+            if (armedAction === 'reserve') {
+                dispatchAction({ type: 'reserve', tier, blind: true });
+                armedAction = null;
+                renderAll();
+            }
+        }
+
+        // ============ Dispatch ============
+        function dispatchAction(action) {
+            if (mode === 'online') {
+                if (!ws || ws.readyState !== WebSocket.OPEN) { log('❌ 서버와 연결이 끊겼습니다.'); return; }
+                ws.send(JSON.stringify(action));
+                return;
+            }
+            applyLocalAction(action);
+        }
+
+        function applyLocalAction(action) {
+            const pid = myId;
+            let ok = false;
+            switch (action.type) {
+                case 'takeThree':
+                    ok = Engine.takeThreeDifferent(state, pid, action.colors);
+                    if (!ok) log('토큰을 받을 수 없습니다.');
+                    break;
+                case 'takeTwo':
+                    ok = Engine.takeTwoSame(state, pid, action.color);
+                    if (!ok) log('토큰을 받을 수 없습니다.');
+                    break;
+                case 'reserve':
+                    ok = Engine.reserveCard(state, pid, { tier: action.tier, cardId: action.cardId, blind: action.blind });
+                    if (!ok) log('예약할 수 없습니다.');
+                    break;
+                case 'purchase': {
+                    const res = Engine.purchaseCard(state, pid, { source: action.source, cardId: action.cardId });
+                    ok = res.ok;
+                    if (!ok) log('구매할 수 없습니다.');
+                    break;
+                }
+                case 'discard':
+                    ok = Engine.applyDiscard(state, pid, action.resources);
+                    break;
+                case 'claimNoble':
+                    ok = Engine.claimNoble(state, pid, action.nobleId);
+                    break;
+            }
+            if (ok && state.turn === pid && state.phase === 'main' && !state.pendingNobleChoice) {
+                Engine.endTurn(state);
+            }
+            renderAll();
+            advanceGame();
+        }
+
+        function advanceGame() {
+            if (mode !== 'ai') return;
+            if (state.phase === 'gameover') { renderAll(); showGameOver(); return; }
+
+            let resolvedPendingForBot = false;
+            if (state.phase === 'discard') {
+                for (const p of state.players) {
+                    if (p.isBot && state.pendingDiscard[p.id] != null) { Engine.applyDiscard(state, p.id, AI.chooseDiscard(state, p.id)); resolvedPendingForBot = true; }
+                }
+                if (state.pendingDiscard[myId] != null) { renderAll(); openDiscardModal(); return; }
+            }
+            if (state.pendingNobleChoice) {
+                const p = state.players.find(x => x.id === state.pendingNobleChoice);
+                if (p.isBot) {
+                    const nobleId = AI.chooseNoble(state, p.id);
+                    if (nobleId) Engine.claimNoble(state, p.id, nobleId);
+                    resolvedPendingForBot = true;
+                } else { renderAll(); openNobleChoiceModal(); return; }
+            }
+
+            const current = state.players.find(p => p.id === state.turn);
+            if (resolvedPendingForBot && current && current.isBot && state.phase === 'main' && !state.pendingNobleChoice) {
+                Engine.endTurn(state);
+                renderAll();
+                setTimeout(advanceGame, 300);
+                return;
+            }
+            if (current && current.isBot) {
+                renderAll();
+                setTimeout(() => runBotTurn(current), 500);
+                return;
+            }
+            renderAll();
+        }
+
+        function runBotTurn(bot) {
+            AI.runBotTurn(state, bot.id, bot.botLevel);
+            renderAll();
+            setTimeout(() => {
+                if (state.phase === 'gameover') { renderAll(); showGameOver(); return; }
+                if (state.phase === 'discard' || state.pendingNobleChoice) { advanceGame(); return; }
+                Engine.endTurn(state);
+                renderAll();
+                setTimeout(advanceGame, 300);
+            }, 350);
+        }
+
+        function openDiscardModal() {
+            const me = state.players.find(p => p.id === myId);
+            const need = state.pendingDiscard[myId];
+            const picked = { white: 0, blue: 0, green: 0, red: 0, black: 0, gold: 0 };
+            function total() { return [...Engine.COLORS, 'gold'].reduce((s, c) => s + picked[c], 0); }
+            function draw() {
+                const box = $('modalBox');
+                box.innerHTML = `<h3>토큰 10개 초과: ${need}개 버리기</h3>` +
+                    [...Engine.COLORS, 'gold'].map(c => `<div class="qty-row" style="display:flex; align-items:center; justify-content:space-between; margin:4px 0;">${gemIcon(c, 16)} 보유 ${me.tokens[c]}
+                        <button data-c="${c}" data-d="-1">-</button> ${picked[c]} <button data-c="${c}" data-d="1">+</button></div>`).join('') +
+                    `<button class="btn mt-4" id="confirmDiscardBtn" style="width:100%;" ${total() === need ? '' : 'disabled'}>확인 (${total()}/${need})</button>`;
+                box.querySelectorAll('button[data-c]').forEach(btn => {
+                    btn.onclick = () => {
+                        const c = btn.dataset.c, d = parseInt(btn.dataset.d, 10);
+                        const next = picked[c] + d;
+                        if (next < 0 || next > me.tokens[c] || total() + d > need) return;
+                        picked[c] = next; draw();
+                    };
+                });
+                const confirm = box.querySelector('#confirmDiscardBtn');
+                if (confirm) confirm.onclick = () => {
+                    closeModal(); discardModalShown = false;
+                    dispatchAction({ type: 'discard', resources: picked });
+                };
+            }
+            draw();
+            openModal();
+        }
+
+        function openNobleChoiceModal() {
+            const qualifying = Engine.getQualifyingNobles(state, myId);
+            const box = $('modalBox');
+            box.innerHTML = `<div id="nobleChoiceBox"><h3>귀족을 선택하세요</h3>` +
+                qualifying.map(n => `<button class="btn mt-4" style="width:100%;" data-n="${n.id}">${Object.entries(n.requirements).map(([c, v]) => `${COLOR_NAME[c]}${v}`).join(' · ')} (3점)</button>`).join('') +
+                `</div>`;
+            box.querySelectorAll('button[data-n]').forEach(btn => {
+                btn.onclick = () => { closeModal(); dispatchAction({ type: 'claimNoble', nobleId: btn.dataset.n }); };
+            });
+            openModal();
+        }
+
+        function openModal() { $('modalOverlay').style.display = 'flex'; }
+        function closeModal() { $('modalOverlay').style.display = 'none'; $('modalBox').innerHTML = ''; $('modalBox').classList.remove('wide'); }
+
+        function showGameOver() {
+            showScreen('over');
+            const winnerName = seatName(state.winner);
+            $('overTitle').textContent = state.winner === myId ? '🎉 승리했습니다!' : `${winnerName} 님이 승리했습니다`;
+            const rows = [...state.players].sort((a, b) => Engine.getPoints(b) - Engine.getPoints(a))
+                .map(p => `<tr><td>${seatName(p.id)}</td><td>${Engine.getPoints(p)}점</td><td>${p.cards.length}장</td></tr>`).join('');
+            $('overTable').innerHTML = `<table style="width:100%;">${rows}</table>`;
+            if (window.Juice && myId) {
+                const me = state.players.find(p => p.id === myId);
+                if (me) Juice.submit(PAGE_ID, Engine.getPoints(me));
+            }
+        }
+
+        // ============ Keyboard shortcuts ============
+        const SHORTCUTS = [
+            ['1', '토큰 3개 받기 모드'],
+            ['2', '같은 색 토큰 2개 받기 모드'],
+            ['3', '카드 예약 모드'],
+            ['Esc', '모드 취소 / 창 닫기'],
+            ['?', '단축키 도움말'],
+        ];
+        function openShortcutsHelp() {
+            const box = $('modalBox');
+            box.innerHTML = `<h3>⌨️ 단축키</h3><table class="shortcuts-table">${SHORTCUTS.map(([k, d]) => `<tr><td><kbd>${k}</kbd></td><td>${d}</td></tr>`).join('')}</table>
+                <button class="btn mt-4" id="closeShortcutsBtn" style="width:100%;">닫기</button>`;
+            box.querySelector('#closeShortcutsBtn').onclick = closeModal;
+            openModal();
+        }
+        $('shortcutsBtn').onclick = openShortcutsHelp;
+
+        function openHowToPlay() {
+            const box = $('modalBox');
+            box.classList.add('wide');
+            box.innerHTML = `<h3>📖 스플렌더 하는 방법</h3>
+                <div class="howto">
+                    <h4>🎯 목표</h4>
+                    <p>보석 토큰으로 발전 카드를 사고, 카드가 주는 영구 할인(보너스)을 쌓아 더 비싼 카드를 사는 게임입니다. <b>승점 15점</b>을 가장 먼저 달성하면(그 라운드까지 진행 후) 승리합니다.</p>
+
+                    <h4>💎 보석 토큰 5색 + 금</h4>
+                    <p>${['white', 'blue', 'green', 'red', 'black'].map(c => gemIcon(c, 16) + ' ' + COLOR_NAME[c]).join(' · ')} · ${gemIcon('gold', 16)} 금(와일드, 어떤 색으로도 사용 가능)</p>
+
+                    <h4>🔄 한 턴에 정확히 하나만</h4>
+                    <ul>
+                        <li>🪙 서로 다른 색 토큰 3개 받기</li>
+                        <li>🪙🪙 같은 색 토큰 2개 받기 (그 색이 은행에 4개 이상 남아있을 때만)</li>
+                        <li>🔖 카드 예약 (공개 카드 또는 덱에서 블라인드, 최대 3장 보유, 금 1개 획득). 예약한 카드는 본인만 볼 수 있어요</li>
+                        <li>💰 카드 구매 (진열대 또는 내 예약 카드 중, 보유 토큰+보너스로 비용 지불)</li>
+                    </ul>
+                    <p>토큰을 10개 넘게 가지면 턴이 끝나기 전에 10개로 버려야 합니다.</p>
+
+                    <h4>🃏 카드</h4>
+                    <p>각 카드는 구매 비용(보석 조합), 영구 보너스 색(그 색 비용을 1씩 계속 할인), 승점(0~5)을 가집니다. 카드를 살수록 다음 카드가 점점 싸집니다.</p>
+
+                    <h4>👑 귀족</h4>
+                    <p>귀족은 특정 보너스 색 조합(예: 흰색 카드 3장 + 파란색 카드 3장)을 만족하면 비용 없이 자동으로 획득하며 3점을 줍니다.</p>
+
+                    <h4>🏆 승점 얻는 방법</h4>
+                    <p>카드 승점 합 + 귀족 1장당 3점. 15점 이상 도달한 라운드를 끝까지 진행한 뒤 최고점자가 승리(동점이면 카드 수가 적은 쪽).</p>
+
+                    <h4>🖱️ 조작 방법</h4>
+                    <p>하단 버튼으로 "토큰 3개/같은색 2개/카드 예약" 모드를 켠 뒤 은행이나 카드를 클릭하세요. 구매 가능한 카드는 초록 테두리로 표시되며, 아무 모드 없이 바로 클릭하면 즉시 구매됩니다.</p>
+                </div>
+                <button class="btn mt-4" id="closeHowToBtn" style="width:100%;">닫기</button>`;
+            box.querySelector('#closeHowToBtn').onclick = closeModal;
+            openModal();
+        }
+        $('howToPlayBtn').onclick = openHowToPlay;
+        $('howToPlayBtnGame').onclick = openHowToPlay;
+
+        document.addEventListener('keydown', (e) => {
+            const tag = document.activeElement && document.activeElement.tagName;
+            if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+            const modalOpen = $('modalOverlay').style.display !== 'none';
+
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                if (modalOpen) {
+                    const box = $('modalBox');
+                    if (box.querySelector('#confirmDiscardBtn') || box.querySelector('#nobleChoiceBox')) return;
+                    closeModal();
+                } else if (armedAction) { armedAction = null; selectedColors = []; renderAll(); }
+                return;
+            }
+            if (e.key === '?') { e.preventDefault(); if (!modalOpen) openShortcutsHelp(); return; }
+            if (modalOpen) return;
+            if ($('gameScreen').style.display === 'none') return;
+            if (!state) return;
+
+            switch (e.key) {
+                case '1': if (!$('takeThreeBtn').disabled) setArmed('take3'); break;
+                case '2': if (!$('takeTwoBtn').disabled) setArmed('take2'); break;
+                case '3': if (!$('reserveModeBtn').disabled) setArmed('reserve'); break;
+            }
+        });
+
+        // ---- Boot ----
+        const urlRoom = new URLSearchParams(location.search).get('room');
+        if (urlRoom) { setStartMode('online'); connectRoom(urlRoom); }
+    </script>
+</body>
+
+</html>

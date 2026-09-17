@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#241454"/>
+      <stop offset="55%" stop-color="#150a30"/>
+      <stop offset="100%" stop-color="#05010c"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="15%" r="70%">
+      <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#00e5ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#bg)"/>
+  <rect width="640" height="400" fill="url(#glow)"/>
+
+  <g stroke="rgba(0,0,0,.35)" stroke-width="3" stroke-linejoin="round">
+    <polygon points="470,150 500,170 490,215 450,215 440,170" fill="#f2f0e8"/>
+    <polygon points="470,150 486,170 454,170" fill="rgba(255,255,255,.5)"/>
+
+    <polygon points="540,190 572,212 561,262 519,262 508,212" fill="#3a7bd5"/>
+    <polygon points="540,190 558,212 522,212" fill="rgba(255,255,255,.35)"/>
+
+    <polygon points="480,235 508,255 498,296 462,296 452,255" fill="#2e9e5b"/>
+    <polygon points="480,235 496,255 464,255" fill="rgba(255,255,255,.3)"/>
+
+    <polygon points="565,90 590,108 581,144 549,144 540,108" fill="#d64545"/>
+    <polygon points="565,90 579,108 551,108" fill="rgba(255,255,255,.3)"/>
+
+    <polygon points="415,205 440,224 431,258 399,258 390,224" fill="#3a3a44"/>
+    <polygon points="415,205 429,224 401,224" fill="rgba(255,255,255,.2)"/>
+
+    <polygon points="515,265 552,288 540,335 490,335 478,288" fill="#e8b923"/>
+    <polygon points="515,265 535,288 495,288" fill="rgba(255,255,255,.45)"/>
+  </g>
+
+  <g transform="translate(70,230)" stroke="#7a5a2e" stroke-width="2">
+    <rect x="0" y="0" width="64" height="88" rx="6" fill="#1a1440"/>
+    <rect x="0" y="0" width="64" height="18" rx="6" fill="#3a7bd5aa"/>
+    <circle cx="14" cy="30" r="6" fill="#f2f0e8"/>
+    <circle cx="14" cy="48" r="6" fill="#d64545"/>
+  </g>
+  <g transform="translate(150,255)" stroke="#7a5a2e" stroke-width="2">
+    <rect x="0" y="0" width="64" height="88" rx="6" fill="#1a1440"/>
+    <rect x="0" y="0" width="64" height="18" rx="6" fill="#2e9e5baa"/>
+    <circle cx="14" cy="30" r="6" fill="#3a3a44"/>
+    <circle cx="14" cy="48" r="6" fill="#e8b923"/>
+  </g>
+
+  <text x="40" y="90" font-family="system-ui,sans-serif" font-size="52" font-weight="800" fill="#eafcff">💎 스플렌더</text>
+  <text x="40" y="128" font-family="system-ui,sans-serif" font-size="20" fill="#a9b4e0">보석을 모아 카드를 사고 귀족을 유치하세요</text>
+  <text x="40" y="365" font-family="system-ui,sans-serif" font-size="16" fill="#00e5ff" font-weight="700">🤖 싱글(AI)  ·  🌐 온라인 실시간 대전</text>
+</svg>

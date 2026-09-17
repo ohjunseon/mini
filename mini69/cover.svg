@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#241454"/>
+      <stop offset="55%" stop-color="#150a30"/>
+      <stop offset="100%" stop-color="#05010c"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="15%" r="70%">
+      <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#00e5ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#bg)"/>
+  <rect width="640" height="400" fill="url(#glow)"/>
+
+  <g stroke="#7a5a2e" stroke-width="3">
+    <g transform="translate(400,150) rotate(-8)">
+      <rect x="0" y="0" width="86" height="86" rx="16" fill="#f2f0e8"/>
+      <circle cx="43" cy="43" r="8" fill="#1a1440"/>
+    </g>
+    <g transform="translate(480,110) rotate(10)">
+      <rect x="0" y="0" width="86" height="86" rx="16" fill="#f2f0e8"/>
+      <circle cx="24" cy="24" r="8" fill="#1a1440"/>
+      <circle cx="62" cy="62" r="8" fill="#1a1440"/>
+    </g>
+    <g transform="translate(410,240) rotate(6)">
+      <rect x="0" y="0" width="86" height="86" rx="16" fill="#f2f0e8"/>
+      <circle cx="24" cy="24" r="8" fill="#1a1440"/>
+      <circle cx="43" cy="43" r="8" fill="#1a1440"/>
+      <circle cx="62" cy="62" r="8" fill="#1a1440"/>
+    </g>
+    <g transform="translate(500,220) rotate(-12)">
+      <rect x="0" y="0" width="86" height="86" rx="16" fill="#f2f0e8"/>
+      <circle cx="24" cy="24" r="8" fill="#1a1440"/>
+      <circle cx="62" cy="24" r="8" fill="#1a1440"/>
+      <circle cx="24" cy="62" r="8" fill="#1a1440"/>
+      <circle cx="62" cy="62" r="8" fill="#1a1440"/>
+    </g>
+    <g transform="translate(455,305) rotate(4)">
+      <rect x="0" y="0" width="86" height="86" rx="16" fill="#f2f0e8"/>
+      <circle cx="24" cy="24" r="8" fill="#1a1440"/>
+      <circle cx="62" cy="24" r="8" fill="#1a1440"/>
+      <circle cx="43" cy="43" r="8" fill="#1a1440"/>
+      <circle cx="24" cy="62" r="8" fill="#1a1440"/>
+      <circle cx="62" cy="62" r="8" fill="#1a1440"/>
+    </g>
+  </g>
+
+  <text x="40" y="90" font-family="system-ui,sans-serif" font-size="52" font-weight="800" fill="#eafcff">🎲 야추</text>
+  <text x="40" y="128" font-family="system-ui,sans-serif" font-size="20" fill="#a9b4e0">주사위 5개로 13개 카테고리를 채워 최고 점수를 노리세요</text>
+  <text x="40" y="365" font-family="system-ui,sans-serif" font-size="16" fill="#00e5ff" font-weight="700">🤖 싱글(AI)  ·  🌐 온라인 실시간 대전</text>
+</svg>

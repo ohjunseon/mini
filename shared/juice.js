@@ -10,8 +10,13 @@
   // Color tokens from style.css
   const COLOR = {
     accent: '#FF6B6B',
-    good: '#4ECB71',
-    bad: '#FFB947',
+    good: '#39ff88',
+    bad: '#ff3366',
+    warn: '#ffe066',
+    panel: '#150a30',
+    panelBorder: '#3a1f78',
+    text: '#eafcff',
+    muted: '#a9b4e0',
   };
 
   // ─────────────── Input ────────────────
@@ -231,15 +236,17 @@
   // ─────────────── UI ────────────────
   const toast = (msg, type = 'info') => {
     const toast = document.createElement('div');
-    const colors = {
-      info: '#333',
+    const accents = {
+      info: COLOR.accent,
       good: COLOR.good,
       bad: COLOR.bad,
     };
+    const accent = accents[type] || accents.info;
     toast.style.cssText = `
       position:fixed; bottom:40px; left:50%; transform:translateX(-50%);
-      background:${colors[type] || colors.info}; color:white;
-      padding:12px 24px; border-radius:8px; font-weight:bold;
+      background:${COLOR.panel}; color:${COLOR.text};
+      border:1px solid ${accent}; box-shadow:0 8px 24px rgba(0,0,0,.5), 0 0 16px ${accent}55;
+      padding:14px 26px; border-radius:12px; font-weight:700; font-size:1.05rem;
       pointer-events:none; z-index:99996;
       animation:fadeInOut 2s ease-in-out forwards;
     `;
@@ -253,22 +260,28 @@
     if (cached) return cached;
 
     return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position:fixed; inset:0; background:rgba(0,0,0,.7);
+        display:flex; align-items:center; justify-content:center; z-index:99999;
+      `;
       const modal = document.createElement('div');
       modal.style.cssText = `
-        position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
-        background:white; padding:30px; border-radius:12px;
-        box-shadow:0 10px 40px rgba(0,0,0,0.3);
-        z-index:99999; min-width:300px; text-align:center;
+        background:radial-gradient(1200px 400px at 50% -200px, #241454 0%, ${COLOR.panel} 60%, #0a0518 100%);
+        border:1px solid ${COLOR.panelBorder}; padding:30px; border-radius:16px;
+        box-shadow:0 10px 40px rgba(0,0,0,0.5); color:${COLOR.text};
+        min-width:300px; max-width:90vw; text-align:center; box-sizing:border-box;
       `;
       modal.innerHTML = `
-        <div style="margin-bottom:20px; font-weight:bold; font-size:18px;">닉네임을 입력하세요</div>
+        <div style="margin-bottom:20px; font-weight:700; font-size:1.2rem;">닉네임을 입력하세요</div>
         <input id="nameInput" type="text" placeholder="익명" maxlength="20"
-          style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; margin-bottom:15px;">
-        <button id="nameOK" style="width:100%; padding:10px; background:#4ECB71; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">
+          style="width:100%; padding:12px 14px; font-size:1.05rem; background:#0c0620; border:1px solid ${COLOR.panelBorder}; color:${COLOR.text}; border-radius:8px; box-sizing:border-box; margin-bottom:15px; outline:none;">
+        <button id="nameOK" style="width:100%; min-height:48px; padding:14px; background:linear-gradient(135deg,#0077b3,#7c3aed); color:white; border:none; border-radius:12px; font-weight:700; font-size:1.05rem; cursor:pointer; box-shadow:0 4px 16px rgba(0,229,255,.35);">
           완료
         </button>
       `;
-      document.body.appendChild(modal);
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
 
       const input = modal.querySelector('#nameInput');
       const btn = modal.querySelector('#nameOK');
@@ -277,7 +290,7 @@
       const finish = () => {
         let name = input.value.trim() || '익명';
         localStorage.setItem('nickname', name);
-        modal.remove();
+        overlay.remove();
         resolve(name);
       };
 
