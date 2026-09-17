@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#241454"/>
+      <stop offset="55%" stop-color="#150a30"/>
+      <stop offset="100%" stop-color="#05010c"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="82%" cy="20%" r="70%">
+      <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.38"/>
+      <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg)"/>
+  <rect width="800" height="500" fill="url(#glow)"/>
+  <circle cx="620" cy="190" r="170" fill="#0ea5e9" opacity="0.16"/>
+  <circle cx="620" cy="190" r="120" fill="#0ea5e9" opacity="0.14"/>
+  <text x="620" y="235" font-family="system-ui,'Segoe UI','Malgun Gothic',sans-serif" font-size="150" text-anchor="middle" dominant-baseline="middle">🚦</text>
+  <text x="60" y="300" font-family="system-ui,'Segoe UI','Malgun Gothic',sans-serif" font-size="52" font-weight="800" fill="#eafcff"><tspan x="60" dy="0">멀티 레인</tspan></text>
+  <g transform="translate(60,400)">
+    <rect width="142" height="48" rx="24" fill="#0ea5e922" stroke="#0ea5e9" stroke-width="2"/>
+    <text x="71.0" y="32" text-anchor="middle" font-family="system-ui,'Segoe UI','Malgun Gothic',sans-serif" font-size="22" font-weight="700" fill="#eafcff">러너</text>
+  </g>
+</svg>
