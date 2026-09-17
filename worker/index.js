@@ -118,6 +118,20 @@ export default {
       return stub.fetch(request);
     }
 
+    // Route: dynamically generated sitemap.xml (always in sync with games.json)
+    if (pathname === '/sitemap.xml') {
+      const gamesRes = await env.ASSETS.fetch(new URL('/games.json', request.url));
+      const games = gamesRes.ok ? await gamesRes.json() : [];
+      const origin = url.origin;
+      const urls = [`  <url><loc>${origin}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`]
+        .concat(games.map(g => `  <url><loc>${origin}/${g.path}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`));
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`;
+      return new Response(xml, {
+        status: 200,
+        headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' },
+      });
+    }
+
     // Route API endpoints
     if (pathname.startsWith('/api/')) {
       try {
