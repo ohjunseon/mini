@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>스플렌더 (mini68)</title>
+    <title>스플렌더 | 미니게임 모음</title>
     <link rel="stylesheet" href="../shared/style.css">
     <style>
         .container { max-width: 1600px; }
@@ -101,7 +101,8 @@
     <meta property="og:title" content="💎 스플렌더">
     <meta property="og:description" content="보석을 모아 카드를 사고 귀족을 유치해 승점 15점을 노리세요">
     <meta property="og:type" content="website">
-    <meta property="twitter:card" content="summary">
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:image" content="https://mini.npig82.workers.dev/mini68/cover.svg">
     <meta property="twitter:title" content="💎 스플렌더">
     <meta property="twitter:description" content="보석을 모아 카드를 사고 귀족을 유치해 승점 15점을 노리세요">
     <script type="application/ld+json">
@@ -124,6 +125,8 @@
   }
 }
     </script>
+    <link rel="canonical" href="https://mini.npig82.workers.dev/mini68/">
+    <meta property="og:url" content="https://mini.npig82.workers.dev/mini68/">
 </head>
 
 <body>
@@ -202,7 +205,7 @@
 
         <div class="game-container hud-shell" id="gameScreen" style="display:none;">
             <div class="hud-top mb-4">
-                <h1 style="margin:0; font-size:1.4rem;">💎 스플렌더</h1>
+                <h2 style="margin:0; font-size:1.4rem;">💎 스플렌더</h2>
                 <div id="turnBanner" class="hud-turn"></div>
                 <div class="hud-top-actions">
                     <button class="btn secondary" id="howToPlayBtnGame">📖 게임 방법</button>
@@ -261,7 +264,7 @@
 
         <div class="game-container" id="overScreen" style="display:none;">
             <div class="card">
-                <h1 id="overTitle">게임 종료</h1>
+                <h2 id="overTitle">게임 종료</h2>
                 <div id="overTable" class="panel" style="text-align:left;"></div>
                 <div class="controls mt-4" style="display:flex; gap:8px; justify-content:center;">
                     <button class="btn" id="playAgainBtn">다시 하기</button>
