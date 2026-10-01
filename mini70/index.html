@@ -84,7 +84,7 @@
             </div>
           </div>
 
-          <canvas id="suikaCanvas" width="360" height="520"></canvas>
+          <canvas id="suikaCanvas" width="360" height="480"></canvas>
 
           <div class="suika-hint">움직여서 조준 · 클릭/탭으로 떨어뜨리기</div>
 
@@ -169,7 +169,7 @@
     const WALL_REST = 0.25; // 벽 반발
     const FRICT = 0.985;
     const ITER = 6;         // 제약 해소 반복 횟수
-    const DROP_COOLDOWN = 420; // ms
+    const DROP_COOLDOWN = 300; // ms
 
     const canvas = document.getElementById("suikaCanvas");
     const ctx = canvas.getContext("2d");
@@ -195,6 +195,8 @@
     let comboTimer = 0;
     let submitted = false;
     let uid = 1;
+    let startBest = best;      // 이번 판 시작 시점의 최고 기록
+    let recordAnnounced = false;
 
     bestView.textContent = best;
 
@@ -312,12 +314,23 @@
     function onMerge(tier, mx, my, newTier) {
       // 콤보
       const now = performance.now();
-      if (now - comboTimer < 900) comboCount++; else comboCount = 1;
+      if (now - comboTimer < 1100) comboCount++; else comboCount = 1;
       comboTimer = now;
       const base = (tier + 1) * (tier + 2) / 2; // 삼각수: 1,3,6,10,...
       const gain = base * (comboCount > 1 ? comboCount : 1);
       score += gain;
       scoreView.textContent = score;
+
+      // 실시간 최고 기록 갱신 + 신기록 연출
+      if (score > best) {
+        best = score;
+        bestView.textContent = best;
+        localStorage.setItem("best_" + PAGE_ID, best);
+        if (!recordAnnounced && startBest > 0 && score > startBest) {
+          recordAnnounced = true;
+          if (window.Juice) { Juice.toast && Juice.toast("🏆 신기록 갱신!", "good"); Juice.buzz && Juice.buzz(60); }
+        }
+      }
 
       // 손맛
       if (window.Juice) {
@@ -332,10 +345,12 @@
           Juice.shake && Juice.shake(canvas, 14);
           Juice.flash && Juice.flash();
           Juice.sfx && Juice.sfx("levelup");
+          Juice.buzz && Juice.buzz(120);
           Juice.toast && Juice.toast("🍉 수박 완성! +" + gain, "good");
         } else if (newTier >= 8) {
           Juice.shake && Juice.shake(canvas, 7);
           Juice.sfx && Juice.sfx("levelup");
+          Juice.buzz && Juice.buzz(40);
         } else {
           Juice.sfx && Juice.sfx("good");
         }
@@ -359,7 +374,10 @@
       gameOver = true;
       if (best < score) { best = score; localStorage.setItem("best_" + PAGE_ID, best); }
       bestView.textContent = best;
-      if (window.Juice && Juice.sfx) Juice.sfx("gameover");
+      if (window.Juice) {
+        Juice.sfx && Juice.sfx("gameover");
+        Juice.buzz && Juice.buzz(200);
+      }
       if (!submitted && window.Juice) {
         submitted = true;
         Juice.submit(PAGE_ID, score);
@@ -369,6 +387,7 @@
     function restart() {
       fruits = []; score = 0; overTimer = 0; gameOver = false;
       comboCount = 0; submitted = false;
+      startBest = best; recordAnnounced = false;
       scoreView.textContent = 0;
       nextTier = randTier(); newCurrent();
     }

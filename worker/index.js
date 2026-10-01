@@ -34,7 +34,7 @@ const GAME_SCORE_LIMITS = {
   mini67: 10,
   mini68: 15,
   mini69: 400,
-  mini70: 100000,
+  mini70: 50000,
 };
 
 // Regex for name filtering - allow basic chars, block emoji/control
