@@ -148,17 +148,17 @@
 
     // ───────── 과일 정의 (작은 → 큰) ─────────
     const FRUITS = [
-      { name: "체리",     emoji: "🍒", r: 15, color: "#e23d4b" },
-      { name: "딸기",     emoji: "🍓", r: 20, color: "#f0506e" },
-      { name: "포도",     emoji: "🍇", r: 26, color: "#8a4fff" },
-      { name: "귤",       emoji: "🍊", r: 32, color: "#ff9f1c" },
-      { name: "레몬",     emoji: "🍋", r: 39, color: "#ffd60a" },
-      { name: "사과",     emoji: "🍎", r: 46, color: "#ff3b3b" },
-      { name: "배",       emoji: "🍐", r: 54, color: "#bfe34a" },
-      { name: "복숭아",   emoji: "🍑", r: 62, color: "#ff8fab" },
-      { name: "파인애플", emoji: "🍍", r: 72, color: "#f4c430" },
-      { name: "멜론",     emoji: "🍈", r: 84, color: "#9be15d" },
-      { name: "수박",     emoji: "🍉", r: 98, color: "#2fbf55" },
+      { name: "체리",     emoji: "🍒", r: 13, color: "#e23d4b" },
+      { name: "딸기",     emoji: "🍓", r: 18, color: "#f0506e" },
+      { name: "포도",     emoji: "🍇", r: 23, color: "#8a4fff" },
+      { name: "귤",       emoji: "🍊", r: 28, color: "#ff9f1c" },
+      { name: "레몬",     emoji: "🍋", r: 34, color: "#ffd60a" },
+      { name: "사과",     emoji: "🍎", r: 40, color: "#ff3b3b" },
+      { name: "배",       emoji: "🍐", r: 47, color: "#bfe34a" },
+      { name: "복숭아",   emoji: "🍑", r: 54, color: "#ff8fab" },
+      { name: "파인애플", emoji: "🍍", r: 63, color: "#f4c430" },
+      { name: "멜론",     emoji: "🍈", r: 73, color: "#9be15d" },
+      { name: "수박",     emoji: "🍉", r: 85, color: "#2fbf55" },
     ];
     const MAX_TIER = FRUITS.length - 1;
     const DROPPABLE_MAX = 4; // 떨어지는 과일은 0~4 티어(체리~레몬)만
@@ -169,7 +169,7 @@
     const WALL_REST = 0.25; // 벽 반발
     const FRICT = 0.985;
     const ITER = 6;         // 제약 해소 반복 횟수
-    const DROP_COOLDOWN = 300; // ms
+    const DROP_COOLDOWN = 220; // ms
 
     const canvas = document.getElementById("suikaCanvas");
     const ctx = canvas.getContext("2d");
