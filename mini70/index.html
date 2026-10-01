@@ -161,7 +161,7 @@
       { name: "수박",     emoji: "🍉", r: 85, color: "#2fbf55" },
     ];
     const MAX_TIER = FRUITS.length - 1;
-    const DROPPABLE_MAX = 4; // 떨어지는 과일은 0~4 티어(체리~레몬)만
+    const BASE_DROP_TIER = 2; // 시작 시 투하 가능한 최고 티어(체리~포도)
 
     // ───────── 물리 상수 ─────────
     const GRAV = 0.55;
@@ -186,6 +186,7 @@
     let score = 0;
     let best = Number(localStorage.getItem("best_" + PAGE_ID) || 0);
     let dropX = W / 2;
+    let highestMade = BASE_DROP_TIER; // 지금까지 만든 최고 티어 (투하 상한, 수박 제외)
     let currentTier = 0;
     let nextTier = randTier();
     let lastDrop = 0;
@@ -200,7 +201,11 @@
 
     bestView.textContent = best;
 
-    function randTier() { return Math.floor(Math.random() * (DROPPABLE_MAX + 1)); }
+    // 투하 과일: 지금까지 만든 최고 티어까지만(수박 제외) 랜덤 등장
+    function randTier() {
+      const cap = Math.min(highestMade, MAX_TIER - 1);
+      return Math.floor(Math.random() * (cap + 1));
+    }
 
     function newCurrent() {
       currentTier = nextTier;
@@ -312,6 +317,8 @@
     }
 
     function onMerge(tier, mx, my, newTier) {
+      // 지금까지 만든 최고 티어 갱신 → 투하 가능 과일 확대 (수박 제외)
+      if (newTier > highestMade && newTier < MAX_TIER) highestMade = newTier;
       // 콤보
       const now = performance.now();
       if (now - comboTimer < 1100) comboCount++; else comboCount = 1;
@@ -363,11 +370,11 @@
     function checkOver(dt) {
       let danger = false;
       for (const f of fruits) {
-        if (performance.now() - f.born < 600) continue; // 막 떨어진 과일 제외
-        if (f.y - f.r < DEADLINE && Math.abs(f.vy) < 1.2) { danger = true; break; }
+        if (performance.now() - f.born < 800) continue; // 갓 떨어진 과일은 유예
+        if (f.y - f.r < DEADLINE) { danger = true; break; } // 윗부분이 선을 넘으면 위험
       }
-      if (danger) overTimer += dt; else overTimer = Math.max(0, overTimer - dt * 1.5);
-      if (overTimer > 2000 && !gameOver) endGame();
+      if (danger) overTimer += dt; else overTimer = 0;
+      if (overTimer > 1500 && !gameOver) endGame(); // 1.5초 지속되면 게임오버
     }
 
     function endGame() {
@@ -388,6 +395,7 @@
       fruits = []; score = 0; overTimer = 0; gameOver = false;
       comboCount = 0; submitted = false;
       startBest = best; recordAnnounced = false;
+      highestMade = BASE_DROP_TIER;
       scoreView.textContent = 0;
       nextTier = randTier(); newCurrent();
     }
