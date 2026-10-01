@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1c3a1e"/>
+      <stop offset="55%" stop-color="#132a16"/>
+      <stop offset="100%" stop-color="#05010c"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="80%" cy="18%" r="70%">
+      <stop offset="0%" stop-color="#2fbf55" stop-opacity="0.42"/>
+      <stop offset="100%" stop-color="#2fbf55" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="wm" cx="38%" cy="32%" r="75%">
+      <stop offset="0%" stop-color="#5fe081"/>
+      <stop offset="60%" stop-color="#2fbf55"/>
+      <stop offset="100%" stop-color="#1b7a37"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg)"/>
+  <rect width="800" height="500" fill="url(#glow)"/>
+
+  <!-- 바닥에 쌓인 과일들 -->
+  <circle cx="150" cy="430" r="40" fill="#e23d4b"/>
+  <circle cx="230" cy="445" r="28" fill="#ff9f1c"/>
+  <circle cx="300" cy="430" r="46" fill="#ffd60a"/>
+  <circle cx="660" cy="438" r="36" fill="#f0506e"/>
+  <circle cx="720" cy="448" r="26" fill="#8a4fff"/>
+
+  <!-- 중앙 수박 -->
+  <circle cx="420" cy="270" r="120" fill="url(#wm)" stroke="#0e5024" stroke-width="6"/>
+  <path d="M340 220 Q420 160 500 220" stroke="#0e5024" stroke-width="5" fill="none" opacity="0.5"/>
+  <path d="M320 270 Q420 240 520 270" stroke="#0e5024" stroke-width="5" fill="none" opacity="0.5"/>
+  <path d="M340 320 Q420 360 500 320" stroke="#0e5024" stroke-width="5" fill="none" opacity="0.5"/>
+  <ellipse cx="385" cy="235" rx="34" ry="22" fill="#ffffff" opacity="0.22"/>
+
+  <!-- 떨어지는 과일 (위) -->
+  <circle cx="560" cy="120" r="34" fill="#ff3b3b"/>
+  <circle cx="250" cy="140" r="22" fill="#f0506e"/>
+
+  <!-- 타이틀 -->
+  <text x="400" y="450" font-family="system-ui, sans-serif" font-size="58" font-weight="800"
+        text-anchor="middle" fill="#ffffff">🍉 수박게임</text>
+  <text x="400" y="486" font-family="system-ui, sans-serif" font-size="22"
+        text-anchor="middle" fill="#bfe34a">과일을 합쳐 수박을 만들자!</text>
+</svg>

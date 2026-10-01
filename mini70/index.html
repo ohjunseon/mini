@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>🍉 수박게임 | 과일 합치기 물리 퍼즐 | 미니게임 모음</title>
+  <meta name="description" content="같은 과일을 합쳐 더 큰 과일을 만드는 수박게임! 체리부터 수박까지, 연쇄 합치기로 최고 점수에 도전하세요. 설치·회원가입 없이 무료 플레이.">
+  <meta name="keywords" content="수박게임, 과일 합치기, 수박 게임, 물리 퍼즐, 합치기 게임, 미니게임">
+  <meta name="theme-color" content="#2fbf55">
+  <link rel="stylesheet" href="../shared/style.css">
+  <meta property="og:title" content="🍉 수박게임">
+  <meta property="og:description" content="같은 과일을 합쳐 수박을 만들자! 연쇄 콤보로 최고 점수에 도전하는 물리 퍼즐.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://mini.npig82.workers.dev/mini70/cover.svg">
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:image" content="https://mini.npig82.workers.dev/mini70/cover.svg">
+  <meta property="twitter:title" content="🍉 수박게임">
+  <meta property="twitter:description" content="같은 과일을 합쳐 수박을 만들자! 최고 점수에 도전하세요.">
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "VideoGame",
+  "name": "수박게임",
+  "description": "같은 과일을 합쳐 더 큰 과일을 만드는 물리 퍼즐 게임",
+  "url": "https://mini.npig82.workers.dev/mini70/",
+  "image": "https://mini.npig82.workers.dev/mini70/cover.svg",
+  "genre": "퍼즐",
+  "applicationCategory": "Game",
+  "operatingSystem": "Any (Web Browser)",
+  "inLanguage": "ko",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" }
+}
+  </script>
+  <link rel="canonical" href="https://mini.npig82.workers.dev/mini70/">
+  <meta property="og:url" content="https://mini.npig82.workers.dev/mini70/">
+  <style>
+    .suika-wrap { display: flex; flex-direction: column; align-items: center; }
+    .suika-top {
+      display: flex; justify-content: space-between; align-items: center;
+      width: 100%; max-width: 360px; margin-bottom: 8px; gap: 10px;
+    }
+    .suika-scorebox { text-align: left; }
+    .suika-scorebox .lbl { font-size: .8rem; color: var(--muted); }
+    .suika-scorebox .val { font-size: 1.6rem; font-weight: 800; color: var(--text); line-height: 1.1; }
+    .suika-best { font-size: .85rem; color: var(--muted); }
+    .suika-next {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 6px 10px; border: 1px solid var(--panel-border); border-radius: 12px;
+      background: var(--panel); min-width: 64px;
+    }
+    .suika-next .lbl { font-size: .7rem; color: var(--muted); }
+    .suika-next .emoji { font-size: 1.8rem; line-height: 1; }
+    #suikaCanvas {
+      display: block; background: linear-gradient(180deg, #1a0f3a 0%, #120826 100%);
+      border: 2px solid var(--panel-border); border-radius: 16px;
+      max-width: 100%; height: auto; touch-action: none; cursor: pointer;
+      box-shadow: var(--shadow);
+    }
+    .suika-hint { margin-top: 10px; color: var(--muted); font-size: .9rem; }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="game-container">
+      <div class="card">
+        <header style="border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 16px;">
+          <h1>🍉 수박게임</h1>
+          <p>같은 과일을 합쳐 더 큰 과일을 만드세요! 수박을 만들면 최고의 쾌감!</p>
+        </header>
+
+        <div class="suika-wrap">
+          <div class="suika-top">
+            <div class="suika-scorebox">
+              <div class="lbl">점수</div>
+              <div class="val" id="scoreView">0</div>
+              <div class="suika-best">🏆 최고 <span id="bestView">0</span></div>
+            </div>
+            <div class="suika-next">
+              <div class="lbl">NEXT</div>
+              <div class="emoji" id="nextView">🍒</div>
+            </div>
+          </div>
+
+          <canvas id="suikaCanvas" width="360" height="520"></canvas>
+
+          <div class="suika-hint">움직여서 조준 · 클릭/탭으로 떨어뜨리기</div>
+
+          <div class="controls mt-4">
+            <button id="btnRestart" class="btn">다시 시작</button>
+          </div>
+        </div>
+
+        <div class="stats-bar mt-4">
+          <div class="stat-item">
+            <span class="stat-label">총 방문수</span>
+            <span class="stat-value" id="visitsView">-</span>
+          </div>
+        </div>
+
+        <div class="panel mt-4" style="text-align: left;">
+          <h3>🏆 Top 5 (최고 점수)</h3>
+          <ul id="rankList" style="padding-left: 20px; color: var(--muted);">
+            <li>로딩 중...</li>
+          </ul>
+        </div>
+
+<!-- SEO_CONTENT_START (auto-generated: scripts/inject-seo-content.js) -->
+        <section class="game-info" style="text-align:left; margin-top:28px;">
+          <h2>게임 소개</h2>
+          <p>같은 과일을 합쳐 점점 더 큰 과일을 만드는 물리 퍼즐, 수박게임입니다. 체리에서 시작해 딸기·포도·귤을 거쳐 최종 단계인 수박까지 만드는 것이 목표이며, 연쇄로 합쳐질 때의 터지는 손맛과 끝없는 점수 경쟁이 중독적인 재미를 줍니다.</p>
+          <h3>조작법 &amp; 목표</h3>
+          <p>마우스나 터치로 좌우를 조준한 뒤 클릭·탭으로 과일을 떨어뜨립니다. 같은 과일 두 개가 닿으면 한 단계 큰 과일로 합쳐집니다. 과일이 맨 위 경계선을 넘어 쌓이면 게임 오버입니다.</p>
+          <h3>게임 팁</h3>
+          <ul>
+            <li>같은 과일을 서로 가까이 모으면 연쇄 합치기(콤보)가 터져 점수가 몇 배로 뛰어오릅니다.</li>
+            <li>큰 과일은 바닥 양쪽 구석에 모으고, 작은 과일을 가운데에서 합쳐 공간을 확보하세요.</li>
+            <li>급하게 쌓다 보면 경계선을 넘기기 쉽습니다. 합칠 자리를 미리 보고 신중하게 떨어뜨리세요.</li>
+          </ul>
+          <h3>이 게임의 카테고리</h3>
+          <p>이 게임은 <strong>퍼즐</strong> 장르입니다. 설치나 회원가입 없이 무료로 바로 즐길 수 있습니다.</p>
+        </section>
+        <nav class="related-games" aria-label="비슷한 게임" style="text-align:left; margin-top:24px;">
+          <h3>🎮 비슷한 게임 더 즐기기</h3>
+          <ul>
+          <li><a href="../mini3/">🏰 점프 타워</a></li>
+          <li><a href="../mini12/">⭕ 틱택토 ❌</a></li>
+          <li><a href="../mini16/">💣 지뢰찾기</a></li>
+          <li><a href="../mini21/">🌀 미로 탈출</a></li>
+          </ul>
+        </nav>
+        <!-- SEO_CONTENT_END -->
+        <div class="mt-4">
+          <a href="../index.html" class="back-link">← 메인으로 돌아가기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/ranking.js"></script>
+  <script src="../shared/juice.js"></script>
+
+  <script>
+    "use strict";
+    const PAGE_ID = "mini70";
+
+    // ───────── 과일 정의 (작은 → 큰) ─────────
+    const FRUITS = [
+      { name: "체리",     emoji: "🍒", r: 15, color: "#e23d4b" },
+      { name: "딸기",     emoji: "🍓", r: 20, color: "#f0506e" },
+      { name: "포도",     emoji: "🍇", r: 26, color: "#8a4fff" },
+      { name: "귤",       emoji: "🍊", r: 32, color: "#ff9f1c" },
+      { name: "레몬",     emoji: "🍋", r: 39, color: "#ffd60a" },
+      { name: "사과",     emoji: "🍎", r: 46, color: "#ff3b3b" },
+      { name: "배",       emoji: "🍐", r: 54, color: "#bfe34a" },
+      { name: "복숭아",   emoji: "🍑", r: 62, color: "#ff8fab" },
+      { name: "파인애플", emoji: "🍍", r: 72, color: "#f4c430" },
+      { name: "멜론",     emoji: "🍈", r: 84, color: "#9be15d" },
+      { name: "수박",     emoji: "🍉", r: 98, color: "#2fbf55" },
+    ];
+    const MAX_TIER = FRUITS.length - 1;
+    const DROPPABLE_MAX = 4; // 떨어지는 과일은 0~4 티어(체리~레몬)만
+
+    // ───────── 물리 상수 ─────────
+    const GRAV = 0.55;
+    const REST = 0.08;      // 과일끼리 반발
+    const WALL_REST = 0.25; // 벽 반발
+    const FRICT = 0.985;
+    const ITER = 6;         // 제약 해소 반복 횟수
+    const DROP_COOLDOWN = 420; // ms
+
+    const canvas = document.getElementById("suikaCanvas");
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height;
+    const DEADLINE = 86; // 이 선 위로 과일이 오래 머물면 게임오버
+
+    const scoreView = document.getElementById("scoreView");
+    const bestView = document.getElementById("bestView");
+    const nextView = document.getElementById("nextView");
+    const visitsView = document.getElementById("visitsView");
+    const rankList = document.getElementById("rankList");
+
+    let fruits = [];
+    let score = 0;
+    let best = Number(localStorage.getItem("best_" + PAGE_ID) || 0);
+    let dropX = W / 2;
+    let currentTier = 0;
+    let nextTier = randTier();
+    let lastDrop = 0;
+    let overTimer = 0;
+    let gameOver = false;
+    let comboCount = 0;
+    let comboTimer = 0;
+    let submitted = false;
+    let uid = 1;
+
+    bestView.textContent = best;
+
+    function randTier() { return Math.floor(Math.random() * (DROPPABLE_MAX + 1)); }
+
+    function newCurrent() {
+      currentTier = nextTier;
+      nextTier = randTier();
+      nextView.textContent = FRUITS[nextTier].emoji;
+    }
+    newCurrent();
+
+    function makeFruit(x, y, tier, vx = 0, vy = 0) {
+      return { id: uid++, x, y, tier, r: FRUITS[tier].r, vx, vy, merging: false, mergeWith: null, born: performance.now() };
+    }
+    function addFruit(x, y, tier, vx = 0, vy = 0) {
+      fruits.push(makeFruit(x, y, tier, vx, vy));
+    }
+
+    // ───────── 입력 ─────────
+    function pointerX(e) {
+      const rect = canvas.getBoundingClientRect();
+      const cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+      return Math.max(0, Math.min(W, cx * (W / rect.width)));
+    }
+    function moveAim(e) {
+      if (gameOver) return;
+      const r = FRUITS[currentTier].r;
+      dropX = Math.max(r, Math.min(W - r, pointerX(e)));
+    }
+    function tryDrop() {
+      if (gameOver) return;
+      const now = performance.now();
+      if (now - lastDrop < DROP_COOLDOWN) return;
+      lastDrop = now;
+      addFruit(dropX, DEADLINE - FRUITS[currentTier].r - 4, currentTier, 0, 0);
+      if (window.Juice && Juice.sfx) Juice.sfx("tick");
+      newCurrent();
+    }
+    canvas.addEventListener("mousemove", moveAim);
+    canvas.addEventListener("mousedown", (e) => { moveAim(e); });
+    canvas.addEventListener("click", tryDrop);
+    canvas.addEventListener("touchstart", (e) => { e.preventDefault(); moveAim(e); }, { passive: false });
+    canvas.addEventListener("touchmove", (e) => { e.preventDefault(); moveAim(e); }, { passive: false });
+    canvas.addEventListener("touchend", (e) => { e.preventDefault(); tryDrop(); }, { passive: false });
+
+    // ───────── 물리 업데이트 ─────────
+    function physics() {
+      for (const f of fruits) {
+        f.vy += GRAV;
+        f.x += f.vx;
+        f.y += f.vy;
+      }
+      for (let it = 0; it < ITER; it++) {
+        // 벽 / 바닥
+        for (const f of fruits) {
+          if (f.x < f.r) { f.x = f.r; f.vx = Math.abs(f.vx) * WALL_REST; }
+          if (f.x > W - f.r) { f.x = W - f.r; f.vx = -Math.abs(f.vx) * WALL_REST; }
+          if (f.y > H - f.r) { f.y = H - f.r; f.vy = -Math.abs(f.vy) * WALL_REST; f.vx *= FRICT; }
+        }
+        // 과일끼리
+        for (let i = 0; i < fruits.length; i++) {
+          for (let j = i + 1; j < fruits.length; j++) {
+            const a = fruits[i], b = fruits[j];
+            let dx = b.x - a.x, dy = b.y - a.y;
+            let d = Math.hypot(dx, dy);
+            const min = a.r + b.r;
+            if (d === 0) { d = 0.01; dx = 0.01; }
+            if (d < min) {
+              if (a.tier === b.tier && !a.merging && !b.merging && a.tier < MAX_TIER) {
+                a.merging = b.merging = true;
+                a.mergeWith = b.id;
+              }
+              const nx = dx / d, ny = dy / d;
+              const overlap = (min - d) / 2;
+              a.x -= nx * overlap; a.y -= ny * overlap;
+              b.x += nx * overlap; b.y += ny * overlap;
+              const rvx = b.vx - a.vx, rvy = b.vy - a.vy;
+              const vn = rvx * nx + rvy * ny;
+              if (vn < 0) {
+                const imp = -(1 + REST) * vn / 2;
+                a.vx -= imp * nx; a.vy -= imp * ny;
+                b.vx += imp * nx; b.vy += imp * ny;
+              }
+            }
+          }
+        }
+      }
+      resolveMerges();
+    }
+
+    function resolveMerges() {
+      const done = new Set();
+      const survivors = [];
+      const created = [];
+      const byId = {};
+      for (const f of fruits) byId[f.id] = f;
+      for (const f of fruits) {
+        if (done.has(f.id)) continue;
+        if (f.merging && f.mergeWith != null && byId[f.mergeWith] && !done.has(f.mergeWith)) {
+          const b = byId[f.mergeWith];
+          done.add(f.id); done.add(b.id);
+          const nt = f.tier + 1;
+          const mx = (f.x + b.x) / 2, my = (f.y + b.y) / 2;
+          created.push(makeFruit(mx, my, nt, (f.vx + b.vx) / 2, (f.vy + b.vy) / 2 - 1.5));
+          onMerge(f.tier, mx, my, nt);
+        } else {
+          f.merging = false; f.mergeWith = null;
+          survivors.push(f);
+        }
+      }
+      fruits = survivors.concat(created);
+    }
+
+    function onMerge(tier, mx, my, newTier) {
+      // 콤보
+      const now = performance.now();
+      if (now - comboTimer < 900) comboCount++; else comboCount = 1;
+      comboTimer = now;
+      const base = (tier + 1) * (tier + 2) / 2; // 삼각수: 1,3,6,10,...
+      const gain = base * (comboCount > 1 ? comboCount : 1);
+      score += gain;
+      scoreView.textContent = score;
+
+      // 손맛
+      if (window.Juice) {
+        const rect = canvas.getBoundingClientRect();
+        const sx = rect.left + mx * (rect.width / W);
+        const sy = rect.top + my * (rect.height / H);
+        Juice.pop && Juice.pop(sx, sy, { count: 10 + newTier, color: FRUITS[newTier].color });
+        if (comboCount >= 2) {
+          Juice.toast && Juice.toast("🔥 " + comboCount + "x 콤보!", "good");
+        }
+        if (newTier >= MAX_TIER) { // 수박 완성!
+          Juice.shake && Juice.shake(canvas, 14);
+          Juice.flash && Juice.flash();
+          Juice.sfx && Juice.sfx("levelup");
+          Juice.toast && Juice.toast("🍉 수박 완성! +" + gain, "good");
+        } else if (newTier >= 8) {
+          Juice.shake && Juice.shake(canvas, 7);
+          Juice.sfx && Juice.sfx("levelup");
+        } else {
+          Juice.sfx && Juice.sfx("good");
+        }
+      }
+
+      // 수박 두 개가 다시 합쳐지는 일은 없음(MAX_TIER 는 merge 대상 제외)
+    }
+
+    // ───────── 게임오버 판정 ─────────
+    function checkOver(dt) {
+      let danger = false;
+      for (const f of fruits) {
+        if (performance.now() - f.born < 600) continue; // 막 떨어진 과일 제외
+        if (f.y - f.r < DEADLINE && Math.abs(f.vy) < 1.2) { danger = true; break; }
+      }
+      if (danger) overTimer += dt; else overTimer = Math.max(0, overTimer - dt * 1.5);
+      if (overTimer > 2000 && !gameOver) endGame();
+    }
+
+    function endGame() {
+      gameOver = true;
+      if (best < score) { best = score; localStorage.setItem("best_" + PAGE_ID, best); }
+      bestView.textContent = best;
+      if (window.Juice && Juice.sfx) Juice.sfx("gameover");
+      if (!submitted && window.Juice) {
+        submitted = true;
+        Juice.submit(PAGE_ID, score);
+      }
+    }
+
+    function restart() {
+      fruits = []; score = 0; overTimer = 0; gameOver = false;
+      comboCount = 0; submitted = false;
+      scoreView.textContent = 0;
+      nextTier = randTier(); newCurrent();
+    }
+    document.getElementById("btnRestart").addEventListener("click", restart);
+
+    // ───────── 렌더 ─────────
+    function drawFruit(f) {
+      const spec = FRUITS[f.tier];
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      const g = ctx.createRadialGradient(f.x - f.r * 0.3, f.y - f.r * 0.3, f.r * 0.2, f.x, f.y, f.r);
+      g.addColorStop(0, "#ffffff55");
+      g.addColorStop(0.25, spec.color);
+      g.addColorStop(1, shade(spec.color, -25));
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#00000033";
+      ctx.stroke();
+      ctx.font = (f.r * 1.25) + "px serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(spec.emoji, f.x, f.y + f.r * 0.06);
+    }
+
+    function shade(hex, amt) {
+      const n = parseInt(hex.slice(1), 16);
+      let r = (n >> 16) + amt, g = ((n >> 8) & 255) + amt, b = (n & 255) + amt;
+      r = Math.max(0, Math.min(255, r)); g = Math.max(0, Math.min(255, g)); b = Math.max(0, Math.min(255, b));
+      return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, W, H);
+      // 데드라인
+      ctx.strokeStyle = overTimer > 400 ? "#ff3366cc" : "#ffffff33";
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath(); ctx.moveTo(0, DEADLINE); ctx.lineTo(W, DEADLINE); ctx.stroke();
+      ctx.setLineDash([]);
+      // 과일
+      for (const f of fruits) drawFruit(f);
+      // 대기 과일 + 가이드
+      if (!gameOver) {
+        const r = FRUITS[currentTier].r;
+        ctx.globalAlpha = 0.25;
+        ctx.strokeStyle = "#ffffff";
+        ctx.beginPath(); ctx.moveTo(dropX, DEADLINE); ctx.lineTo(dropX, H); ctx.stroke();
+        ctx.globalAlpha = 1;
+        drawFruit({ x: dropX, y: DEADLINE - r - 4, r, tier: currentTier });
+      } else {
+        ctx.fillStyle = "#000000aa";
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 34px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("게임 오버", W / 2, H / 2 - 20);
+        ctx.font = "20px system-ui, sans-serif";
+        ctx.fillText("점수 " + score, W / 2, H / 2 + 14);
+        ctx.font = "15px system-ui, sans-serif";
+        ctx.fillStyle = "#ffd60a";
+        ctx.fillText("‘다시 시작’을 눌러 재도전!", W / 2, H / 2 + 44);
+      }
+    }
+
+    // ───────── 메인 루프 ─────────
+    let lastT = performance.now();
+    function loop(t) {
+      const dt = Math.min(50, t - lastT);
+      lastT = t;
+      if (!gameOver) {
+        physics();
+        checkOver(dt);
+      }
+      render();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    // ───────── 방문수 / 랭킹 ─────────
+    if (window.GameStats) {
+      GameStats.incrementVisitCount(PAGE_ID, (val) => { visitsView.textContent = val ?? "-"; });
+      GameStats.listenTopScores(PAGE_ID, 5, (arr) => {
+        rankList.innerHTML = "";
+        if (!arr || arr.length === 0) { rankList.innerHTML = "<li>기록이 없습니다.</li>"; return; }
+        arr.forEach((item, idx) => {
+          const li = document.createElement("li");
+          li.textContent = `${idx + 1}위: ${item.name} - ${item.score}점`;
+          rankList.appendChild(li);
+        });
+      });
+    }
+  </script>
+</body>
+
+</html>
