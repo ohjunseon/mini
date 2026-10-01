@@ -248,3 +248,76 @@ canvas {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* SEO 콘텐츠 블록 (게임 소개 / 조작법 / 팁 / 관련 게임) */
+.game-info,
+.related-games {
+  border-top: 1px solid var(--panel-border);
+  padding-top: 18px;
+  color: var(--muted);
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.game-info h2,
+.related-games h3,
+.game-info h3 {
+  color: var(--text);
+  margin: 16px 0 8px;
+}
+
+.game-info h2 {
+  font-size: 1.25rem;
+}
+
+.game-info h3,
+.related-games h3 {
+  font-size: 1.05rem;
+}
+
+.game-info p {
+  margin: 0 0 8px;
+}
+
+.game-info ul {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
+.game-info li {
+  margin-bottom: 6px;
+}
+
+.game-info strong {
+  color: var(--accent);
+}
+
+.related-games ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.related-games li {
+  margin: 0;
+}
+
+.related-games a {
+  display: inline-block;
+  padding: 8px 14px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: border-color .15s, color .15s;
+}
+
+.related-games a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
